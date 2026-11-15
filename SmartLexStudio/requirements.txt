@@ -1,0 +1,2 @@
+# SmartLex Studio no tiene dependencias externas: solo biblioteca estandar.
+# Requiere Python >= 3.10 con tkinter (para la interfaz grafica; el nucleo no lo necesita).

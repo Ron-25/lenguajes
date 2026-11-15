@@ -47,3 +47,10 @@ Aquí se registran las auditorías de cada fase (reviewer-opus), las discrepanci
 | Fecha | Tarea | Qué dice el contrato | Qué problema hay | Qué se implementó | Resuelto por el arquitecto |
 |---|---|---|---|---|---|
 | | | | | | |
+
+## Discrepancias y notas del desarrollador (Fase A)
+
+| Fecha | Tarea | Qué dice el contrato | Qué problema hay | Qué se implementó | Resuelto por el arquitecto |
+|---|---|---|---|---|---|
+| 2026-11-15 | A10 | «Ningún archivo de `core/` o `application/` supera ~200 líneas» | `application/analisis_service.py` tiene 228 líneas (`core/simbolos.py` 193) | Se mantiene sin dividir (ver D-26) | Pendiente |
+| 2026-11-15 | A10 | Regla general 6 usa `-t .`; el encargo del orquestador omite `-t .` | Ninguno: ambas formas de `unittest discover` funcionan y dan 87 pruebas | Sin cambios | — |

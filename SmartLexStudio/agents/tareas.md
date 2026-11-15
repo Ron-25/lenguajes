@@ -7,7 +7,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Tarea | Agente | Modelo | Estado | Resultado |
 |---|---|---|---|---|
 | Pasos 1–5: requisitos, investigación, especificación, arquitectura, tareas | architect-fable | claude-fable-5-2 | completado | `docs/matriz_requisitos.md`, `docs/01_investigacion.md`, `docs/02_arquitectura.md`, `docs/03_especificacion.md`, `agents/tareas.md`, `agents/decisiones.md`, `agents/revisiones.md`, `ejemplos/*.flow` (3 archivos validados con prototipo) |
-| Fase A (A1–A10) | developer-sonnet | — | pendiente | — |
+| Fase A (A1–A10) | developer-sonnet | claude-sonnet-5-5 | completado | 87 pruebas en verde con python3.11/3.12/3.14/3.15; `grep` de A10 vacíos; reproduce los valores de la especificación §12. Decisiones D-26 a D-28 pendientes de revisión |
 | Auditoría Fase A | reviewer-opus | — | pendiente | — |
 | Fase B (B1–B8) | developer-sonnet | — | pendiente | — |
 | Auditoría Fase B y final | reviewer-opus | — | pendiente | — |
@@ -404,7 +404,7 @@ def explicar_token(token: Token, tabla: TablaSimbolos | None = None) -> Explicac
 
 ## Tareas de la Fase A
 
-Responsable de todas: **developer-sonnet**. Estado inicial: **Pendiente**.
+Responsable de todas: **developer-sonnet**. Estado: **A1–A10 completadas** (ver registro de ejecución).
 
 ### A1 — Esqueleto y modelos
 - **Archivos:** `config/__init__.py`, `core/__init__.py`, `application/__init__.py`, `ui/__init__.py`, `tests/__init__.py` (vacíos), `core/modelos.py`, `.gitignore` (`__pycache__/`, `*.pyc`, `.DS_Store`), `requirements.txt` (solo un comentario: sin dependencias externas; Python ≥ 3.10 con tkinter).
