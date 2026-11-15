@@ -109,8 +109,9 @@ def _texto_instalacion(instalacion: ResultadoInstalacion) -> str:
         estado = "colisión"
     else:
         estado = "nueva"
-    extra = ", tabla redimensionada" if instalacion.redimensiono else ""
-    return f"tabla: {estado}, cubeta {instalacion.indice}{extra}"
+    if instalacion.redimensiono:  # la colision ocurrio en la cubeta anterior al redimensionado
+        return f"tabla: {estado}; tabla redimensionada, ahora en cubeta {instalacion.indice}"
+    return f"tabla: {estado}, cubeta {instalacion.indice}"
 
 
 class SesionAnalisis:
@@ -118,7 +119,10 @@ class SesionAnalisis:
 
     def __init__(self, fuente: str, capacidad_tabla: int = reglas.CAPACIDAD_INICIAL_TABLA) -> None:
         manejador = ManejadorErrores()
-        self._tokens = Lexer(fuente, manejador).tokens()
+        # El lexer reporta en un manejador propio que se vacia en cada paso: asi los
+        # diagnosticos del paso se obtienen sin copiar toda la lista (coste lineal).
+        self._lexico = ManejadorErrores()
+        self._tokens = Lexer(fuente, self._lexico).tokens()
         self._resultado = ResultadoAnalisis(fuente, [], manejador, TablaSimbolos(capacidad_tabla))
         self._anterior: Token | None = None      # ultimo token significativo
         self._numero = 0
@@ -141,10 +145,12 @@ class SesionAnalisis:
             return None
         manejador = self._resultado.manejador
         if not self._lexico_agotado:
-            antes = manejador.cantidad()
             token = next(self._tokens, None)
+            nuevos = self._lexico.diagnosticos
+            self._lexico.limpiar()
+            manejador.extender(nuevos)
             if token is not None:
-                return self._paso_lexico(token, tuple(manejador.diagnosticos[antes:]))
+                return self._paso_lexico(token, tuple(nuevos))
             self._lexico_agotado = True
             self._estructurales = validar_estructura(self._resultado.tokens)
             manejador.extender(self._estructurales)
@@ -216,8 +222,13 @@ def explicar_token(token: Token, tabla: TablaSimbolos | None = None) -> Explicac
         lineas.append("Recorrido: " + " → ".join(coincidencia.recorrido))
     if token.tipo == TipoToken.ERROR and coincidencia.codigo_error:
         datos = CATALOGO[coincidencia.codigo_error]
+        # Se reanaliza el lexema para mostrar la misma sugerencia que recibio el diagnostico
+        # (p. ej. la especifica de LEX-001 para '&'), sin duplicar esa regla aqui.
+        reanalisis = Lexer(token.lexema)
+        reanalisis.analizar()
+        sugerencia = next((d.sugerencia for d in reanalisis.manejador.diagnosticos), datos["sugerencia"])
         lineas.append(f"Error {coincidencia.codigo_error}: {datos['titulo']}")
-        lineas.append(f"Sugerencia: {datos['sugerencia']}")
+        lineas.append(f"Sugerencia: {sugerencia}")
     entrada = tabla.buscar(token.lexema) if tabla is not None else None
     if tabla is not None and entrada is not None:
         lineas.append(

@@ -141,8 +141,8 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_NUMERO, AFD_IDENTIFICADOR)
 INFO_CATEGORIAS = {
     TipoToken.PALABRA_RESERVADA: {
         "descripcion": "Palabra con significado fijo en el lenguaje; no puede usarse como nombre.",
-        "regex": "inicio|fin|numero|decimal|texto|booleano|dispositivo|verdadero|falso"
-                 "|si|sino|mientras|mostrar|leer|activar|desactivar|esperar",
+        # Se deriva del diccionario: agregar una palabra reservada actualiza tambien su regex.
+        "regex": "|".join(PALABRAS_RESERVADAS),
         "ejemplos": ("inicio", "si", "mostrar"),
     },
     TipoToken.IDENTIFICADOR: {

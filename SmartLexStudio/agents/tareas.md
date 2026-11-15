@@ -8,7 +8,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 |---|---|---|---|---|
 | Pasos 1–5: requisitos, investigación, especificación, arquitectura, tareas | architect-fable | claude-fable-5-2 | completado | `docs/matriz_requisitos.md`, `docs/01_investigacion.md`, `docs/02_arquitectura.md`, `docs/03_especificacion.md`, `agents/tareas.md`, `agents/decisiones.md`, `agents/revisiones.md`, `ejemplos/*.flow` (3 archivos validados con prototipo) |
 | Fase A (A1–A10) | developer-sonnet | claude-sonnet-5-5 | completado | 87 pruebas en verde con python3.11/3.12/3.14/3.15; `grep` de A10 vacíos; reproduce los valores de la especificación §12. Decisiones D-26 a D-28 pendientes de revisión |
-| Auditoría Fase A | reviewer-opus | — | pendiente | — |
+| Auditoría Fase A | reviewer-opus | claude-opus-5-5 | completado | APROBADO CON OBSERVACIONES: 14 hallazgos (0 críticos/altos, 4 medios, 10 bajos); 7 corregidos con prueba (`tests/test_auditoria_fase_a.py`), 6 escalados (E-1…E-6); 93 pruebas OK; D-26/D-27/D-28 aprobadas. Ver `docs/06_auditoria.md` |
 | Fase B (B1–B8) | developer-sonnet | — | pendiente | — |
 | Auditoría Fase B y final | reviewer-opus | — | pendiente | — |
 

@@ -39,18 +39,18 @@ def cargar_fuente(ruta: str | Path) -> str:
         texto = datos.decode("utf-8-sig")  # acepta (y quita) la marca BOM
     except UnicodeDecodeError:
         raise _error("ARC-004", ruta) from None
-    if not texto.strip():
+    if not texto.strip(reglas.ESPACIOS):  # "solo espacios" segun el lenguaje, no segun Unicode
         raise _error("ARC-003", ruta)
     return texto.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def guardar_fuente(ruta: str | Path, contenido: str) -> None:
-    """Guarda el texto en UTF-8; cualquier OSError se convierte en ARC-005."""
+    """Guarda el texto en UTF-8; OSError o texto no codificable se convierten en ARC-005."""
     ruta = Path(ruta)
     try:
-        with open(ruta, "w", encoding=reglas.CODIFICACION, newline="\n") as archivo:
-            archivo.write(contenido)
-    except OSError:
+        datos = contenido.encode(reglas.CODIFICACION)  # antes de abrir: si falla, no se trunca el archivo
+        ruta.write_bytes(datos)
+    except (OSError, UnicodeEncodeError):
         raise _error("ARC-005", ruta) from None
 
 

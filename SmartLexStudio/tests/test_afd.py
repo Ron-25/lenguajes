@@ -98,7 +98,7 @@ class TestMotorAFD(unittest.TestCase):
 
 
 class TestEquivalenciaRegexAFD(unittest.TestCase):
-    ALFABETO = ["a", "1", "_", ".", '"', "\\", "\n", "/", "*", " ", "q"]
+    ALFABETO = ["a", "1", "_", ".", '"', "\\", "\n", "/", "*", " ", "q", "n", "t"]
 
     def test_equivalencia_hasta_longitud_5(self):
         parejas = [
