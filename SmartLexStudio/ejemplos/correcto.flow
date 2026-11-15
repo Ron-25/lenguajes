@@ -1,0 +1,29 @@
+// Riego automatico de un invernadero (programa FlowLang valido)
+inicio
+    /* Declaraciones:
+       cada variable tiene un tipo */
+    numero temperatura = 28;
+    decimal humedad = 45.5;
+    texto zona = "Invernadero \"Norte\"";
+    booleano activo = verdadero;
+    dispositivo bomba;
+    numero ciclos = 0;
+
+    leer temperatura;
+    si (temperatura >= 30 && humedad < 50.0) {
+        activar bomba;
+        esperar 10;
+        mostrar "Regando: " + zona;
+    } sino {
+        desactivar bomba;
+    }
+
+    mientras (activo == verdadero && ciclos < 3) {
+        ciclos = ciclos + 1;
+        humedad = humedad * 1.05 - 2 % 3;
+        si (!activo || ciclos != 3) {
+            mostrar "Ciclo\t" + zona;
+        }
+    }
+    mostrar "Fin del riego\n";
+fin

@@ -1,0 +1,14 @@
+inicio
+    numero 2pi = 3.14.15;
+    decimal radio = 5.;
+    texto saludo = "Hola mundo;
+    texto ruta = "C:\qatos";
+    numero total = 100 @ 2;
+    booleano ok = verdadero & falso;
+    numero identificador_demasiado_largo_para_flowlang = 1;
+    si (total >= 10 {
+        mostrar 'total';
+    }
+    mostrar total $ #;
+/* comentario sin cerrar
+fin
