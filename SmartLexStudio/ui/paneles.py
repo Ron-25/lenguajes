@@ -11,7 +11,7 @@ from core.modelos import Diagnostico, Token, TipoDiagnostico
 from ui.componentes import PanelConsola, VistaLenguaje
 from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo, fuente_interfaz
 
-# (identificador, titulo, ancho)
+# (identificador, título, ancho)
 COLUMNAS_TOKENS = [("n", "#", 56), ("linea", "Lín", 50), ("col", "Col", 50),
                    ("categoria", "Categoría", 150), ("lexema", "Lexema", 220)]
 COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 76), ("hash", "Hash", 116), ("lexema", "Lexema", 150),

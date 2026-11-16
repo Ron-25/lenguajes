@@ -109,7 +109,7 @@ def _texto_instalacion(instalacion: ResultadoInstalacion) -> str:
         estado = "colisión"
     else:
         estado = "nueva"
-    if instalacion.redimensiono:  # si hubo redimensionado, la cubeta que cuenta es la de antes de crecer
+    if instalacion.redimensiono:  # la colisión, si la hubo, fue antes de crecer; la cubeta que se muestra es la nueva
         return f"tabla: {estado}; tabla redimensionada, ahora en cubeta {instalacion.indice}"
     return f"tabla: {estado}, cubeta {instalacion.indice}"
 

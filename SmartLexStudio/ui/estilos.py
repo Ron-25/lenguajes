@@ -66,7 +66,7 @@ def _puntos(tamano: int) -> int:
 
 
 def _primera_disponible(candidatas: tuple[str, ...], por_defecto: str) -> str:
-    """Primera familia de `candidatas` instalada; `por_defecto` si Tk aún no tiene ventana raíz."""
+    """Primera familia de `candidatas` instalada; `por_defecto` si no hay ninguna o Tk aún no tiene ventana raíz."""
     try:
         instaladas = set(tkfont.families())
     except (tk.TclError, RuntimeError):

@@ -367,3 +367,28 @@ Revisión de `git diff 10be484 8e1ecf8` (ui y tests) contra §17, las tareas C1�
 **D-73 (opinión).** (a), (b), (d), (e), (f) razonables y de bajo riesgo. (c) aceptable, pero el deslizador de 80 px es poco preciso (0–500 ms en 80 px ≈ 6 ms/px): sugerencia al arquitecto de 120 px si cabe. Recomiendo aprobar D-73.
 
 **Batería.** `python3.14 -m unittest discover -s tests -t .` tres corridas: `Ran 176 tests` · `FAILED (failures=2)` (solo `test_conteos_de_flowlang_1_0` y `test_listar_ejemplos`, por los archivos locales del usuario), 0 trazas `("after" script)` / `invalid command` (AUD-28 sigue cerrado). Capturas regeneradas una vez (`capturar.py`); la 2 ya muestra «Veces» y `lín:col` (la cabecera «Veces» se veía cortada y se ensanchó a 70 px después de la captura).
+
+## Auditoría Fase E (reviewer-opus)
+
+Revisión de `git diff 03f222f e33a0f7` contra §3.3, §9, §10.1 y §12 de la especificación, la arquitectura §18, las tareas T1–T7 y D-74…D-82, verificada **ejecutando** el lexer, la sesión de análisis, la guía y una mutación del AFD.
+
+| ID | Severidad | Problema | Impacto | Prueba que lo reproduce | Corrección | Estado |
+|---|---|---|---|---|---|---|
+| AUD-37 | Baja | La reescritura de comentarios (T4) invirtió el sentido de uno en `application/analisis_service.py` (`_texto_instalacion`): decía «la cubeta que cuenta es la de antes de crecer», pero el texto muestra `instalacion.indice`, calculado **después** de redimensionar | Un comentario que contradice el código confunde al explicarlo en la sustentación | Lectura de `TablaSimbolos.instalar` (el índice se toma tras `_redimensionar`) | Comentario: «la colisión, si la hubo, fue antes de crecer; la cubeta que se muestra es la nueva». También `título` sin tilde en `ui/paneles.py` y el docstring incompleto de `_primera_disponible` (`ui/estilos.py`, también devuelve `por_defecto` si no hay ninguna familia). Solo texto: `ast` sin docstrings igual | Corregido |
+| AUD-38 | Baja | La guía de presentación (HTML y PDF, pág. 13) daba `10seg → q0 q1 q1 q7 q5 q5 q5`: un `q5` de más (el AFD da `q0 q1 q1 q7 q5 q5`) | Un número que el jurado puede comprobar en la pestaña Autómatas y no coincide | `tests/test_auditoria_fase_e.py::test_recorridos_de_la_guia_coinciden_con_el_afd` (falla con el HTML de `e33a0f7`) | `docs/guia_presentacion.html` corregido y `Guia_Presentacion_SmartLex.pdf` regenerado con Chrome headless (26 páginas) | Corregido |
+
+**Verificado ejecutando.**
+- Lexer: `10s`, `500ms`, `5m`, `2h`, `007s`, `0s` → `DURACION`; `10ms;` → `10ms` + `;` en 1:5 (maximal munch q8→q7); `10 s` → `ENTERO` + `IDENTIFICADOR` en 1:4; `10x`, `5min`, `10S`, `5mm`, `10sx`, `2pi`, `10s10`, `10hs`, `10sm`, `10mss`, `1_000s`, `10m_`, `10s.5` → `LEX-004` de un solo lexema; `1.5s`, `3.` → `LEX-003`; `x10s` → identificador; los casos al final del archivo (sin `;` ni salto) dan lo mismo. Recorridos de la tabla de §3.3 idénticos.
+- Equivalencia regex↔AFD (D-82): no es tautológica. Se compara contra la regex de `INFO_CATEGORIAS` y cuatro mutaciones de `AFD_NUMERO` (`q8 s→q5`, `q1 h→q5`, `q7 s→q7`, `q8 m→q8`) producen 3, 4, 15 y 9 diferencias con el alfabeto reducido.
+- §12: correcto 111 tokens / 36 entradas / 14 y 7 colisiones / `30s` = 30000, h 50614; incorrecto 63 tokens (15 ERROR), 17 diagnósticos en las posiciones de la tabla, 19 entradas, 8 y 6; casos_límite 139 tokens, 40 entradas, 11 y 5, duraciones en 20:13/28/41/53/65 con 500, 10000, 300000, 7200000 y 7000 ms, `3 s` en 21:13 y 21:15. `valor_literal` con `rstrip(ascii_lowercase)` correcto.
+- UI y capturas: color `#00796B` aplicado (prueba de UI), grupo «Números» en Lenguaje; `4_automatas.png` muestra `30s` con `q0 → q1 → q1 → q7`, hash 50614, cubeta 54 (= 50614 mod 79), tipo duracion; `2_tabla_simbolos.png` con las cifras de §12.
+- Guía `05_guia_sustentacion.md`: ejercicios 4, 5, 9, 10 y 11 reensayados en copias temporales (sin `practica.flow`): salidas y pruebas que fallan coinciden exactamente (2, 3, 3, 9 y 1). Pregunta 5b coherente con el catálogo. PDF: páginas 6, 13 y 20 revisadas.
+- Comentarios: sin referencias internas (`AUD-`, `D-`, `§`, `B5.9`) en `core/`, `config/`, `application/`, `ui/`, `main.py`; el resto suena natural y es fiel al código. `ast` sin docstrings frente a `03f222f`: solo cambian los seis archivos con cambios funcionales de T1.
+- AUD-28: 0 líneas `("after" script)` / `invalid command` en dos corridas.
+
+**Observación (no defecto).** Con cinco baterías en paralelo `test_ctrl_o_en_el_editor_abre_y_no_inserta_un_salto` falló una vez por carga de la máquina; en corridas normales pasa siempre.
+
+**D-81 (opinión).** Aprobable: el grupo «Números» se arma desde `INFO_CATEGORIAS`, que es lo que pide §18; regenerar todo el panel desde datos sería mejor a futuro, pero no hace falta ahora. Se sugiere al arquitecto corregir §18 para que diga que el árbol del panel Lenguaje se arma a mano.
+**D-82 (opinión).** Aprobable. El color cumple 4,5:1 sobre los fondos de línea (5,32 / 4,86 / 4,66); sobre `seleccion` (3,98) y `error_lexema` (3,57) baja, igual que el resto de colores de token, así que no es propio de la Fase E. El alfabeto reducido conserva las clases que distinguen estados (dígito, `.`, `_`, unidad, otra letra, separador); las mayúsculas (`10S`) quedan cubiertas por pruebas explícitas.
+
+**Batería.** `python3.14 -m unittest discover -s tests -t .` dos corridas: `Ran 184 tests` · `FAILED (failures=1)`, solo `test_listar_ejemplos` (por `ejemplos/practica.flow`, admitida). **Veredicto: Fase E aprobada** con AUD-37 y AUD-38 corregidos.

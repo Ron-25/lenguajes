@@ -338,7 +338,7 @@
 <ul>
   <li><code>3.4.5</code> → q0, q1, q2, q3, q4 → <b>LEX-003</b>, número mal formado.</li>
   <li><code>12abc</code> → q0, q1, q5 → <b>LEX-004</b>, identificador que empieza con dígito.</li>
-  <li><code>10s</code> → q0, q1, q1, q7 → <b>DURACION</b> (10000 ms); <code>500ms</code> → q0 q1 q1 q1 q8 q7; <code>10seg</code> → q0 q1 q1 q7 q5 q5 q5 → <b>LEX-004</b>, porque tras los dígitos no hay exactamente una unidad.</li>
+  <li><code>10s</code> → q0, q1, q1, q7 → <b>DURACION</b> (10000 ms); <code>500ms</code> → q0 q1 q1 q1 q8 q7; <code>10seg</code> → q0 q1 q1 q7 q5 q5 → <b>LEX-004</b>, porque tras los dígitos no hay exactamente una unidad.</li>
 </ul>
 
 <h2>Cómo usa el lexer los autómatas</h2>

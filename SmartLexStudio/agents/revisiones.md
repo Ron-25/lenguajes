@@ -167,6 +167,15 @@ B9 (D-42) y B10 (D-43) revisados: correctos, con pruebas significativas. Baterí
 
 O-2 (pausa en 0 ms) no es defecto: el valor por defecto real es 120 ms; el driver de capturas lo pone en 0. D-73: aprobable; sugerir deslizador de 120 px. Batería: 3 corridas `Ran 176 tests`, 2 fallas esperadas (archivos del usuario), 0 trazas.
 
+### Auditoría Fase E (reviewer-opus)
+
+| ID | Severidad | Archivo | Problema | Corrección | Estado |
+|---|---|---|---|---|---|
+| AUD-37 | Baja | `application/analisis_service.py`, `ui/paneles.py`, `ui/estilos.py` | Comentario reescrito que contradecía el código (cubeta tras redimensionar), `titulo` sin tilde, docstring incompleto de `_primera_disponible` | Solo texto; `ast` sin docstrings igual | Corregido |
+| AUD-38 | Baja | `docs/guia_presentacion.html`, `docs/Guia_Presentacion_SmartLex.pdf` | `10seg` con un `q5` de más en el recorrido | HTML corregido, PDF regenerado; `tests/test_auditoria_fase_e.py` | Corregido |
+
+Fase E aprobada. D-81 y D-82: aprobables (detalle en `docs/06_auditoria.md`). Batería: 2 corridas `Ran 184 tests`, única falla `test_listar_ejemplos` (admitida), 0 trazas de AUD-28.
+
 ### Fase E, T4: líneas del grep (d) que se dejan
 
 - `ui/paneles.py:15`, `("linea", "Lín", 50)` en `COLUMNAS_TOKENS`: `"linea"` es el identificador de la columna de Tk, no un comentario.
