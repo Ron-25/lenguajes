@@ -110,7 +110,7 @@ Comprobación: `python -c "from core.simbolos import hash_polinomial as h; print
 - **Recuperación (modo pánico):** se descarta el lexema inválido, se emite un token de tipo `ERROR` y **el análisis continúa**. Por eso `incorrecto.flow` reporta sus 15 errores en una sola pasada.
 - **Catálogo:** `CATALOGO` en `core/errores.py` tiene los 19 diagnósticos, cada uno con tipo, título, mensaje y sugerencia. Es el único lugar donde están los textos.
 - **Tres familias:** `LEX-001…007` (léxicos), `SIN-001…006` (estructurales), `ARC-001…006` (archivo: no existe, extensión, vacío, codificación, lectura, tamaño).
-- **Durante la evaluación:** `SesionAnalisis.siguiente_paso()` entrega un `Paso` por token con los errores de ese paso; la ventana lo pinta al instante (pestaña Errores, consola, subrayado y ✗ en el margen).
+- **Durante la evaluación:** `SesionAnalisis.siguiente_paso()` entrega un `Paso` por token con los errores de ese paso; la ventana lo pinta al instante (herramienta Problemas, consola, subrayado y ✗ en el margen).
 - **Al final:** se ofrece «¿Desea ver la tabla de símbolos?» y queda el botón «Ver tabla de símbolos».
 
 ### 1.8 Arquitectura por capas (Clean Architecture ligera)
@@ -303,18 +303,18 @@ LETRAS = string.ascii_letters + "ñÑáéíóúÁÉÍÓÚ"
 
 ```python
 # antes
-    TipoToken.PALABRA_RESERVADA: "#569cd6",
+    TipoToken.PALABRA_RESERVADA: "#CF8E6D",
 # después
     TipoToken.PALABRA_RESERVADA: "#c586c0",
 ```
 ```python
 # antes
-    "fondo": "#1e1e1e",
+    "fondo": "#1E1F22",
 # después
     "fondo": "#0d1117",
 ```
 
-- **Comprobar:** abrir la aplicación: las palabras reservadas se ven en violeta en el editor y en la pestaña Tokens; el fondo cambia.
+- **Comprobar:** abrir la aplicación: las palabras reservadas se ven en violeta en el editor y en la herramienta Tokens; el fondo cambia.
 - **Pruebas:** 115 de 115.
 - **Explicación:** responsabilidad única. Ningún otro archivo de `ui/` contiene colores: se comprueba con `grep -rn "#[0-9a-fA-F]\{6\}" ui/ | grep -v estilos.py`, que no devuelve nada.
 
@@ -387,9 +387,9 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 
 ```python
 # antes
-    TipoToken.CADENA: "#ce9178",
+    TipoToken.CADENA: "#6AAB73",
 # después
-    TipoToken.CADENA: "#ce9178",
+    TipoToken.CADENA: "#6AAB73",
     TipoToken.CARACTER: "#d7ba7d",
 ```
 
@@ -469,7 +469,7 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 18. **¿Qué es el modo pánico?** Ante un error se descarta el lexema inválido y se sigue con el carácter siguiente; nunca se detiene en el primer error.
 19. **¿Qué tiene cada error?** Código, tipo, título, mensaje, sugerencia, línea, columna y lexema (`Diagnostico` en `core/modelos.py`).
 20. **¿Cómo cumple «la interfaz se despliega durante la evaluación»?** El lexer es un generador; `SesionAnalisis.siguiente_paso()` devuelve un `Paso` por token, con los errores de ese paso. La ventana consume pasos con un temporizador (`after`) y pinta cada error cuando aparece. Con «Paso a paso» (F10) se ve token por token.
-21. **¿Y «al final, la alternativa de desplegar la tabla de símbolos»?** La pestaña está deshabilitada durante el análisis; al terminar aparece el diálogo «¿Desea ver la tabla de símbolos?» y queda el botón en la barra de estado.
+21. **¿Y «al final, la alternativa de desplegar la tabla de símbolos»?** El icono de la tabla de símbolos (franja derecha) está deshabilitado durante el análisis; al terminar aparece el diálogo «¿Desea ver la tabla de símbolos?» y quedan el enlace de la barra de estado y el icono.
 
 **Validez de la cadena**
 
@@ -481,8 +481,10 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 24. **¿Qué pasa si cambian la interfaz por otra?** `core/` y `application/` no cambian; el modo consola es la prueba: usa el mismo servicio sin tkinter.
 25. **¿Dónde se cambia el lenguaje?** En `config/reglas.py`, que solo contiene datos (ni funciones ni clases).
 26. **¿Qué patrones usaron?** Autómata dirigido por tabla; generador para la evaluación progresiva; la función hash como parámetro (estrategia mínima); paneles pasivos coordinados por `VentanaPrincipal`. No usamos más porque no simplificaban nada.
-27. **¿Cómo saben que funciona?** 115 pruebas con `unittest`: posiciones exactas, coincidencia más larga, colisiones forzadas, archivos inválidos, equivalencia regex ↔ AFD, y pruebas de la ventana. Dos auditorías independientes (`docs/06_auditoria.md`) incluyeron 20 000 entradas aleatorias sin fallos.
+27. **¿Cómo saben que funciona?** 141 pruebas con `unittest`: posiciones exactas, coincidencia más larga, colisiones forzadas, archivos inválidos, equivalencia regex ↔ AFD, y pruebas de la ventana. Dos auditorías independientes (`docs/06_auditoria.md`) incluyeron 20 000 entradas aleatorias sin fallos.
 28. **¿Qué limitaciones tiene?** No hay análisis sintáctico completo ni semántico. Cuatro mensajes repiten un dato de `reglas.py` (hay que actualizar el texto si cambia el dato). El análisis animado de un archivo de 5 000 líneas tarda unos 6 segundos. Con Tcl/Tk 8.6, el coloreado posterior a un emoji puede desplazarse (el análisis es correcto).
+29. **¿Cómo están hechos los iconos?** Sin archivos de imagen: `ui/iconos.py` tiene una tabla `TRAZOS` (líneas, rectángulos, óvalos y polígonos en una rejilla de 16×16) que `dibujar` recorre sobre un `tk.Canvas`, y dos rectángulos de color pintados en una `PhotoImage` para los árboles. Así no dependen de la fuente de cada sistema ni de archivos de terceros (arquitectura §16.5, D-44).
+30. **¿Dónde se ven los errores durante la evaluación?** En cinco sitios a la vez: línea roja en la Consola, fila nueva en Problemas (que se abre sola con el primero), subrayado y ✗ en el editor, contador `✗ N` del widget de inspección y contador de la barra de estado; el icono de Problemas muestra su número (arquitectura §16.7).
 
 ---
 
@@ -493,11 +495,11 @@ Preparación: `git status` limpio; terminal abierta en `SmartLexStudio/`; ventan
 | Tiempo | Qué hacer | Qué decir |
 |---|---|---|
 | 0:00–0:40 | `python main.py`. Se abre el selector de archivo; elegir `ejemplos/correcto.flow` | «El programa solicita el archivo con la cadena de entrada para iniciar (requisito 6). FlowLang es nuestro lenguaje para automatizaciones; a la izquierda están sus reglas, leídas de `config/reglas.py`.» |
-| 0:40–1:30 | Pulsar **Analizar** (F5). Ver la consola y la pestaña Tokens llenarse. Responder **No** al diálogo final (captura `1_correcto_tokens.png`) | «La evaluación es progresiva: un token por paso. 111 tokens, léxico válido, estructura válida: cadena VÁLIDA. Al final se ofrece ver la tabla de símbolos.» |
-| 1:30–2:30 | Botón **Ver tabla de símbolos** (captura `2_tabla_simbolos.png`). Señalar `fin`: hash 101387, cubeta 30; y las filas resaltadas | «Tabla hash propia. `fin`: 102·31+105 = 3267; 3267·31+110 = 101387; módulo 79 = 30. Las filas resaltadas comparten cubeta: colisiones resueltas por encadenamiento. Hubo 14 colisiones al insertar; tras dos redimensionados quedan 7.» |
-| 2:30–3:20 | Pestaña Tokens, clic en `45.5`, luego pestaña **Modo educativo** (captura `4_modo_educativo.png`) | «Este decimal lo reconoció el AFD de números con el recorrido q0, q1, q1, q2, q3. Abajo está la tabla de transiciones: es la misma que usa el lexer.» |
+| 0:40–1:30 | Pulsar **Analizar** (F5). Ver la consola y la herramienta Tokens llenarse. Responder **No** al diálogo final (captura `1_correcto_tokens.png`) | «La evaluación es progresiva: un token por paso. 111 tokens, léxico válido, estructura válida: cadena VÁLIDA. Al final se ofrece ver la tabla de símbolos.» |
+| 1:30–2:30 | Enlace **Ver tabla de símbolos** (captura `2_tabla_simbolos.png`). Señalar `fin`: hash 101387, cubeta 30; y las filas resaltadas | «Tabla hash propia. `fin`: 102·31+105 = 3267; 3267·31+110 = 101387; módulo 79 = 30. Las filas resaltadas comparten cubeta: colisiones resueltas por encadenamiento. Hubo 14 colisiones al insertar; tras dos redimensionados quedan 7.» |
+| 2:30–3:20 | Herramienta Tokens, clic en `45.5`, luego icono **Modo educativo** (captura `4_modo_educativo.png`) | «Este decimal lo reconoció el AFD de números con el recorrido q0, q1, q1, q2, q3. Abajo está la tabla de transiciones: es la misma que usa el lexer.» |
 | 3:20–4:40 | Doble clic en `incorrecto.flow` (panel izquierdo). **Paso a paso** (F10) tres veces: el tercer token es `2pi`. Luego **Analizar** para terminar; responder **No**. Clic en un error y doble clic (captura `5_incorrecto_errores.png`) | «`2pi` empieza con dígito: el AFD termina en un estado de error y aparece LEX-004 en ese instante, con el análisis sin terminar (requisito 5). No se detiene: modo pánico. Al final, 15 errores con código, mensaje y sugerencia; doble clic lleva a la posición.» |
-| 4:40–5:10 | Pestaña **Estadísticas** (captura `3_estadisticas.png`) | «Veredictos separados: léxico y estructura. Los estructurales —falta `fin`, paréntesis sin cerrar— los detecta el validador con una pila, porque eso no es regular.» |
+| 4:40–5:10 | Icono **Estadísticas** (captura `3_estadisticas.png`) | «Veredictos separados: léxico y estructura. Los estructurales —falta `fin`, paréntesis sin cerrar— los detecta el validador con una pila, porque eso no es regular.» |
 | 5:10–6:00 | Modificación en vivo (ejercicio 1): añadir `repetir` en `config/reglas.py`, reabrir la aplicación, escribir `inicio repetir fin` y analizar. Después `git checkout -- .` | «Una línea de datos y ningún algoritmo tocado: abierto/cerrado. La batería avisa con una sola prueba, la que fija que FlowLang 1.0 tiene 17 reservadas.» |
 
 **Si no hay tkinter en el equipo:** `python main.py --consola ejemplos/incorrecto.flow` muestra tokens, errores, veredicto y pregunta si se quiere ver la tabla de símbolos.

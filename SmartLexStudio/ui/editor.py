@@ -1,4 +1,4 @@
-"""Editor de codigo: numeracion de lineas, resaltado por tokens y marcas de error."""
+"""Editor de codigo: pestana unica, margen, resaltado por tokens, marcas de error y widget de inspeccion."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -6,7 +6,8 @@ from tkinter import ttk
 from typing import Callable, Iterable
 
 from core.modelos import Diagnostico, TipoDiagnostico, TipoToken, Token
-from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo
+from ui import iconos
+from ui.estilos import COLORES_TOKEN, TEMA, TIPOS_EN_CURSIVA, fuente_codigo, fuente_interfaz
 
 RETARDO_CAMBIO_MS = 300
 
@@ -20,9 +21,12 @@ class EditorCodigo(ttk.Frame):
     """Text con margen de numeros; avisa de cambios (con debounce) y del movimiento del cursor."""
 
     def __init__(self, padre, al_cambiar: Callable[[], None] | None = None,
-                 al_mover_cursor: Callable[[int, int], None] | None = None) -> None:
+                 al_mover_cursor: Callable[[int, int], None] | None = None,
+                 al_cerrar: Callable[[], None] | None = None) -> None:
         super().__init__(padre)
         self._al_cambiar = al_cambiar
+        self._al_cerrar = al_cerrar
+        self._marcas: list[tuple[int, int]] = []
         self._al_mover_cursor = al_mover_cursor
         self._id_cambio: str | None = None
         self._silencio = False
@@ -30,25 +34,28 @@ class EditorCodigo(ttk.Frame):
         self._lineas_marcadas: set[int] = set()
         fuente = fuente_codigo(13)
 
+        self._construir_pestana()
         self.margen = tk.Text(self, width=6, padx=6, pady=8, takefocus=0, cursor="arrow", wrap="none",
-                              font=fuente, background=TEMA["panel"], foreground=TEMA["texto_tenue"],
+                              font=fuente, background=TEMA["fondo"], foreground=TEMA["numero_linea"],
                               borderwidth=0, highlightthickness=0, state="disabled")
         self.margen.tag_configure("marca", foreground=TEMA["error"])
         self.margen.tag_configure("derecha", justify="right")
         self.texto = tk.Text(self, wrap="none", undo=True, padx=8, pady=8, font=fuente,
-                             background=TEMA["fondo"], foreground=TEMA["texto"],
+                             background=TEMA["fondo"], foreground=TEMA["texto_codigo"],
                              insertbackground=TEMA["blanco"], selectbackground=TEMA["seleccion"],
                              inactiveselectbackground=TEMA["seleccion"], borderwidth=0,
                              highlightthickness=0, tabs=("4c",))
         self._barra_v = ttk.Scrollbar(self, orient="vertical", command=self._desplazar_ambos)
         self._barra_h = ttk.Scrollbar(self, orient="horizontal", command=self.texto.xview)
         self.texto.configure(yscrollcommand=self._al_desplazar, xscrollcommand=self._barra_h.set)
-        self.margen.grid(row=0, column=0, sticky="ns")
-        self.texto.grid(row=0, column=1, sticky="nsew")
-        self._barra_v.grid(row=0, column=2, sticky="ns")
-        self._barra_h.grid(row=1, column=1, sticky="ew")
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
+        self.margen.grid(row=1, column=0, sticky="ns")
+        tk.Frame(self, width=1, background=TEMA["borde"]).grid(row=1, column=1, sticky="ns")
+        self.texto.grid(row=1, column=2, sticky="nsew")
+        self._barra_v.grid(row=1, column=3, sticky="ns")
+        self._barra_h.grid(row=2, column=2, sticky="ew")
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(2, weight=1)
+        self._construir_inspeccion()
         self._configurar_etiquetas()
         self.texto.bind("<<Modified>>", self._al_modificar)
         for evento in ("<KeyRelease>", "<ButtonRelease-1>"):
@@ -57,10 +64,72 @@ class EditorCodigo(ttk.Frame):
         self._refrescar_margen()
 
     # --- configuracion -------------------------------------------------
+    def _construir_pestana(self) -> None:
+        """Fila de 36 px con la pestana unica (icono, nombre, x) subrayada en azul (D-46)."""
+        fila = tk.Frame(self, background=TEMA["fondo"], height=36)
+        fila.grid(row=0, column=0, columnspan=4, sticky="ew")
+        fila.pack_propagate(False)
+        tk.Frame(fila, height=1, background=TEMA["borde"]).pack(side="bottom", fill="x")
+        pestana = tk.Frame(fila, background=TEMA["fondo"])
+        pestana.pack(side="left", padx=(8, 0), fill="y")
+        tk.Frame(pestana, height=3, background=TEMA["acento"]).pack(side="bottom", fill="x")
+        self._icono_archivo = iconos.imagen("archivo", self)  # Tk pierde la imagen si no se guarda
+        tk.Label(pestana, image=self._icono_archivo, background=TEMA["fondo"]).pack(side="left", padx=(8, 4))
+        self._nombre = tk.Label(pestana, background=TEMA["fondo"], foreground=TEMA["texto"], font=fuente_interfaz(13))
+        self._nombre.pack(side="left")
+        cerrar = tk.Label(pestana, text="×", background=TEMA["fondo"], foreground=TEMA["texto_secundario"],
+                          font=fuente_interfaz(14), cursor="hand2")
+        cerrar.pack(side="left", padx=(6, 8))
+        cerrar.bind("<Button-1>", lambda _e: self._al_cerrar() if self._al_cerrar else None)
+        self.establecer_nombre(None)
+
+    def establecer_nombre(self, nombre: str | None) -> None:
+        """Nombre del archivo en la pestana (`sin título` si no hay)."""
+        self._nombre.configure(text=nombre or "sin título")
+
+    def _construir_inspeccion(self) -> None:
+        """Widget `✗ N ⌃ ⌄` / `✓`, colocado con place sobre el texto (oculto hasta que hay analisis)."""
+        self._inspeccion = tk.Frame(self, background=TEMA["fondo"])
+        self._lbl_estado = tk.Label(self._inspeccion, background=TEMA["fondo"], font=fuente_interfaz(13))
+        self._lbl_estado.pack(side="left", padx=(0, 6))
+        self._flechas = []
+        for simbolo, direccion in (("⌃", -1), ("⌄", 1)):
+            flecha = tk.Label(self._inspeccion, text=simbolo, background=TEMA["fondo"], cursor="hand2",
+                              foreground=TEMA["texto_secundario"], font=fuente_interfaz(14))
+            flecha.bind("<Button-1>", lambda _e, d=direccion: self.ir_a_error(d))
+            self._flechas.append(flecha)
+
+    def _mostrar_inspeccion(self, texto: str, color: str, con_flechas: bool) -> None:
+        self._lbl_estado.configure(text=texto, foreground=color)
+        for flecha in self._flechas:
+            flecha.pack_forget()
+            if con_flechas:
+                flecha.pack(side="left", padx=2)
+        self._inspeccion.place(in_=self.texto, relx=1.0, x=-6, y=4, anchor="ne")
+        self._inspeccion.lift()
+
+    def indicar_sin_errores(self) -> None:
+        """Muestra `✓` en verde: el analisis termino sin errores."""
+        self._mostrar_inspeccion("✓", TEMA["exito"], False)
+
+    def ir_a_error(self, direccion: int) -> None:
+        """Salta a la marca siguiente (+1) o anterior (-1) respecto al cursor, dando la vuelta al final."""
+        marcas = sorted(set(self._marcas))
+        if not marcas:
+            return
+        actual = self.posicion_cursor()
+        if direccion > 0:
+            destino = next((m for m in marcas if m > actual), marcas[0])
+        else:
+            destino = next((m for m in reversed(marcas) if m < actual), marcas[-1])
+        self.ir_a(*destino)
+
     def _configurar_etiquetas(self) -> None:
         self.texto.tag_configure("linea_actual", background=TEMA["linea_actual"])
+        base = fuente_codigo(13)
         for tipo, color in COLORES_TOKEN.items():
-            self.texto.tag_configure(self._etiqueta(tipo), foreground=color)
+            fuente = base + ("italic",) if tipo in TIPOS_EN_CURSIVA else base
+            self.texto.tag_configure(self._etiqueta(tipo), foreground=color, font=fuente)
         if self._admite_underlinefg():
             self.texto.tag_configure("marca_error", underline=True, underlinefg=TEMA["error"])
         else:
@@ -132,18 +201,23 @@ class EditorCodigo(ttk.Frame):
         for d in diagnosticos:
             if d.linea <= 0:
                 continue
+            self._marcas.append((d.linea, d.columna))
             if d.lexema:
                 inicio = f"{d.linea}.{d.columna - 1}"
                 self.texto.tag_add("marca_error", inicio, f"{inicio}+{len(d.lexema)}c")
             if d.tipo == TipoDiagnostico.LEXICO:
                 self._lineas_marcadas.add(d.linea)
         self._refrescar_margen()
+        if self._marcas:
+            self._mostrar_inspeccion(f"✗ {len(self._marcas)}", TEMA["error"], True)
 
     def limpiar_marcas(self) -> None:
         """Quita subrayados, marcas del margen y token actual."""
         self.texto.tag_remove("marca_error", "1.0", "end")
         self.texto.tag_remove("actual", "1.0", "end")
         self._lineas_marcadas.clear()
+        self._marcas.clear()
+        self._inspeccion.place_forget()
         self._refrescar_margen()
 
     def resaltar_token_actual(self, token: Token | None) -> None:

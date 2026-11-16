@@ -120,10 +120,12 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.assertLess(time.perf_counter() - inicio, 30)
 
     def test_aud18_botones_con_ancho_natural(self):
-        """La barra no impone el ancho minimo de 11 caracteres del tema clam."""
+        """Los botones de la barra no heredan el ancho minimo del tema clam. Tras el rediseno (D-53)
+        ya no hay ttk.Button con texto: cada boton mide lo que su icono y los siete son iguales."""
         self.v.update()
-        b = self.v.barra.botones
-        self.assertLess(b["abrir"].winfo_reqwidth(), b["analizar"].winfo_reqwidth())
+        anchos = {n: b.winfo_reqwidth() for n, b in self.v.barra.botones.items()}
+        self.assertTrue(all(a <= 40 for a in anchos.values()), anchos)
+        self.assertEqual(len(set(anchos.values())), 1, anchos)
 
     def test_aud19_cursor_y_vista_al_inicio(self):
         """Tras abrir, el cursor está en 1:1; al terminar, la vista vuelve al cursor."""
@@ -139,7 +141,7 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.v.abrir_archivo(INCORRECTO)
         self.v.analizar()
         self.bombear(lambda: self.v.estado == "TERMINADO")
-        pr = self.v.panel_resultados
+        pr = self.v.problemas
         fila = pr.arbol_errores.get_children()[7]
         pr.arbol_errores.selection_set(fila)
         self.v.update()

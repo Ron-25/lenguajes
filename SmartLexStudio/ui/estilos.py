@@ -1,6 +1,7 @@
-"""Tema oscuro de la interfaz: colores, fuentes y estilos ttk (unico lugar con colores)."""
+"""Tema oscuro estilo PyCharm (New UI): colores, fuentes y estilos ttk (unico lugar con colores)."""
 from __future__ import annotations
 
+import sys
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
@@ -8,41 +9,57 @@ from tkinter import ttk
 from core.modelos import TipoToken
 
 TEMA = {
-    "fondo": "#1e1e1e",
-    "panel": "#252526",
-    "barra": "#333333",
-    "borde": "#3c3c3c",
-    "texto": "#d4d4d4",
-    "blanco": "#ffffff",
-    "texto_tenue": "#858585",
-    "acento": "#007acc",
-    "acento_claro": "#1a8ad4",
-    "seleccion": "#264f78",
-    "error": "#f44747",
-    "exito": "#4ec9b0",
-    "advertencia": "#cca700",
-    "info": "#569cd6",
-    "linea_actual": "#2a2d2e",
-    "colision": "#3a2f1b",
+    "fondo": "#1E1F22",
+    "panel": "#2B2D30",
+    "barra": "#2B2D30",
+    "borde": "#393B40",
+    "texto": "#DFE1E5",
+    "texto_codigo": "#BCBEC4",
+    "texto_secundario": "#9DA0A8",
+    "texto_tenue": "#6F737A",
+    "numero_linea": "#4B5059",
+    "blanco": "#FFFFFF",
+    "acento": "#3574F0",
+    "acento_claro": "#548AF7",
+    "seleccion": "#214283",
+    "seleccion_fila": "#2E436E",
+    "activo": "#43454A",
+    "deslizador": "#4D4E51",
+    "linea_actual": "#26282E",
+    "error": "#F75464",
+    "exito": "#5FB865",
+    "detener": "#DB5C5C",
+    "advertencia": "#F2C55C",
+    "info": "#56A8F5",
+    "colision": "#3D3223",
+    "ayuda_fondo": "#393B40",
 }
 
 COLORES_TOKEN = {
-    TipoToken.PALABRA_RESERVADA: "#569cd6",
-    TipoToken.IDENTIFICADOR: "#9cdcfe",
-    TipoToken.ENTERO: "#b5cea8",
-    TipoToken.DECIMAL: "#b5cea8",
-    TipoToken.CADENA: "#ce9178",
-    TipoToken.OPERADOR_ARITMETICO: "#d4d4d4",
-    TipoToken.OPERADOR_RELACIONAL: "#d4d4d4",
-    TipoToken.OPERADOR_LOGICO: "#d4d4d4",
-    TipoToken.ASIGNACION: "#d4d4d4",
-    TipoToken.DELIMITADOR: "#ffd700",
-    TipoToken.COMENTARIO: "#6a9955",
-    TipoToken.ERROR: "#f44747",
+    TipoToken.PALABRA_RESERVADA: "#CF8E6D",
+    TipoToken.IDENTIFICADOR: "#BCBEC4",
+    TipoToken.ENTERO: "#2AACB8",
+    TipoToken.DECIMAL: "#2AACB8",
+    TipoToken.CADENA: "#6AAB73",
+    TipoToken.OPERADOR_ARITMETICO: "#BCBEC4",
+    TipoToken.OPERADOR_RELACIONAL: "#BCBEC4",
+    TipoToken.OPERADOR_LOGICO: "#BCBEC4",
+    TipoToken.ASIGNACION: "#BCBEC4",
+    TipoToken.DELIMITADOR: "#BCBEC4",
+    TipoToken.COMENTARIO: "#7A7E85",
+    TipoToken.ERROR: "#F75464",
 }
 
-_FUENTES_CODIGO = ("Menlo", "Consolas", "DejaVu Sans Mono", "Courier New")
-_FUENTES_INTERFAZ = ("SF Pro Text", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial")
+# La cursiva no es un color: el editor la aplica a estas categorias.
+TIPOS_EN_CURSIVA = (TipoToken.COMENTARIO,)
+
+_FUENTES_CODIGO = ("JetBrains Mono", "Menlo", "Consolas", "DejaVu Sans Mono", "Courier New")
+_FUENTES_INTERFAZ = ("Inter", "SF Pro Text", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial")
+
+
+def _puntos(tamano: int) -> int:
+    """Tamano de diseno (pixeles de PyCharm) a puntos de Tk: igual en macOS, x0,75 en el resto (D-51)."""
+    return tamano if sys.platform == "darwin" else round(tamano * 0.75)
 
 
 def _primera_disponible(candidatas: tuple[str, ...], por_defecto: str) -> str:
@@ -56,60 +73,74 @@ def _primera_disponible(candidatas: tuple[str, ...], por_defecto: str) -> str:
 
 def fuente_codigo(tamano: int = 13) -> tuple[str, int]:
     """Fuente monoespaciada: la primera disponible de la lista, con respaldo generico."""
-    return (_primera_disponible(_FUENTES_CODIGO, "Courier"), tamano)
+    return (_primera_disponible(_FUENTES_CODIGO, "Courier"), _puntos(tamano))
 
 
-def fuente_interfaz(tamano: int = 11) -> tuple[str, int]:
+def fuente_interfaz(tamano: int = 13) -> tuple[str, int]:
     """Fuente proporcional para la interfaz."""
-    return (_primera_disponible(_FUENTES_INTERFAZ, "Helvetica"), tamano)
+    return (_primera_disponible(_FUENTES_INTERFAZ, "Helvetica"), _puntos(tamano))
 
 
-def aplicar_tema(raiz: tk.Misc) -> None:
-    """Configura ttk (tema clam) con la paleta oscura."""
-    estilo = ttk.Style(raiz)
-    estilo.theme_use("clam")
-    base = fuente_interfaz(11)
-    negrita = (base[0], 11, "bold")
-    raiz.configure(background=TEMA["fondo"])
+def _estilos_basicos(estilo: ttk.Style, base: tuple[str, int]) -> None:
+    """Marcos, etiquetas y barra de estado."""
+    chica = (base[0], _puntos(12))
     estilo.configure(".", background=TEMA["fondo"], foreground=TEMA["texto"], font=base,
                      bordercolor=TEMA["borde"], lightcolor=TEMA["borde"], darkcolor=TEMA["borde"],
                      troughcolor=TEMA["panel"], focuscolor=TEMA["acento"])
     estilo.configure("TFrame", background=TEMA["fondo"])
     estilo.configure("Panel.TFrame", background=TEMA["panel"])
     estilo.configure("Barra.TFrame", background=TEMA["barra"])
-    estilo.configure("Estado.TFrame", background=TEMA["acento"])
+    estilo.configure("Estado.TFrame", background=TEMA["panel"])
     estilo.configure("TLabel", background=TEMA["fondo"], foreground=TEMA["texto"])
     estilo.configure("Panel.TLabel", background=TEMA["panel"])
-    estilo.configure("Titulo.TLabel", background=TEMA["panel"], foreground=TEMA["texto_tenue"],
-                     font=(base[0], 9, "bold"))
-    estilo.configure("Tenue.TLabel", background=TEMA["panel"], foreground=TEMA["texto_tenue"])
-    estilo.configure("Estado.TLabel", background=TEMA["acento"], foreground="#ffffff", font=(base[0], 10))
-    estilo.configure("TButton", background=TEMA["barra"], foreground=TEMA["texto"], padding=(12, 6), width=0,
-                     borderwidth=0, relief="flat")
-    estilo.map("TButton", background=[("disabled", TEMA["barra"]), ("active", TEMA["borde"])],
-               foreground=[("disabled", TEMA["texto_tenue"])])
-    estilo.configure("Accion.TButton", background=TEMA["acento"], foreground="#ffffff", font=negrita)
-    estilo.map("Accion.TButton", background=[("disabled", TEMA["borde"]), ("active", TEMA["acento_claro"])],
-               foreground=[("disabled", TEMA["texto_tenue"])])
-    estilo.configure("Estado.TButton", background=TEMA["acento_claro"], foreground="#ffffff",
-                     padding=(10, 1), font=(base[0], 10))
-    estilo.map("Estado.TButton", background=[("disabled", TEMA["acento"]), ("active", TEMA["seleccion"])],
-               foreground=[("disabled", "#7fbce6")])
+    estilo.configure("Cabecera.TLabel", background=TEMA["panel"], foreground=TEMA["texto_secundario"],
+                     font=(base[0], _puntos(12), "bold"))
+    estilo.configure("Tenue.TLabel", background=TEMA["panel"], foreground=TEMA["texto_tenue"], font=chica)
+    estilo.configure("Estado.TLabel", background=TEMA["panel"], foreground=TEMA["texto_secundario"], font=chica)
+    estilo.configure("Ruta.TLabel", background=TEMA["panel"], foreground=TEMA["texto"], font=chica)
+    estilo.configure("Enlace.TLabel", background=TEMA["panel"], foreground=TEMA["acento_claro"], font=chica)
+    estilo.map("Enlace.TLabel", foreground=[("disabled", TEMA["texto_tenue"])])
+    estilo.configure("TSeparator", background=TEMA["borde"])
+
+
+def _estilos_tablas(estilo: ttk.Style, base: tuple[str, int]) -> None:
+    """Treeview plano, filas altas, cabecera discreta, divisores."""
     estilo.configure("Treeview", background=TEMA["panel"], fieldbackground=TEMA["panel"],
-                     foreground=TEMA["texto"], rowheight=24, borderwidth=0)
-    estilo.map("Treeview", background=[("selected", TEMA["seleccion"])],
-               foreground=[("selected", "#ffffff")])
-    estilo.configure("Treeview.Heading", background=TEMA["barra"], foreground=TEMA["texto"],
-                     relief="flat", padding=(6, 4), font=(base[0], 10, "bold"))
-    estilo.map("Treeview.Heading", background=[("active", TEMA["borde"])])
-    estilo.configure("TNotebook", background=TEMA["fondo"], borderwidth=0, tabmargins=(0, 0, 0, 0))
-    estilo.configure("TNotebook.Tab", background=TEMA["panel"], foreground=TEMA["texto_tenue"],
-                     padding=(14, 7), borderwidth=0)
-    estilo.map("TNotebook.Tab", background=[("selected", TEMA["fondo"])],
-               foreground=[("selected", "#ffffff"), ("disabled", TEMA["borde"])])
-    estilo.configure("TPanedwindow", background=TEMA["borde"])
-    estilo.configure("Sash", sashthickness=4, background=TEMA["borde"])
-    for orientacion in ("Vertical", "Horizontal"):
-        estilo.configure(f"{orientacion}.TScrollbar", background=TEMA["barra"], troughcolor=TEMA["panel"],
-                         bordercolor=TEMA["panel"], arrowcolor=TEMA["texto_tenue"], relief="flat")
-        estilo.map(f"{orientacion}.TScrollbar", background=[("active", TEMA["borde"])])
+                     foreground=TEMA["texto"], rowheight=28, borderwidth=0, relief="flat")
+    estilo.map("Treeview", background=[("selected", TEMA["seleccion_fila"])],
+               foreground=[("selected", TEMA["blanco"])])
+    estilo.configure("Treeview.Heading", background=TEMA["panel"], foreground=TEMA["texto_secundario"],
+                     relief="flat", borderwidth=0, padding=(8, 6), font=(base[0], _puntos(12)))
+    estilo.map("Treeview.Heading", background=[("active", TEMA["panel"])])
+    try:
+        estilo.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
+    except tk.TclError:
+        pass
+    estilo.configure("TPanedwindow", background=TEMA["fondo"])
+    estilo.configure("Sash", sashthickness=3, background=TEMA["fondo"])
+
+
+def _estilos_barras(estilo: ttk.Style) -> None:
+    """Barras de desplazamiento finas y sin flechas; si el tema no lo admite, queda el aspecto base."""
+    for orientacion, lado in (("Vertical", "ns"), ("Horizontal", "ew")):
+        nombre = f"{orientacion}.TScrollbar"
+        estilo.configure(nombre, background=TEMA["deslizador"], troughcolor=TEMA["panel"],
+                         bordercolor=TEMA["panel"], lightcolor=TEMA["deslizador"],
+                         darkcolor=TEMA["deslizador"], relief="flat", width=10, arrowsize=10)
+        estilo.map(nombre, background=[("active", TEMA["texto_tenue"])])
+        try:
+            estilo.layout(nombre, [(f"{orientacion}.Scrollbar.trough", {"sticky": lado, "children": [
+                (f"{orientacion}.Scrollbar.thumb", {"expand": "1", "sticky": "nswe"})]})])
+        except tk.TclError:
+            pass
+
+
+def aplicar_tema(raiz: tk.Misc) -> None:
+    """Configura ttk (tema clam) con la paleta oscura de PyCharm."""
+    estilo = ttk.Style(raiz)
+    estilo.theme_use("clam")
+    raiz.configure(background=TEMA["fondo"])
+    base = fuente_interfaz(13)
+    _estilos_basicos(estilo, base)
+    _estilos_tablas(estilo, base)
+    _estilos_barras(estilo)

@@ -11,7 +11,7 @@ Analizador léxico educativo con interfaz gráfica tipo IDE para **FlowLang 1.0*
 - Catálogo de 19 diagnósticos (`LEX-`, `SIN-`, `ARC-`) con mensaje y sugerencia; recuperación en modo pánico (no se detiene en el primer error).
 - Comprobación estructural ligera: `inicio`/`fin` y balance de `()` y `{}` con una pila.
 - Tabla de símbolos con hash polinomial, encadenamiento, contador de colisiones y redimensionado.
-- Interfaz oscura: editor con numeración y resaltado, evaluación **progresiva** (los errores aparecen mientras se analiza), modo **paso a paso**, Modo educativo (regex, recorrido de estados), estadísticas y oferta final de ver la tabla de símbolos.
+- Interfaz oscura **estilo PyCharm**: barra superior con menús y botones de ejecución, franjas de iconos con *tool windows* que se muestran y ocultan (Proyecto, Lenguaje, Consola, Problemas, Tokens, Tabla de símbolos, Estadísticas, Modo educativo), pestaña de editor con numeración, resaltado y widget de inspección `✗ N ⌃ ⌄`, barra de estado con migas de pan; evaluación **progresiva** (los errores aparecen mientras se analiza), modo **paso a paso**, Modo educativo (regex, recorrido de estados), estadísticas y oferta final de ver la tabla de símbolos.
 - Modo consola sin tkinter: `python3 main.py --consola archivo.flow`.
 
 ## Requisitos e instalación
@@ -50,7 +50,7 @@ SmartLexStudio/
 ├── application/             Casos de uso (sin tkinter)
 │   ├── archivos.py  analisis_service.py
 ├── ui/                      Interfaz tkinter
-│   ├── estilos.py  editor.py  componentes.py  paneles.py  interfaz.py
+│   ├── estilos.py  iconos.py  editor.py  componentes.py  paneles.py  interfaz.py
 ├── ejemplos/                correcto.flow, incorrecto.flow, casos_limite.flow
 ├── tests/                   Pruebas con unittest (test_*.py)
 ├── docs/                    Documentación y capturas (docs/capturas/)

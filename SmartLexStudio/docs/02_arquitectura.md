@@ -318,7 +318,7 @@ Tabla de símbolos: hash 1601544 · cubeta 56 (capacidad 79) · tipo decimal · 
 
 ### 10.1 Disposición (inspirada en VS Code; `ttk.Panedwindow` anidados, todo redimensionable)
 
-> El rediseño visual estilo PyCharm (zonas, paleta, iconos y *tool windows*) está especificado en **§16**; cuando se implemente (tareas B11–B16), §16 sustituye a este diagrama y a la tabla de §10.2.
+> **Esta disposición (inspirada en VS Code) quedó sustituida por el rediseño estilo PyCharm de §16**, ya implementado: zonas, paleta, iconos y *tool windows* están en §16.2–§16.7, que reemplazan este diagrama y la tabla de §10.2. Se conservan como referencia histórica.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -487,6 +487,8 @@ Revisión final del arquitecto sobre el commit `3a8f372` (115 pruebas en verde).
 | Modo consola | `python main.py --consola [ruta]`, en `main.py`, sin tkinter; tolera entrada cerrada | B7, AUD-21 |
 | Fuentes | `ui/estilos.py` añade `fuente_interfaz()` además de `fuente_codigo()` | — |
 | Pruebas de UI | Detectan Tk en un subproceso; se omiten (17) si no hay Tk | D-38 |
+| Rediseño §16 | Implementado: `ui/iconos.py` nuevo; `PanelProblemas`; `RAIZ_PROYECTO` vive en `componentes.py`; zona inferior inicial de 250 px (no 210); `F2`/`Shift+F2` solo en `bind_all`; sin rombo `◆` en el menú de ejecución; las técnicas «por validar» (`Panedwindow.forget/insert`, barras sin flechas, globos) funcionaron sin alternativa | D-54…D-57 |
+| Capturas | `docs/capturas/capturar.py` fotografía la ventana por su identificador (`id_ventana.swift`) | D-58 |
 
 Pendiente menor tras esta revisión (tareas B9 y B10): un único error de archivo visible a la vez en la pestaña Errores, y una línea por dato en el `detalle` del Modo educativo.
 
@@ -496,7 +498,7 @@ Limitaciones conocidas y aceptadas: textos de cuatro diagnósticos que repiten u
 
 ## 16. Rediseño visual estilo PyCharm (New UI, tema oscuro)
 
-> **Estado: diseño aprobado, pendiente de implementar (tareas B11–B16 de `agents/tareas.md`, decisiones D-44…D-53).** Hasta que se cierren, §10.1 y §10.2 describen lo que hay en el código. Este rediseño cambia **solo `ui/`**: `core/`, `application/`, `config/` y `main.py` no se tocan, y §10.3 (vista pasiva + coordinador), §10.4 (estados), §10.5 (requisito 6) y §10.6 siguen vigentes sin cambios.
+> **Estado: implementado (tareas B11–B16 de `agents/tareas.md`, decisiones D-44…D-59); las diferencias con el diseño están en §15.** Este rediseño cambia **solo `ui/`**: `core/`, `application/`, `config/` y `main.py` no se tocan, y §10.3 (vista pasiva + coordinador), §10.4 (estados), §10.5 (requisito 6) y §10.6 siguen vigentes sin cambios.
 
 ### 16.1 Objetivo y límites
 

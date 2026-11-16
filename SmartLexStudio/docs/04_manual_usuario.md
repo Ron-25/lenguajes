@@ -40,24 +40,29 @@ Si Tk no está instalado, `python3 main.py` te lo dice y te sugiere el modo cons
 
 ## 3. Recorrido de la interfaz
 
-La ventana se divide en zonas (todas se pueden redimensionar arrastrando los bordes):
+La ventana sigue el estilo de PyCharm (tema oscuro). Todas las zonas se redimensionan arrastrando los bordes.
 
-1. **Barra superior**: botones *Abrir*, *Guardar*, *Analizar*, *Paso a paso*, *Detener*, *Limpiar* y *Ayuda*. Los botones que no se pueden usar en el estado actual aparecen atenuados.
-2. **Panel izquierdo**: arriba la lista de **ejemplos** (doble clic para cargar uno); abajo el árbol **FlowLang** con las palabras reservadas, operadores, delimitadores, escapes y límites del lenguaje. Al elegir un elemento, su descripción aparece debajo.
-3. **Editor** (centro): numeración de líneas, colores por categoría de token, línea del cursor resaltada. Las líneas con error léxico llevan una `✗` en el margen y el texto erróneo aparece subrayado en rojo.
-4. **Panel derecho**: cinco pestañas (sección 5).
-5. **Consola de evaluación** (abajo): una línea por token analizado; en rojo, las que traen errores. Al final muestra los veredictos.
-6. **Barra de estado**: estado actual, contadores de tokens y errores, posición del cursor (línea y columna) y el botón **Ver tabla de símbolos** (activo solo al terminar el análisis).
+1. **Barra superior**: el logo *SL*, dos menús desplegables y los botones de acción. **«SmartLex Studio ▾»** abre el menú de archivo (Abrir, Guardar, Limpiar, Ayuda, Salir); **«FlowLang · Análisis léxico ▾»** abre el de ejecución (Analizar, Paso a paso, Detener). A continuación van **▶ Analizar** (verde), **Paso a paso** y **■ Detener** (rojo), y a la derecha, en gris, los iconos Abrir, Guardar, Limpiar y Ayuda. Los que no se pueden usar en el estado actual aparecen apagados, y al detener el ratón sobre un icono aparece su nombre y atajo.
+2. **Franjas de iconos** (izquierda y derecha): cada icono es una *tool window*. Izquierda arriba: **Proyecto** y **Lenguaje FlowLang**; izquierda abajo: **Consola de evaluación** y **Problemas** (con el número de errores). Derecha: **Tokens**, **Tabla de símbolos** (apagada hasta terminar el análisis), **Estadísticas** y **Modo educativo**. Un clic en el icono de la vista que ya se ve **oculta** esa zona; otro clic la vuelve a mostrar. El botón `—` de cada cabecera también la oculta. El icono de la vista visible queda resaltado.
+3. **Proyecto** (izquierda): árbol `SmartLexStudio › ejemplos › *.flow` con el archivo abierto seleccionado; doble clic en un ejemplo lo carga. **Lenguaje FlowLang** muestra el árbol de palabras reservadas, operadores, delimitadores, escapes y límites; al elegir un elemento, su descripción aparece debajo.
+4. **Editor** (centro): una pestaña con el nombre del archivo (`sin título` si no hay) y una `×` que equivale a *Limpiar*; números de línea grises, colores por categoría de token (comentarios en cursiva) y línea del cursor resaltada. Las líneas con error léxico llevan una `✗` roja en el margen y el texto erróneo va subrayado en rojo. Arriba a la derecha del editor, el **widget de inspección** muestra `✗ N` con las flechas `⌃` `⌄` (o `✓` si no hubo errores): las flechas, o `Shift+F2` y `F2`, saltan al error anterior o siguiente.
+5. **Herramientas de la derecha**: Tokens, Tabla de símbolos, Estadísticas y Modo educativo, una a la vez (sección 5).
+6. **Herramientas de abajo**: **Consola de evaluación** (una línea por token; en rojo las que traen errores; al final los veredictos) y **Problemas** (tabla de errores a todo el ancho con su detalle).
+7. **Barra de estado** (gris): migas de pan `SmartLexStudio › ejemplos › correcto.flow`, estado y contadores de tokens y errores, y a la derecha `Lín:Col`, `LF`, `UTF-8`, `FlowLang 1.0` y el enlace **Ver tabla de símbolos** (activo solo al terminar el análisis).
 
-![Errores durante el análisis](capturas/5_incorrecto_errores.png)
+![Errores durante el análisis: Problemas abierto y un error seleccionado](capturas/5_incorrecto_errores.png)
+
+Con las zonas izquierda e inferior ocultas el editor gana espacio:
+
+![Zonas ocultas](capturas/6_paneles_ocultos.png)
 
 ## 4. Flujo típico
 
 1. **Abrir** un archivo `.flow` o `.txt` (`Ctrl+O`). Al iniciar, la aplicación abre sola el selector «Seleccione el archivo con las cadenas de entrada»; si lo cancelas puedes escribir directamente en el editor o usar los ejemplos.
-2. **Analizar** (`F5`): la evaluación es **progresiva**; verás cómo se llenan las pestañas Tokens y Errores mientras avanza. Mientras analiza (incluso en pausa), el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
+2. **Analizar** (`F5`): la evaluación es **progresiva**; verás cómo se llenan las herramientas Tokens y Problemas mientras avanza (la consola se abre sola si estaba oculta). Mientras analiza (incluso en pausa), el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
    - Alternativa **Paso a paso** (`F10`): cada pulsación procesa exactamente un token y abre el Modo educativo con su explicación.
-3. **Revisar los errores**: el primer error cambia a la pestaña *Errores*. Haz clic en una fila para ver el detalle completo y doble clic para saltar a esa posición del editor.
-4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* o usa luego el botón de la barra de estado.
+3. **Revisar los errores**: el primer error abre la herramienta *Problemas* (y suma al contador de su icono). Haz clic en una fila para ver el detalle completo y doble clic para saltar a esa posición del editor.
+4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* (se abre la *Tabla de símbolos*) o usa luego el enlace de la barra de estado o el icono de la franja derecha.
 5. Si editas el texto después de analizar, el resultado queda marcado como desactualizado; vuelve a analizar.
 
 *Limpiar* deja la aplicación sin archivo y sin resultados. *Guardar* (`Ctrl+S`) escribe el contenido del editor en UTF-8.
@@ -72,8 +77,9 @@ La ventana se divide en zonas (todas se pueden redimensionar arrastrando los bor
 | `F10` | Paso a paso |
 | `Esc` | Detener |
 | `F1` | Ayuda |
+| `F2` / `Shift+F2` | Siguiente / anterior error en el editor |
 
-## 5. Las pestañas del panel derecho
+## 5. Las herramientas de la derecha y de abajo
 
 ### Tokens
 Una fila por token reconocido, coloreada según su categoría. Columnas: `#` (orden), `Lín`, `Col` (posición desde 1), `Categoría` y `Lexema`. Al hacer clic en una fila, el token se resalta en el editor y el Modo educativo lo explica. Los comentarios y los fragmentos erróneos también aparecen (categorías *Comentario* y *Error*).
@@ -89,8 +95,8 @@ Se habilita **al terminar** el análisis. Es una tabla hash con encadenamiento: 
 
 Columnas: `Cubeta`, `Hash`, `Lexema`, `Categoría`, `Tipo` (tipo de dato: el de la declaración, o el del literal), `Valor` (para literales y booleanos), `Decl.` (línea de la declaración) y `Apariciones` (lista de `(línea, columna)`). Cada lexema aparece una sola vez; si se repite, solo se suman apariciones.
 
-### Errores
-Columnas: `Código`, `Tipo`, `Lín:Col`, `Mensaje` y `Sugerencia`. Bajo la tabla se muestra el detalle completo del error seleccionado. Los errores de archivo (`ARC-…`) no tienen posición. Como máximo se muestra un error de archivo a la vez.
+### Problemas (zona inferior)
+Tabla de errores a todo el ancho (la herramienta se abre sola con el primer error). Columnas: `Código`, `Tipo`, `Lín:Col`, `Mensaje` y `Sugerencia`. Bajo la tabla se muestra el detalle completo del error seleccionado. Los errores de archivo (`ARC-…`) no tienen posición. Como máximo se muestra un error de archivo a la vez.
 
 ### Estadísticas
 Aparece al terminar: veredicto léxico, estructural y global; tokens por categoría con barras proporcionales; número de líneas, caracteres y tokens; errores por tipo.
@@ -163,7 +169,7 @@ En `ejemplos/` tienes tres programas: `correcto.flow` (válido), `incorrecto.flo
 | `No module named '_tkinter'` o la ventana no abre | Instala Tk (sección 1) o usa `python3 main.py --consola archivo.flow`. |
 | Un mensaje de error de archivo al abrir | Mira su código en la sección 6; el contenido del editor no se modifica. |
 | El botón *Analizar* sin archivo vuelve a pedir uno | Es lo esperado: abre un archivo o escribe en el editor. |
-| La pestaña *Tabla de símbolos* aparece apagada | Se activa al terminar el análisis; pulsa *Analizar* y espera. |
+| El icono *Tabla de símbolos* aparece apagado | Se activa al terminar el análisis; pulsa *Analizar* y espera. |
 | No puedo escribir en el editor | Está en solo lectura mientras dura el análisis, también cuando está detenido con *Detener* (`Esc`). Continúa con *Analizar* (`F5`) hasta el final, o pulsa *Limpiar*. |
 | Los colores se desplazan tras un emoji (Tcl/Tk 8.6) | Limitación visual conocida; los tokens y posiciones del análisis son correctos. |
 | Un archivo grande se anima lentamente | El análisis es correcto; la animación depende del dibujo de Tk. Usa el modo consola si solo necesitas el resultado. |

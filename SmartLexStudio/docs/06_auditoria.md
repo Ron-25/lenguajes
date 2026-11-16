@@ -278,3 +278,28 @@ Errata corregida en el manual (§4 y §8): decía que *Detener* libera el editor
 
 **APROBADO.** B9 y B10 son correctos y están probados; AUD-28 corregido con prueba que falla en `555ea7b`; documentación de usuario coherente con el código tras una errata. Limitaciones que siguen vigentes (sin cambios): AUD-23 (consola), AUD-26 (re-resaltado en archivos grandes), D-31, D-34.
 
+
+---
+
+## Rediseño visual, Fase C (developer-sonnet, tareas B11–B16)
+
+**Pruebas.** `python3.14 -m unittest discover -s tests -t .` (Tk 9.0): `Ran 141 tests` · `FAILED (failures=1)`. La única falla es `test_conteos_de_flowlang_1_0` (18 ≠ 17 palabras reservadas) y **no es del rediseño**: `config/reglas.py` tiene un cambio local ajeno (`"manana": "prueba"`) que no se tocó. Las 118 pruebas anteriores (con AUD-16…AUD-28) y las 23 nuevas de `tests/test_ui_rediseno.py` pasan. Con `python3.12` (sin `_tkinter`) la salida es `Ran 141 tests` · `FAILED (failures=1, skipped=42)` (misma falla). **Tk 8.6 no disponible** en este equipo (D-59): pendiente. Comprobaciones por `grep` (colores fuera de `ui/estilos.py`; `Notebook|seleccionar_pestana`): vacías.
+
+**Capturas reales** (`docs/capturas/1..6_*.png`, tomadas con `screencapture -l`, D-58), comparadas con la referencia de PyCharm New UI. Cuatro iteraciones de captura/ajuste en total: (1) la captura fotografiaba otra aplicación y luego la barra de menús; se rehízo el driver; (2) primer diseño completo: se vio que la zona inferior era corta (Problemas con dos filas), que `1_correcto_tokens` mostraba la tabla de símbolos y que la fila de error elegida no se veía; (3) zona inferior a 250 px, `see` de la fila elegida, columnas Hash/Cubeta más anchas, vista Tokens en la captura 1; (4) captura definitiva.
+
+| # | Punto de §16.10 | Resultado |
+|---|---|---|
+| 1 | Barra superior del color de los paneles, dos widgets `▾`, botón verde, rojo, iconos grises a la derecha | Cumple (sin rombo `◆`, D-56) |
+| 2 | Franjas de iconos a ambos lados con el activo resaltado | Cumple |
+| 3 | Cabecera «Proyecto», árbol con iconos de carpeta y archivo, fila seleccionada azul grisáceo | Cumple |
+| 4 | Pestaña con icono, `×` y subrayado azul | Cumple |
+| 5 | Números de línea gris oscuro sobre el fondo del editor | Cumple |
+| 6 | Reservadas naranja, cadenas verde, números cian, comentarios gris cursiva | Cumple |
+| 7 | `✗ N ⌃ ⌄` arriba a la derecha del editor | Cumple (`✓` si no hay errores) |
+| 8 | Barra de estado gris, migas `›` a la izquierda y `Lín:Col  LF  UTF-8  FlowLang 1.0` a la derecha | Cumple |
+| 9 | Tablas sin rejilla, filas altas, cabeceras discretas | Cumple |
+| 10 | Sin resto de `#007acc` ni de pestañas de `ttk.Notebook` | Cumple |
+
+Diferencias aceptadas (§16.1): un solo archivo en la pestaña, sin guías de sangría, selección rectangular, barra de título nativa, sin widgets de Git/usuario/buscar. Ligeras: logo cuadrado (no redondeado), botones rellenos rectangulares, `⌃ ⌄` pequeños.
+
+**Verificaciones manuales.** M1–M3 repetidas con el diseño nuevo por medio de las pruebas `test_requisito_5_*` y `test_requisito_6_*` y de las capturas 1, 2 y 5. **M5** (Windows/Linux del laboratorio: tamaño del texto con `_puntos`, iconos legibles, menús, globos) y la repetición en **Tk 8.6** quedan **pendientes**: abrir la aplicación, comprobar que el texto no se ve pequeño, que los siete iconos de la barra se leen, que los menús `▾` se abren y que aparece el globo al detener el ratón.
