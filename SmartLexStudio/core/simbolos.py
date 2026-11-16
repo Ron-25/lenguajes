@@ -182,7 +182,7 @@ def registrar_token(tabla: TablaSimbolos, token: Token,
     if resultado.es_nueva:
         entrada.valor = valor_literal(token)
         if token.lexema in reglas.VALORES_BOOLEANOS and token.tipo == TipoToken.PALABRA_RESERVADA:
-            entrada.tipo_dato = "booleano"
+            entrada.tipo_dato = reglas.TIPO_DATO_BOOLEANO
         else:
             entrada.tipo_dato = reglas.TIPO_DATO_LITERAL.get(token.tipo)
     if (token.tipo == TipoToken.IDENTIFICADOR and entrada.linea_declaracion is None

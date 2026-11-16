@@ -184,3 +184,26 @@ class TestDominioSinTkinter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestModoConsola(unittest.TestCase):
+    def ejecutar(self, *argumentos, entrada="n\n"):
+        return subprocess.run([sys.executable, "main.py", "--consola", *argumentos], cwd=RAIZ,
+                              input=entrada, capture_output=True, text=True, encoding="utf-8")
+
+    def test_consola_correcto(self):
+        r = self.ejecutar("ejemplos/correcto.flow")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("VÁLIDA", r.stdout)
+        self.assertNotIn("INVÁLIDA", r.stdout)
+
+    def test_consola_incorrecto_con_tabla_y_sin_ruta(self):
+        r = self.ejecutar(entrada="ejemplos/incorrecto.flow\ns\n")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("INVÁLIDA", r.stdout)
+        self.assertIn("cubeta", r.stdout)
+
+    def test_consola_archivo_inexistente(self):
+        r = self.ejecutar("ejemplos/no_existe.flow")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("ARC-001", r.stdout)

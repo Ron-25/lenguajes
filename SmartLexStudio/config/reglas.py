@@ -40,6 +40,7 @@ PALABRAS_RESERVADAS = {
 }
 TIPOS_DE_DATO = ("numero", "decimal", "texto", "booleano", "dispositivo")
 VALORES_BOOLEANOS = {"verdadero": True, "falso": False}
+TIPO_DATO_BOOLEANO = "booleano"
 TIPO_DATO_LITERAL = {
     TipoToken.ENTERO: "numero",
     TipoToken.DECIMAL: "decimal",

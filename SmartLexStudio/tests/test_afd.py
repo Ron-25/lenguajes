@@ -11,13 +11,18 @@ from core.modelos import TipoToken
 
 
 class TestReglas(unittest.TestCase):
-    def test_conteos(self):
-        self.assertEqual(len(reglas.PALABRAS_RESERVADAS), 17)
-        self.assertEqual(len(reglas.OPERADORES), 15)
-        self.assertEqual(len(reglas.DELIMITADORES), 6)
-        self.assertEqual(len(reglas.LETRAS), 52)
-        self.assertEqual(len(reglas.SUGERENCIAS_CARACTER), 8)
-        self.assertEqual(len(reglas.AUTOMATAS), 4)
+    def test_conteos_de_flowlang_1_0(self):
+        def aviso(n, que):
+            return f"FlowLang 1.0 define {n} {que}; si modificó el lenguaje a propósito, actualice este número"
+        self.assertEqual(len(reglas.PALABRAS_RESERVADAS), 17, aviso(17, "palabras reservadas"))
+        self.assertEqual(len(reglas.OPERADORES), 15, aviso(15, "operadores"))
+        self.assertEqual(len(reglas.DELIMITADORES), 6, aviso(6, "delimitadores"))
+        self.assertEqual(len(reglas.LETRAS), 52, aviso(52, "letras"))
+        self.assertEqual(len(reglas.SUGERENCIAS_CARACTER), 8, aviso(8, "sugerencias de carácter"))
+        self.assertEqual(len(reglas.AUTOMATAS), 4, aviso(4, "autómatas"))
+
+    def test_tipo_dato_booleano_es_tipo_de_dato(self):
+        self.assertIn(reglas.TIPO_DATO_BOOLEANO, reglas.TIPOS_DE_DATO)
 
     def test_palabras_referenciadas_son_reservadas(self):
         for palabra in (*reglas.TIPOS_DE_DATO, *reglas.VALORES_BOOLEANOS,

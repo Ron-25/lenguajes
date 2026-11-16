@@ -10,7 +10,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Fase A (A1–A10) | developer-sonnet | claude-sonnet-5-5 | completado | 87 pruebas en verde con python3.11/3.12/3.14/3.15; `grep` de A10 vacíos; reproduce los valores de la especificación §12. Decisiones D-26 a D-28 pendientes de revisión |
 | Auditoría Fase A | reviewer-opus | claude-opus-5-5 | completado | APROBADO CON OBSERVACIONES: 14 hallazgos (0 críticos/altos, 4 medios, 10 bajos); 7 corregidos con prueba (`tests/test_auditoria_fase_a.py`), 6 escalados (E-1…E-6); 93 pruebas OK; D-26/D-27/D-28 aprobadas. Ver `docs/06_auditoria.md` |
 | Aprobación Fase A y resolución de escalados E-1…E-6 | architect-fable | claude-fable-5-2 | completado | **Fase A APROBADA.** D-26/D-27/D-28 ratificadas (D-29); E-1…E-6 resueltos (D-30…D-35); tarea B0 añadida; B2, B4, B5, B6 y B8 ajustadas. **Fase B AUTORIZADA** |
-| Fase B (B0–B8) | developer-sonnet | — | pendiente | — |
+| Fase B (B0–B7) | developer-sonnet | claude-sonnet-5-5 | completado (B8 pendiente, paso 11) | B0–B7 hechas; 109 pruebas OK con python3.14 (incl. 12 de humo de UI y 3 del modo consola); la app arrancó y analizó sin excepciones; capturas NO posibles (D-40); D-36…D-40 pendientes de revisión |
 | Auditoría Fase B y final | reviewer-opus | — | pendiente | — |
 
 ## Reglas generales para el desarrollador
@@ -547,7 +547,7 @@ Responsable de todas: **developer-sonnet**. Estado: **A1–A10 completadas** (ve
 
 # FASE B — Interfaz, integración y `main.py`
 
-El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§10. Aquí el contrato es menos estricto en firmas internas, pero los **nombres de clase, los métodos listados y los comportamientos** son obligatorios. Responsable: **developer-sonnet**. Estado inicial: **Pendiente**.
+El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§10. Aquí el contrato es menos estricto en firmas internas, pero los **nombres de clase, los métodos listados y los comportamientos** son obligatorios. Responsable: **developer-sonnet**. Estado: **B0–B7 completadas; B8 pendiente (paso 11)**.
 
 ### B0 — Ajustes posteriores a la auditoría de la Fase A (hacer primero)
 - **Archivos:** `config/reglas.py`, `core/simbolos.py`, `tests/test_afd.py`, `tests/test_simbolos.py`.

@@ -76,7 +76,7 @@ class Lexer:
         self.manejador: ManejadorErrores = manejador if manejador is not None else ManejadorErrores()
 
     def tokens(self) -> Iterator[Token]:
-        """Generador perezoso: un token por cada lexema (incluye COMENTARIO y ERROR)."""
+        """Generador perezoso de un solo uso: un token por lexema (incluye COMENTARIO y ERROR)."""
         fuente = self._fuente
         posicion, linea, columna = 0, 1, 1
         while posicion < len(fuente):
