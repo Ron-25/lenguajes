@@ -1,4 +1,4 @@
-"""Pruebas del rediseno claro estilo academico (Fase D, tareas C1-C5; arquitectura §17)."""
+"""Pruebas de la interfaz clara: estilos, cabecera, editor, manejador de errores, pestañas y ventana."""
 from __future__ import annotations
 
 import importlib.util
@@ -17,7 +17,7 @@ INCORRECTO = str(RAIZ / "ejemplos" / "incorrecto.flow")
 
 
 def _hay_tk() -> bool:
-    """Igual que en test_ui_humo (D-38): Tk se comprueba en un subproceso."""
+    """Igual que en test_ui_humo: Tk se comprueba en un subproceso."""
     try:
         r = subprocess.run([sys.executable, "-c", "import tkinter; tkinter.Tk().destroy()"],
                            capture_output=True, timeout=30)
@@ -32,7 +32,7 @@ CLAVES_TEMA = {
     "numero_linea", "blanco", "acento", "acento_claro", "seleccion", "seleccion_fila", "linea_actual",
     "deslizador", "error", "error_fondo", "error_lexema", "exito", "advertencia", "info", "colision",
     "cabecera", "cabecera_tenue"}
-# nombres de la interfaz anterior que ya no deben quedar en ui/ (partidos para que el `grep` de la tarea no los encuentre aqui)
+# nombres de la interfaz anterior que ya no deben quedar en ui/ (partidos para que un grep no los encuentre en este archivo)
 PIEZAS_ELIMINADAS = ("icon" "os", "Boton" "Icono", "Glo" "bo", "Franja" "Herramientas", "Panel" "Herramientas",
                      "Panel" "Lateral", "Panel" "Problemas", "alternar" "_herramienta", "mostrar" "_herramienta",
                      "_mi" "gas", "Py" "Charm", "Dar" "cula")
@@ -40,7 +40,7 @@ PIEZAS_ELIMINADAS = ("icon" "os", "Boton" "Icono", "Glo" "bo", "Franja" "Herrami
 
 @unittest.skipUnless(importlib.util.find_spec("_tkinter"), "el modulo tkinter no esta instalado")
 class TestPaletaYReglas(unittest.TestCase):
-    """C1: importan tkinter (ui.estilos) pero no abren ninguna ventana."""
+    """Importan tkinter (ui.estilos) pero no abren ninguna ventana."""
 
     def test_tema_tiene_las_25_claves_y_son_colores(self):
         from ui.estilos import COLORES_TOKEN, TEMA
@@ -85,7 +85,7 @@ class TestRediseno(unittest.TestCase):
         for p in parches:
             self.addCleanup(p.stop)
         self.messagebox.askyesno.return_value = False
-        self.messagebox.askyesnocancel.return_value = False  # el MagicMock por defecto es verdadero (D-70)
+        self.messagebox.askyesnocancel.return_value = False  # el MagicMock devuelve verdadero por defecto
         self.v = interfaz.VentanaPrincipal(solicitar_archivo=False)
         self.v.cabecera.establecer_pausa(0)
         self.addCleanup(self.v.destroy)
@@ -112,12 +112,12 @@ class TestRediseno(unittest.TestCase):
     def texto_de(self, widget):
         return widget.get("1.0", "end")
 
-    # --- C1: estilos --------------------------------------------------------------
+    # estilos
     def test_aplicar_tema_no_falla(self):
         from ui.estilos import aplicar_tema
         aplicar_tema(self.v)
 
-    # --- C2: cabecera, barra de estado y vista Lenguaje ----------------------------
+    # cabecera, barra de estado y vista Lenguaje
     def test_cabecera_cabe_en_1100_px(self):
         self.v.update()
         self.assertLessEqual(self.v.cabecera.winfo_reqwidth(), 1100)
@@ -135,7 +135,7 @@ class TestRediseno(unittest.TestCase):
 
     def etiquetas_menu(self):
         menu = self.v.cabecera.menu_ejemplos
-        self.v.cabecera._llenar_ejemplos()  # lo que hace `postcommand` al abrir el menu
+        self.v.cabecera._llenar_ejemplos()  # lo que hace `postcommand` al abrir el menú
         return [menu.entrycget(i, "label") for i in range(menu.index("end") + 1)]
 
     def test_menu_ejemplos_se_rellena_al_abrir(self):
@@ -190,7 +190,7 @@ class TestRediseno(unittest.TestCase):
                           "<Control-Key-n>", "<Control-Key-o>", "<Control-Key-s>"):
             self.assertIn(secuencia, enlazados)
 
-    # --- C3: editor con columna ✓/✗ ------------------------------------------------
+    # editor con columna ✓/✗
     def test_margen_con_marcas_y_conteo(self):
         from core.modelos import Diagnostico, TipoDiagnostico
         e = self.v.editor
@@ -222,7 +222,7 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(self.margen(2), "2 ✗")
         self.assertEqual(e.conteo_lineas(), (0, 1))
         e.marcar_errores([Diagnostico("ARC-001", TipoDiagnostico.ARCHIVO, "t", "m", "s", 0, 0, "")])
-        self.assertEqual(e.conteo_lineas(), (0, 1))  # sin posicion: no marca nada
+        self.assertEqual(e.conteo_lineas(), (0, 1))  # sin posición no marca nada
 
     def test_marca_error_del_primer_error_de_incorrecto(self):
         v = self.v
@@ -259,13 +259,34 @@ class TestRediseno(unittest.TestCase):
         e.ir_a_error(-1)
         self.assertEqual(e.posicion_cursor(), max(e._marcas))
 
-    # --- C4: manejador de errores y pestañas ---------------------------------------
+    def test_duracion_en_tokens_simbolos_editor_y_lenguaje(self):
+        from core.modelos import TipoToken
+        from ui.estilos import COLORES_TOKEN
+        v = self.v
+        with tempfile.TemporaryDirectory() as carpeta:
+            ruta = Path(carpeta) / "espera.flow"
+            ruta.write_text("inicio\nesperar 500ms;\nfin", encoding="utf-8")
+            self.terminar(str(ruta))
+        p = v.panel_resultados
+        etiqueta = v.editor._etiqueta(TipoToken.DURACION)
+        self.assertEqual(v.editor.texto.tag_cget(etiqueta, "foreground"), COLORES_TOKEN[TipoToken.DURACION])
+        self.assertEqual([str(i) for i in v.editor.texto.tag_ranges(etiqueta)], ["2.8", "2.13"])
+        tokens = [p.arbol_tokens.item(i, "values") for i in p.arbol_tokens.get_children()]
+        self.assertIn("Duración", [fila[3] for fila in tokens])
+        simbolo = next(p.arbol_simbolos.item(i, "values") for i in p.arbol_simbolos.get_children()
+                       if p.arbol_simbolos.item(i, "values")[2] == "500ms")
+        self.assertEqual((simbolo[3], simbolo[4], str(simbolo[5])), ("Duración", "duracion", "500"))
+        lenguaje = p._marcos["lenguaje"].winfo_children()[0]
+        textos = [lenguaje.arbol.item(i, "text") for i in lenguaje.arbol.get_children()]
+        self.assertIn("Números", textos)
+
+    # manejador de errores y pestañas
     def test_titulo_y_columnas_del_manejador(self):
         v = self.v
         pe = v.panel_errores
         self.assertEqual(pe.titulo.cget("text"), "Manejador de errores (sin errores)")
         self.terminar(INCORRECTO)
-        self.assertEqual(pe.titulo.cget("text"), "Manejador de errores (15 errores)")
+        self.assertEqual(pe.titulo.cget("text"), "Manejador de errores (17 errores)")
         self.assertEqual(tuple(pe.arbol_errores["columns"]), ("codigo", "linea", "col", "lexema", "error"))
         primera = pe.arbol_errores.item(pe.arbol_errores.get_children()[0], "values")
         self.assertTrue(str(primera[0]).startswith("LEX-"))
@@ -353,7 +374,7 @@ class TestRediseno(unittest.TestCase):
         self.v.consola.escribir("hola")
         self.assertEqual(p.vista_actual, "consola")
 
-    # --- C5: ventana, pausa por línea y requisitos 5 y 6 ---------------------------
+    # ventana, pausa por línea, tabla al terminar y solicitud del archivo
     def test_pausa_por_linea_marca_la_linea_terminada(self):
         v = self.v
         v.abrir_archivo(INCORRECTO)
@@ -377,7 +398,7 @@ class TestRediseno(unittest.TestCase):
                 self.assertEqual(v._linea_en_curso, esperada)
                 self.assertEqual(programados[-1], (v._pausa_efectiva(), v._tick))
             self.assertEqual(programados[-1][0], 120)
-            v._id_tick = None  # el `after` simulado no creo ningun temporizador real
+            v._id_tick = None  # el `after` simulado no creó ningún temporizador real
 
     def test_pausa_efectiva_con_archivos_cortos_y_largos(self):
         v = self.v
@@ -441,14 +462,14 @@ class TestRediseno(unittest.TestCase):
             time.sleep(0.005)
         self.assertEqual(v.estado, "LISTO")
         self.assertEqual(v.editor._titulo.cget("text"), "Archivo de entrada: correcto.flow")
-        self.messagebox.askyesnocancel.assert_not_called()  # la solicitud inicial no pregunta
+        self.messagebox.askyesnocancel.assert_not_called()  # la solicitud inicial no pregunta por cambios
 
     def test_barra_de_estado_al_terminar(self):
         v = self.v
         self.terminar(INCORRECTO)
         texto = v.barra_estado.contadores.cget("text")
         validas, con_errores = v.editor.conteo_lineas()
-        for esperado in ("Tokens: 57", "Símbolos: 18", "Errores: 15",
+        for esperado in ("Tokens: 63", "Símbolos: 19", "Errores: 17",
                          f"Líneas válidas: {validas}", f"Líneas con errores: {con_errores}"):
             self.assertIn(esperado, texto)
         self.assertEqual(v.barra_estado.veredicto.cget("text"), "✗ El archivo NO es válido para FlowLang")
@@ -488,7 +509,7 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(self.filas(v.panel_resultados.arbol_tokens), filas)
         self.assertEqual(v.estado, "ANALIZANDO")
 
-    # --- AUD-29: cambios sin guardar -----------------------------------------------
+    # cambios sin guardar
     def con_cambios(self):
         self.v.abrir_archivo(CORRECTO)
         self.v.editor.texto.insert("end", "x")
@@ -496,7 +517,7 @@ class TestRediseno(unittest.TestCase):
         return self.v.editor.obtener_texto()
 
     def acciones_que_descartan(self):
-        """(nombre, accion) de las cinco salidas que deben preguntar por los cambios sin guardar."""
+        """(nombre, acción) de las cinco salidas que deben preguntar por los cambios sin guardar."""
         v = self.v
         etiquetas = self.etiquetas_menu()
         return [("abrir con ruta", lambda: v.abrir_archivo(INCORRECTO)),
@@ -547,7 +568,7 @@ class TestRediseno(unittest.TestCase):
 
     def test_si_pero_se_cancela_el_guardado_no_continua(self):
         texto = self.con_cambios()
-        self.v.ruta_actual = None  # sin ruta, guardar abre el dialogo
+        self.v.ruta_actual = None  # sin ruta, guardar abre el diálogo
         self.filedialog.asksaveasfilename.return_value = ""
         self.messagebox.askyesnocancel.return_value = True
         self.v.abrir_archivo(INCORRECTO)
@@ -564,7 +585,7 @@ class TestRediseno(unittest.TestCase):
     def test_el_boton_de_cierre_llama_a_salir(self):
         self.assertIn("salir", self.v.protocol("WM_DELETE_WINDOW"))
 
-    # --- AUD-31: Ctrl+O en el editor --------------------------------------------------
+    # Ctrl+O en el editor
     def test_ctrl_o_en_el_editor_abre_y_no_inserta_un_salto(self):
         v = self.v
         self.filedialog.askopenfilename.return_value = ""
@@ -578,7 +599,7 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(v.editor.obtener_texto(), texto)
         self.filedialog.askopenfilename.assert_called_once()
 
-    # --- B17: nuevo archivo --------------------------------------------------------
+    # nuevo archivo
     def carpeta_temporal(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -650,7 +671,7 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(self.filas(v.panel_errores.arbol_errores), 1)
         self.assertEqual(v.estado, "SIN_FUENTE")
 
-    # --- Auditoría Fase D (reviewer-opus) -----------------------------------------
+    # animación y ritmo de la pausa
     def test_aud33_tabla_de_simbolos_legible(self):
         from ui.paneles import formatear_apariciones, formatear_valor
         self.assertEqual(formatear_apariciones([(6, 12), (9, 9), (10, 18)]), "6:12, 9:9, 10:18")
@@ -678,7 +699,7 @@ class TestRediseno(unittest.TestCase):
         inicio = time.monotonic()
         v.analizar()
         self.bombear(lambda: v.estado == "TERMINADO", limite=40)
-        # antes de AUD-34 el trabajo de cada línea se sumaba a la pausa (~24 s para 3 000 líneas)
+        # antes el trabajo de cada línea se sumaba a la pausa (unos 24 s para 3 000 líneas)
         self.assertLess(time.monotonic() - inicio, self.interfaz.DURACION_MAXIMA_ANIMACION_MS / 1000 * 1.3)
 
 

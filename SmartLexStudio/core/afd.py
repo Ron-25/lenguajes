@@ -1,4 +1,4 @@
-"""Motor generico de automatas finitos deterministas dirigido por tabla de transiciones."""
+"""Motor de autómatas finitos deterministas: no sabe nada de FlowLang, solo lee la tabla que recibe."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from core.modelos import TipoToken
 
 
 def clase_caracter(caracter: str) -> str:
-    """Devuelve LETRA, DIGITO o SALTO segun las reglas; si no, el propio caracter."""
+    """Clase del carácter (LETRA, DIGITO o SALTO); los demás son su propia clase."""
     if caracter in reglas.LETRAS:
         return reglas.LETRA
     if caracter in reglas.DIGITOS:
@@ -20,7 +20,7 @@ def clase_caracter(caracter: str) -> str:
 
 @dataclass(frozen=True)
 class ResultadoAFD:
-    """Prefijo mas largo que termino en estado final (longitud 0 si ninguno)."""
+    """Prefijo más largo que terminó en estado final (longitud 0 si ninguno), con el recorrido de estados."""
 
     longitud: int
     tipo: TipoToken | None
@@ -29,7 +29,7 @@ class ResultadoAFD:
 
 
 class AFD:
-    """Automata descrito por una tabla: estado inicial, transiciones y estados finales."""
+    """Autómata descrito por una tabla: estado inicial, transiciones y estados finales."""
 
     def __init__(self, definicion: dict) -> None:
         self.nombre: str = definicion["nombre"]
@@ -39,7 +39,12 @@ class AFD:
         self.errores: dict[str, str] = definicion["errores"]
 
     def siguiente_estado(self, estado: str, caracter: str) -> str | None:
-        """Funcion de transicion: caracter exacto, luego su clase, luego OTRO (salvo salto)."""
+        """Función de transición.
+
+        Se prueba primero el carácter exacto, después su clase y al final OTRO. Ese orden
+        permite que q1 de los números distinga `s` de las demás letras. OTRO no consume
+        saltos de línea, para que las cadenas y los comentarios de línea terminen en ellos.
+        """
         fila = self.transiciones.get(estado)
         if fila is None:
             return None
@@ -53,7 +58,12 @@ class AFD:
         return None
 
     def reconocer(self, texto: str, inicio: int = 0) -> ResultadoAFD:
-        """Ejecuta el automata desde `inicio` y devuelve el prefijo mas largo en estado final."""
+        """Corre el autómata desde `inicio` y devuelve el prefijo más largo que terminó en estado final.
+
+        No se detiene en el primer estado final: sigue mientras haya transición y se queda con
+        el último. Así `10ms` termina en q7 y no en q8 (`10m`). Los estados de error también
+        cuentan como finales, para consumir el lexema mal formado completo.
+        """
         estado = self.inicial
         visitados = [estado]
         mejor = ResultadoAFD(0, None, None, (estado,))
@@ -74,7 +84,7 @@ class AFD:
         return mejor
 
     def acepta(self, cadena: str) -> bool:
-        """True si la cadena completa (no vacia) termina en un estado final de token."""
+        """True si la cadena completa termina en un estado de aceptación (los de error no cuentan)."""
         resultado = self.reconocer(cadena, 0)
         return (
             len(cadena) > 0

@@ -1,4 +1,4 @@
-"""Servicio de analisis: sesion progresiva (un paso por token), resultado y explicaciones."""
+"""Servicio de análisis: la sesión paso a paso, el resultado y la explicación de cada token."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,7 +20,7 @@ _MAX_LEXEMA_VISIBLE = 40
 
 @dataclass(frozen=True)
 class Paso:
-    """Un avance del analisis: un token (fase lexica) o un diagnostico estructural."""
+    """Un avance del análisis: un token (fase léxica) o un diagnóstico estructural."""
 
     numero: int
     fase: str
@@ -32,7 +32,7 @@ class Paso:
 
 @dataclass
 class ResultadoAnalisis:
-    """Resultado (parcial o final) de un analisis, con sus veredictos."""
+    """Resultado de un análisis, parcial mientras la sesión no termina."""
 
     fuente: str
     tokens: list[Token]
@@ -42,50 +42,50 @@ class ResultadoAnalisis:
 
     @property
     def diagnosticos(self) -> list[Diagnostico]:
-        """Todos los diagnosticos reportados hasta ahora."""
+        """Diagnósticos reportados hasta ahora."""
         return self.manejador.diagnosticos
 
     @property
     def es_valida_lexicamente(self) -> bool:
-        """True si no hay diagnosticos lexicos."""
+        """True si no hay diagnósticos léxicos."""
         return not self.manejador.hay_errores(TipoDiagnostico.LEXICO)
 
     @property
     def es_valida_estructuralmente(self) -> bool:
-        """True si no hay diagnosticos estructurales."""
+        """True si no hay diagnósticos estructurales."""
         return not self.manejador.hay_errores(TipoDiagnostico.ESTRUCTURAL)
 
     @property
     def es_valida(self) -> bool:
-        """Cadena valida: analisis terminado y sin errores lexicos ni estructurales."""
+        """Cadena de entrada válida: análisis terminado y sin errores léxicos ni estructurales."""
         return self.terminado and self.es_valida_lexicamente and self.es_valida_estructuralmente
 
     def conteo_por_tipo(self) -> dict[TipoToken, int]:
-        """Cantidad de tokens por categoria (solo las que aparecen)."""
+        """Tokens por categoría, solo de las que aparecen."""
         conteo = {tipo: 0 for tipo in TipoToken}
         for token in self.tokens:
             conteo[token.tipo] += 1
         return {tipo: n for tipo, n in conteo.items() if n > 0}
 
     def lineas_invalidas(self) -> list[int]:
-        """Lineas con al menos un diagnostico lexico, ordenadas y sin repetir."""
+        """Líneas con al menos un diagnóstico léxico, ordenadas y sin repetir."""
         lineas = {d.linea for d in self.manejador.por_tipo(TipoDiagnostico.LEXICO)}
         return sorted(lineas)
 
     @property
     def cantidad_lineas(self) -> int:
-        """0 si la fuente esta vacia; si no, saltos de linea + 1."""
+        """0 si la fuente está vacía; si no, saltos de línea + 1."""
         return 0 if self.fuente == "" else self.fuente.count("\n") + 1
 
     @property
     def cantidad_caracteres(self) -> int:
-        """Longitud de la fuente."""
+        """Caracteres de la fuente."""
         return len(self.fuente)
 
 
 @dataclass(frozen=True)
 class ExplicacionToken:
-    """Todo lo que el modo educativo muestra de un token."""
+    """Todo lo que la pestaña Autómatas muestra de un token."""
 
     token: Token
     categoria: str
@@ -97,7 +97,7 @@ class ExplicacionToken:
 
 
 def _visible(lexema: str) -> str:
-    """Lexema recortado a 40 caracteres y con los saltos de linea como ⏎."""
+    """Lexema en una sola línea (saltos como ⏎) y recortado a 40 caracteres."""
     texto = lexema.replace("\n", "⏎")
     return texto if len(texto) <= _MAX_LEXEMA_VISIBLE else texto[:_MAX_LEXEMA_VISIBLE] + "…"
 
@@ -109,22 +109,22 @@ def _texto_instalacion(instalacion: ResultadoInstalacion) -> str:
         estado = "colisión"
     else:
         estado = "nueva"
-    if instalacion.redimensiono:  # la colision ocurrio en la cubeta anterior al redimensionado
+    if instalacion.redimensiono:  # si hubo redimensionado, la cubeta que cuenta es la de antes de crecer
         return f"tabla: {estado}; tabla redimensionada, ahora en cubeta {instalacion.indice}"
     return f"tabla: {estado}, cubeta {instalacion.indice}"
 
 
 class SesionAnalisis:
-    """Analisis progresivo: cada llamada a siguiente_paso() avanza un token."""
+    """Análisis progresivo: cada llamada a siguiente_paso() avanza un token."""
 
     def __init__(self, fuente: str, capacidad_tabla: int = reglas.CAPACIDAD_INICIAL_TABLA) -> None:
         manejador = ManejadorErrores()
-        # El lexer reporta en un manejador propio que se vacia en cada paso: asi los
-        # diagnosticos del paso se obtienen sin copiar toda la lista (coste lineal).
+        # El lexer reporta en un manejador propio que se vacía en cada paso; así los
+        # diagnósticos del paso salen sin copiar la lista completa.
         self._lexico = ManejadorErrores()
         self._tokens = Lexer(fuente, self._lexico).tokens()
         self._resultado = ResultadoAnalisis(fuente, [], manejador, TablaSimbolos(capacidad_tabla))
-        self._anterior: Token | None = None      # ultimo token significativo
+        self._anterior: Token | None = None      # último token significativo
         self._numero = 0
         self._lexico_agotado = False
         self._estructurales: list[Diagnostico] = []
@@ -136,11 +136,11 @@ class SesionAnalisis:
 
     @property
     def resultado(self) -> ResultadoAnalisis:
-        """Resultado parcial; es siempre el mismo objeto."""
+        """Resultado parcial; siempre es el mismo objeto, que va creciendo."""
         return self._resultado
 
     def siguiente_paso(self) -> Paso | None:
-        """Avanza un paso; devuelve None cuando el analisis ya termino."""
+        """Avanza un paso; None cuando el análisis ya terminó."""
         if self.terminada:
             return None
         manejador = self._resultado.manejador
@@ -163,11 +163,11 @@ class SesionAnalisis:
         return None
 
     def pasos(self) -> Iterator[Paso]:
-        """Itera siguiente_paso() hasta que devuelve None."""
+        """Los pasos que faltan, uno por uno."""
         return iter(self.siguiente_paso, None)
 
     def terminar(self) -> ResultadoAnalisis:
-        """Consume los pasos que falten y devuelve el resultado final."""
+        """Consume los pasos que falten y devuelve el resultado completo."""
         for _ in self.pasos():
             pass
         return self._resultado
@@ -190,22 +190,22 @@ class SesionAnalisis:
 
 
 def analizar_texto(fuente: str) -> ResultadoAnalisis:
-    """Analiza todo el texto sin interfaz."""
+    """Analiza todo el texto de una vez."""
     return SesionAnalisis(fuente).terminar()
 
 
 def analizar_archivo(ruta: str | Path) -> ResultadoAnalisis:
-    """Carga el archivo (puede lanzar ErrorArchivo) y lo analiza."""
+    """Lee el archivo (ErrorArchivo si no se puede) y lo analiza."""
     return analizar_texto(cargar_fuente(ruta))
 
 
 def tokenizar(fuente: str) -> list[Token]:
-    """Solo el lexer, sin tabla ni validador; para el resaltado del editor."""
+    """Solo el lexer, sin tabla ni validador; basta para colorear el editor."""
     return Lexer(fuente).analizar()
 
 
 def explicar_token(token: Token, tabla: TablaSimbolos | None = None) -> ExplicacionToken:
-    """Reune categoria, regla, recorrido del AFD y datos de la tabla para el modo educativo."""
+    """Reúne categoría, regex, recorrido del AFD y datos de la tabla de un token."""
     info = reglas.INFO_CATEGORIAS[token.tipo]
     coincidencia = reconocer_lexema(token.lexema, 0)
     descripcion = info["descripcion"]
@@ -223,8 +223,8 @@ def explicar_token(token: Token, tabla: TablaSimbolos | None = None) -> Explicac
         lineas.append("Recorrido: " + " → ".join(coincidencia.recorrido))
     if token.tipo == TipoToken.ERROR and coincidencia.codigo_error:
         datos = CATALOGO[coincidencia.codigo_error]
-        # Se reanaliza el lexema para mostrar la misma sugerencia que recibio el diagnostico
-        # (p. ej. la especifica de LEX-001 para '&'), sin duplicar esa regla aqui.
+        # Se vuelve a reconocer el lexema para dar la misma sugerencia que recibió el diagnóstico
+        # (la de LEX-001 para `&`, por ejemplo) sin copiar esa regla aquí.
         reanalisis = Lexer(token.lexema)
         reanalisis.analizar()
         sugerencia = next((d.sugerencia for d in reanalisis.manejador.diagnosticos), datos["sugerencia"])

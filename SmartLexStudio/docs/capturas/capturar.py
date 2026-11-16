@@ -1,4 +1,4 @@
-"""Driver de capturas: abre la app real, analiza ejemplos y toma screenshots de la ventana."""
+"""Genera las capturas de la guía: abre la ventana real, analiza los ejemplos y fotografía la ventana."""
 import subprocess, sys, os
 proy, salida = sys.argv[1], sys.argv[2]
 sys.path.insert(0, proy); os.chdir(proy)
@@ -9,12 +9,12 @@ from ui.interfaz import VentanaPrincipal
 v = VentanaPrincipal(solicitar_archivo=False)
 v.geometry("1440x880+0+30"); v.lift(); v.attributes("-topmost", True)
 def al_frente():
-    """Trae la ventana al primer plano (si no, screencapture fotografia otra aplicacion)."""
+    """Trae la ventana al frente; si no, screencapture fotografía otra aplicación."""
     subprocess.run(["osascript", "-e", f'tell application "System Events" to set frontmost of '
                     f'(first process whose unix id is {os.getpid()}) to true'], capture_output=True)
     v.lift(); v.focus_force()
 def shot(nombre):
-    """Fotografia la ventana por su id (aunque otra aplicacion la tape); si falla, lo informa."""
+    """Fotografía la ventana por su identificador, aunque otra la tape, y avisa si no lo encuentra."""
     al_frente(); v.update(); import time; time.sleep(0.3); v.update()
     aqui = os.path.dirname(os.path.abspath(__file__))
     ident = subprocess.run(["swift", f"{aqui}/id_ventana.swift", str(os.getpid()), str(v.winfo_width())], capture_output=True, text=True)
@@ -27,7 +27,7 @@ pr = v.panel_resultados
 
 
 def esperar(ms):
-    """Atiende eventos (y los `after` del analisis) durante `ms` milisegundos."""
+    """Atiende eventos (y los `after` del análisis) durante `ms` milisegundos."""
     import time
     fin = time.time() + ms / 1000
     while time.time() < fin:
@@ -35,7 +35,7 @@ def esperar(ms):
 
 
 def terminar(ruta):
-    """Abre el ejemplo y lo analiza completo (pausa por linea 0)."""
+    """Abre el ejemplo y lo analiza completo, con la pausa por línea en 0."""
     v.cabecera.establecer_pausa(0)
     v.abrir_archivo(ruta); v.analizar()
     while v.estado != "TERMINADO":
@@ -48,14 +48,18 @@ terminar("ejemplos/correcto.flow")
 pr.mostrar("tokens"); esperar(300); shot("1_correcto_tokens")
 pr.mostrar("simbolos"); esperar(500); shot("2_tabla_simbolos")
 pr.mostrar("resumen"); esperar(500); shot("3_resumen")
-pr.arbol_tokens.selection_set(pr.arbol_tokens.get_children()[11]); pr.mostrar("automatas")
-esperar(500); shot("4_automatas")
+duracion = next(i for i in pr.arbol_tokens.get_children() if pr.arbol_tokens.item(i, "values")[4] == "30s")
+pr.arbol_tokens.selection_set(duracion); pr.mostrar("automatas")
+esperar(500)
+# el recorrido queda debajo del pliegue: se baja el texto hasta la línea del reconocedor
+pr.educativo.yview(pr.educativo.search("Reconocedor", "1.0") or "1.0")
+esperar(300); shot("4_automatas")
 terminar("ejemplos/incorrecto.flow")
 pr.mostrar("simbolos")
-fila = v.panel_errores.arbol_errores.get_children()[3]
+fila = v.panel_errores.arbol_errores.get_children()[12]
 v.panel_errores.arbol_errores.selection_set(fila); v.panel_errores.arbol_errores.see(fila)
 esperar(500); shot("5_incorrecto_errores")
-# analisis detenido a mitad: pausa de 300 ms por linea y se detiene tras unas lineas
+# análisis detenido a mitad: pausa de 300 ms por línea y se detiene tras unas líneas
 v.cabecera.establecer_pausa(300)
 v.abrir_archivo("ejemplos/incorrecto.flow"); v.analizar()
 esperar(2300); v.detener(); pr.mostrar("tokens")

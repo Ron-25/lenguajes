@@ -1,6 +1,6 @@
 # 05 · Guía de sustentación — SmartLex Studio
 
-Para los estudiantes que van a presentar y defender el proyecto. Todo nombre de archivo, función o constante que aparece aquí existe en el código (commit `3a8f372`, 115 pruebas en verde). Los 10 ejercicios de modificación se ensayaron uno por uno en copias temporales del proyecto; el resultado que se indica en cada uno es el que realmente se obtuvo.
+Para los estudiantes que van a presentar y defender el proyecto. Todo nombre de archivo, función o constante que aparece aquí existe en el código (sobre el commit `03f222f` más los cambios de la Fase E: literales de duración y pasada de comentarios; 183 pruebas, todas en verde salvo `test_listar_ejemplos`, que falla solo porque existe `ejemplos/practica.flow`). Los 11 ejercicios de modificación se ensayaron uno por uno en copias temporales del proyecto; el resultado que se indica en cada uno es el que realmente se obtuvo.
 
 **Comandos** (ejecutar siempre dentro de la carpeta `SmartLexStudio/`; donde dice `python` use el intérprete con tkinter, en este equipo `/opt/homebrew/bin/python3.14`):
 
@@ -25,12 +25,12 @@ Una aplicación de escritorio en Python (solo biblioteca estándar) que recibe u
 3. **Manejador de errores:** detecta, clasifica y explica cada error, y lo muestra **mientras** avanza la evaluación.
 
 ### 1.2 Qué es FlowLang
-Un lenguaje inventado para el proyecto que describe automatizaciones (riego, luces): 17 palabras reservadas, identificadores, enteros, decimales, cadenas con escapes, 15 operadores, 6 delimitadores y 2 tipos de comentario. Su definición completa está en `docs/03_especificacion.md` y, como **datos**, en `config/reglas.py`.
+Un lenguaje inventado para el proyecto que describe automatizaciones (riego, luces): 17 palabras reservadas, identificadores, enteros, decimales, **duraciones** (`10s`, `500ms`, `5m`, `2h`), cadenas con escapes, 15 operadores, 6 delimitadores y 2 tipos de comentario. La duración es el rasgo propio de FlowLang: un lenguaje de automatización habla de tiempos, así que `esperar 10s;` lleva un literal con su unidad y no un número suelto. Su definición completa está en `docs/03_especificacion.md` y, como **datos**, en `config/reglas.py`.
 
 ### 1.3 Lexema, token y categoría
 - **Lexema:** el trozo de texto tal como está escrito: `temperatura`, `>=`, `45.5`.
 - **Token:** el lexema ya clasificado, con su posición. En el código es la clase `Token` de `core/modelos.py`: `tipo`, `lexema`, `linea`, `columna`.
-- **Categoría:** el `tipo`; uno de los 12 miembros de `TipoToken` (palabra reservada, identificador, entero, decimal, cadena, tres clases de operador, asignación, delimitador, comentario, error).
+- **Categoría:** el `tipo`; uno de los 13 miembros de `TipoToken` (palabra reservada, identificador, entero, decimal, duración, cadena, tres clases de operador, asignación, delimitador, comentario, error).
 
 `numero x = 10;` produce 5 tokens: (Palabra reservada, `numero`, 1:1), (Identificador, `x`, 1:8), (Asignación, `=`, 1:10), (Entero, `10`, 1:12), (Delimitador, `;`, 1:14).
 
@@ -47,7 +47,7 @@ El lexer **no usa el módulo `re`**. Usa cuatro **AFD** escritos como tablas de 
 | AFD | Constante | Expresión regular equivalente |
 |---|---|---|
 | Identificadores | `AFD_IDENTIFICADOR` | `[A-Za-z_][A-Za-z0-9_]*` |
-| Números | `AFD_NUMERO` | entero `[0-9]+`, decimal `[0-9]+\.[0-9]+` |
+| Números | `AFD_NUMERO` | entero `[0-9]+`, decimal `[0-9]+\.[0-9]+`, duración `[0-9]+(?:ms\|s\|m\|h)` |
 | Cadenas | `AFD_CADENA` | `"(?:[^"\\\n]\|\\[nt"\\])*"` |
 | Comentarios | `AFD_COMENTARIO` | `//[^\n]*\|/\*(?:[^*]\|\*+[^*/])*\*+/` |
 
@@ -72,6 +72,8 @@ Tres ideas que hay que saber decir:
 - **Coincidencia más larga (maximal munch).** En cada posición se ejecutan los 4 AFD y se consulta la tabla de operadores (primero 2 caracteres, luego 1); gana el candidato **más largo** (`reconocer_lexema` en `core/lexer.py`). Por eso `>=` es un token y no `>` seguido de `=`, y `// nota` es un comentario y no una división.
 - **Palabras reservadas.** Se reconocen como identificadores y después se consulta `PALABRAS_RESERVADAS`. Por eso `si2` es un identificador y agregar una palabra es una línea.
 - **Estados finales de error.** Los AFD de número, cadena y comentario tienen estados finales que no producen un token sino un **código de error** (clave `"errores"`). Así `3.4.5` se consume entero y da un solo error, en vez de partirse en trozos.
+
+El AFD de números tiene **9 estados** (q0–q8); los estados q7 y q8 son los de duración (q7: unidad completa, q8: se vio `m`, que ya es una duración y puede seguir con `s`). El mínimo del lenguaje de números tiene 6.
 
 **Lo que es honesto afirmar:** los AFD equivalen a sus regex *según las pruebas* (`tests/test_afd.py` compara todas las cadenas de hasta 5 símbolos de un alfabeto de prueba); no es una demostración formal. Los operadores se resuelven con un diccionario, no con una tabla de estados. Los AFD de número y cadena **no son mínimos** (tienen estados de error añadidos; la especificación muestra también el mínimo). El balance de paréntesis usa una **pila** porque ese lenguaje no es regular.
 
@@ -107,7 +109,7 @@ Comprobación: `python -c "from core.simbolos import hash_polinomial as h; print
 
 ### 1.7 Cómo se detectan y manejan los errores
 - **Detección léxica:** el AFD termina en un estado final de error (o ningún reconocedor acepta el carácter → `LEX-001`). El lexer llama a `ManejadorErrores.reportar(codigo, linea, columna, lexema)`.
-- **Recuperación (modo pánico):** se descarta el lexema inválido, se emite un token de tipo `ERROR` y **el análisis continúa**. Por eso `incorrecto.flow` reporta sus 15 errores en una sola pasada.
+- **Recuperación (modo pánico):** se descarta el lexema inválido, se emite un token de tipo `ERROR` y **el análisis continúa**. Por eso `incorrecto.flow` reporta sus 17 errores en una sola pasada.
 - **Catálogo:** `CATALOGO` en `core/errores.py` tiene los 19 diagnósticos, cada uno con tipo, título, mensaje y sugerencia. Es el único lugar donde están los textos.
 - **Tres familias:** `LEX-001…007` (léxicos), `SIN-001…006` (estructurales), `ARC-001…006` (archivo: no existe, extensión, vacío, codificación, lectura, tamaño).
 - **Durante la evaluación:** `SesionAnalisis.siguiente_paso()` entrega un `Paso` por token con los errores de ese paso; la ventana lo pinta al instante (Manejador de errores, consola, subrayado y ✗ en el margen).
@@ -138,7 +140,7 @@ No se usan fábricas, contenedores ni interfaces abstractas: a este tamaño solo
 
 ---
 
-## Parte 2 · Diez ejercicios de modificación
+## Parte 2 · Once ejercicios de modificación
 
 Formato de cada ejercicio: qué se pide · dónde · cambio exacto · cómo comprobarlo · qué prueba cambia · explicación.
 
@@ -220,10 +222,10 @@ LETRAS = string.ascii_letters + "ñÑáéíóúÁÉÍÓÚ"
         "regex": r"[0-9]*\.[0-9]+",
 ```
 
-- **Comprobar:** `inicio decimal x = .5; decimal z = 5.; fin` → `.5` es Decimal con valor 0.5; `5.` sigue siendo `LEX-003`; un `.` suelto sigue siendo `LEX-001`.
+- **Comprobar:** `inicio decimal x = .5; decimal z = 5.; fin` → `.5` es Decimal con valor 0.5; `5.` sigue siendo `LEX-003`; un `.` suelto sigue siendo `LEX-001`. (Reensayado con duraciones: `10s` sigue siendo duración y `1.5s` sigue siendo `LEX-003`.)
 - **Pruebas:** fallan 2: `tests.test_afd.TestMotorAFD.test_recorridos_de_la_especificacion` (esperaba `.5` → `q0, q6, q4`, error) y `tests.test_lexer.TestLexer.test_numeros_mal_formados` (tenía `.5` y `x1.5` como errores). La prueba de **equivalencia regex ↔ AFD sigue en verde**, lo que confirma que tabla y regex cambiaron de forma coherente.
 - **Explicación:** `q6` es el estado «vi un punto sin parte entera». Antes llevaba al estado de error `q4`; ahora lleva a `q3`, el estado final de `DECIMAL`. Se cambió **una transición**.
-- **Variante más invasiva (aceptar `5.`):** mover `q2` de `"errores"` a `"aceptacion"` (`"q2": TipoToken.DECIMAL`) y la regex a `[0-9]+\.[0-9]*`. Funciona, pero rompe 9 pruebas porque `incorrecto.flow` contiene `5.` como error de ejemplo. Conviene explicarla sin ejecutarla.
+- **Variante más invasiva (aceptar `5.`):** mover `q2` de `"errores"` a `"aceptacion"` (`"q2": TipoToken.DECIMAL`) y la regex a `[0-9]+\.[0-9]*`. Rompe varias pruebas porque `incorrecto.flow` contiene `5.` como error de ejemplo, y no se reensayó con duraciones. Conviene explicarla sin ejecutarla.
 
 ### Ejercicio 5 — Agregar un diagnóstico nuevo (`LEX-008`: decimal sin parte entera)
 - **Archivos:** `core/errores.py` (`CATALOGO`) y `config/reglas.py` (`AFD_NUMERO`).
@@ -240,19 +242,25 @@ LETRAS = string.ascii_letters + "ñÑáéíóúÁÉÍÓÚ"
 ```python
 # antes
         "q6": {DIGITO: "q4"},
+        "q7": {DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+        "q8": {"s": "q7", DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
     },
-    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL},
+    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL,
+                   "q7": TipoToken.DURACION, "q8": TipoToken.DURACION},
     "errores": {"q2": "LEX-003", "q4": "LEX-003", "q5": "LEX-004"},
 # después
-        "q6": {DIGITO: "q7"},
-        "q7": {DIGITO: "q7", ".": "q4", LETRA: "q4", "_": "q4"},
+        "q6": {DIGITO: "q9"},
+        "q7": {DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+        "q8": {"s": "q7", DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+        "q9": {DIGITO: "q9", ".": "q4", LETRA: "q4", "_": "q4"},
     },
-    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL},
-    "errores": {"q2": "LEX-003", "q4": "LEX-003", "q5": "LEX-004", "q7": "LEX-008"},
+    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL,
+                   "q7": TipoToken.DURACION, "q8": TipoToken.DURACION},
+    "errores": {"q2": "LEX-003", "q4": "LEX-003", "q5": "LEX-004", "q9": "LEX-008"},
 ```
 
-- **Comprobar:** `inicio x = .5; y = .5.2; z = 3.; fin` → `.5` da `LEX-008` con la sugerencia nueva; `.5.2` y `3.` siguen dando `LEX-003`.
-- **Pruebas:** fallan 3: `tests.test_errores.TestCatalogo.test_diecinueve_codigos_con_tipo_correcto` (19 → 20 códigos, 7 → 8 léxicos), `test_recorridos_de_la_especificacion` y `test_numeros_mal_formados` (esperaban `LEX-003` para `.5`).
+- **Comprobar:** `inicio x = .5; y = .5.2; z = 3.; fin` → `.5` da `LEX-008` con la sugerencia nueva; `.5.2` y `3.` siguen dando `LEX-003`. El estado nuevo se llama `q9` porque `q7` y `q8` ya son de duración.
+- **Pruebas:** fallan 3: `tests.test_errores.TestCatalogo.test_diecinueve_codigos_con_tipo_correcto` (19 → 20 códigos, 7 → 8 léxicos), `test_recorridos_de_la_especificacion` (la fila de `.5`) y `test_numeros_mal_formados` (esperaban `LEX-003` para `.5`).
 - **Explicación:** un diagnóstico tiene dos partes: **qué dice** (catálogo, un solo lugar) y **cuándo ocurre** (un estado final de error en un AFD). El lexer no se toca: ya sabe reportar cualquier código que el AFD le devuelva. Para un diagnóstico estructural, la segunda parte sería una regla en `validar_estructura` (`core/validador.py`).
 
 ### Ejercicio 6 — Agregar una columna a la tabla de símbolos («Longitud»)
@@ -394,7 +402,7 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 ```
 
 - **Comprobar:** `inicio x = 'a'; y = 'ab'; fin` → `'a'` es un token Carácter con recorrido `q0 → q1 → q2 → q3`; `'ab'` no es aceptado (dos `LEX-001`, uno por cada comilla, como antes).
-- **Pruebas:** fallan 3: `test_conteos_de_flowlang_1_0` (autómatas 4 → 5), `tests.test_lexer.TestModelos.test_doce_tipos` (12 → 13) y `test_caracteres_desconocidos` (afirmaba que `'a'` da dos errores).
+- **Pruebas:** fallan 3: `test_conteos_de_flowlang_1_0` (autómatas 4 → 5), `tests.test_lexer.TestModelos.test_trece_tipos` (13 → 14) y `test_caracteres_desconocidos` (afirmaba que `'a'` da dos errores).
 - **Explicación:** el lexer ejecuta **todos** los AFD de `AUTOMATAS` y elige el más largo; añadir un patrón es añadir una tabla, no escribir código. Opcional: para instalarlo en la tabla de símbolos, añadir `TipoToken.CARACTER` a `CATEGORIAS_EN_TABLA`; para que no quede una sugerencia obsoleta, quitar la entrada `"'"` de `SUGERENCIAS_CARACTER`.
 
 ### Ejercicio 10 — Instalar también operadores y delimitadores en la tabla de símbolos
@@ -415,9 +423,28 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 })
 ```
 
-- **Comprobar:** analizar `correcto.flow` y ver la tabla: pasa de 36 a **53 entradas** (capacidad 79, 23 colisiones al insertar, 15 en la tabla actual); `;` aparece con sus 15 apariciones.
-- **Pruebas:** fallan 6, todas por números que cambian a propósito: `tests.test_simbolos.TestRegistrarToken.test_no_instalables`, `tests.test_integracion.TestEjemplos.test_correcto` y `test_incorrecto`, `tests.test_integracion.TestSesion.test_pasos_lexicos`, y en `tests.test_ui_humo.TestUIHumo`, `test_colisiones_en_el_resumen` y `test_flujo_completo_incorrecto`. Para la demostración: mostrar el resultado y volver atrás con `git checkout -- config/reglas.py`.
+- **Comprobar:** analizar `correcto.flow` y ver la tabla: pasa de 36 a **53 entradas** (capacidad 79, 23 colisiones al insertar, 15 en la tabla actual); `;` aparece con sus 15 apariciones. La duración `30s` ya estaba en la tabla.
+- **Pruebas:** fallan 9, todas por números que cambian a propósito: `tests.test_simbolos.TestRegistrarToken.test_no_instalables`, `tests.test_integracion.TestEjemplos.test_correcto`, `test_incorrecto` y `test_casos_limite`, `tests.test_integracion.TestSesion.test_pasos_lexicos`, en `tests.test_ui_humo.TestUIHumo` `test_colisiones_en_el_resumen` y `test_flujo_completo_incorrecto`, y en `tests.test_ui_rediseno.TestRediseno` `test_barra_de_estado_al_terminar` y `test_resumen_de_la_tabla_con_la_formula_real`. Para la demostración: mostrar el resultado y volver atrás con `git checkout -- config/reglas.py`.
 - **Explicación:** qué se instala es una **decisión de diseño expresada como dato**; `registrar_token` solo pregunta `token.tipo not in reglas.CATEGORIAS_EN_TABLA`. Ver la pregunta 13.
+
+### Ejercicio 11 — Agregar la unidad `d` (días)
+- **Archivo:** `config/reglas.py`.
+- **Cambio (tres líneas):**
+
+```python
+# antes
+        "q1": {DIGITO: "q1", ".": "q2", "s": "q7", "h": "q7", "m": "q8", LETRA: "q5", "_": "q5"},
+UNIDADES_TIEMPO = {"ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000}
+        "regex": "[0-9]+(?:ms|s|m|h)",
+# después
+        "q1": {DIGITO: "q1", ".": "q2", "s": "q7", "h": "q7", "d": "q7", "m": "q8", LETRA: "q5", "_": "q5"},
+UNIDADES_TIEMPO = {"ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000, "d": 86_400_000}
+        "regex": "[0-9]+(?:ms|s|m|h|d)",
+```
+
+- **Comprobar:** `inicio esperar 2d; esperar 1.5d; esperar 2dd; fin` → `2d` es Duración con valor 172800000 ms en la tabla de símbolos; `1.5d` es `LEX-003`; `2dd` es `LEX-004`. La `d` reutiliza q7 (unidad completa), así que no hace falta un estado nuevo.
+- **Pruebas:** falla 1: `tests.test_afd.TestReglas.test_conteos_de_flowlang_1_0` (4 → 5 unidades de tiempo). La prueba de equivalencia regex ↔ AFD y la de coherencia entre `UNIDADES_TIEMPO` y la regex siguen en verde, porque las tres piezas cambiaron juntas; si se olvida una de las tres, la de coherencia falla.
+- **Explicación:** la unidad es **un dato** en tres lugares coherentes (la tabla del AFD, el factor en milisegundos y la regex que se muestra). Ni el motor, ni el lexer, ni el cálculo del valor (`valor_literal`) se tocan.
 
 ### Resumen de los ejercicios
 
@@ -427,12 +454,13 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 | 2 | Operador `**` | `config/reglas.py` | 1 (conteos) |
 | 3 | `ñ` en identificadores | `config/reglas.py` | 3 |
 | 4 | Decimal `.5` | `config/reglas.py` | 2 |
-| 5 | Diagnóstico `LEX-008` | `core/errores.py`, `config/reglas.py` | 3 |
+| 5 | Diagnóstico `LEX-008` (estado `q9`) | `core/errores.py`, `config/reglas.py` | 3 |
 | 6 | Columna «Longitud» | `core/modelos.py`, `core/simbolos.py`, `ui/paneles.py` | 0 |
 | 7 | Color / tema | `ui/estilos.py` | 0 |
 | 8 | Extensión `.fl` | `config/reglas.py`, `core/errores.py` | 0 |
 | 9 | Patrón `'a'` | `core/modelos.py`, `config/reglas.py`, `ui/estilos.py` | 3 |
-| 10 | Operadores en la tabla | `config/reglas.py` | 6 |
+| 10 | Operadores en la tabla | `config/reglas.py` | 9 |
+| 11 | Unidad `d` (días) | `config/reglas.py` | 1 |
 
 ---
 
@@ -443,8 +471,9 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 1. **¿Dónde está el autómata en el código?** Las tablas, en `config/reglas.py` (`AFD_IDENTIFICADOR`, `AFD_NUMERO`, `AFD_CADENA`, `AFD_COMENTARIO`). El motor que las ejecuta, en `core/afd.py` (`AFD.siguiente_estado` y `AFD.reconocer`). En pantalla, la pestaña Autómatas muestra el recorrido de estados de cualquier token y la tabla de transiciones usada.
 2. **¿Por qué es determinista?** Para cada par (estado, carácter), `siguiente_estado` devuelve un solo estado o ninguno. El orden de búsqueda es fijo: carácter exacto, luego su clase (letra, dígito, salto), luego `OTRO`.
 3. **¿Usan expresiones regulares?** Como **especificación**, no para analizar. El módulo `re` solo se usa en las pruebas, para comprobar que cada AFD acepta lo mismo que su regex. No lo usamos en el lexer porque `re` funciona por *backtracking* y su `|` elige la primera alternativa que coincide, no la más larga.
-4. **¿El AFD es mínimo?** El de identificadores sí (2 estados). Los de número y cadena no: tienen estados de error añadidos a propósito para consumir entero un lexema mal escrito. El mínimo de números tiene 4 estados (q0–q3) y está en la especificación §3.3.
-5. **¿Cómo distinguen `3.4.5` de `12abc`?** Decide el primer carácter que no es dígito: si es `.`, el AFD va hacia `q4` (`LEX-003`, número mal formado); si es letra o `_`, hacia `q5` (`LEX-004`, identificador que empieza con dígito).
+4. **¿El AFD es mínimo?** El de identificadores sí (2 estados). Los de número y cadena no: tienen estados de error añadidos a propósito para consumir entero un lexema mal escrito. El mínimo de números (entero, decimal y duración) tiene 6 estados: q0–q3, q7 y q8; el implementado tiene 9 por los tres estados de error (q4, q5, q6). Está en la especificación §3.3.
+5. **¿Cómo distinguen `3.4.5` de `12abc`?** Decide el primer carácter que no es dígito: si es `.`, el AFD va hacia `q4` (`LEX-003`, número mal formado); si es letra o `_`, hacia `q5` (`LEX-004`, identificador que empieza con dígito), salvo que lo que siga a los dígitos sea exactamente una unidad (`ms`, `s`, `m`, `h`): entonces el lexema es una `DURACION` (`10s`).
+5b. **¿Por qué `10s` es un token y `10 s` son dos? ¿Y por qué `10seg` es `LEX-004` y no un error propio?** El espacio siempre separa lexemas, así que `10 s` es un `ENTERO` y un `IDENTIFICADOR` (`s` no es reservada). Con `10seg` el autómata solo sabe que tras los dígitos vino una palabra que no es exactamente una unidad: es el mismo caso que `2pi`, y distinguirlos obligaría a adivinar la intención; por eso la sugerencia de `LEX-004` nombra las unidades válidas en vez de existir un código aparte.
 6. **¿Por qué el balance de paréntesis no lo hace un AFD?** Porque no es un lenguaje regular: haría falta contar aperturas sin límite y un autómata finito no tiene memoria. Se usa una pila en `_validar_balance` (`core/validador.py`), que es la idea de un autómata de pila.
 
 **Tokens y análisis léxico**
@@ -481,7 +510,7 @@ AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_CARACTER, AFD_NUMERO, AFD_IDENTIFIC
 24. **¿Qué pasa si cambian la interfaz por otra?** `core/` y `application/` no cambian; el modo consola es la prueba: usa el mismo servicio sin tkinter.
 25. **¿Dónde se cambia el lenguaje?** En `config/reglas.py`, que solo contiene datos (ni funciones ni clases).
 26. **¿Qué patrones usaron?** Autómata dirigido por tabla; generador para la evaluación progresiva; la función hash como parámetro (estrategia mínima); paneles pasivos coordinados por `VentanaPrincipal`. No usamos más porque no simplificaban nada.
-27. **¿Cómo saben que funciona?** 141 pruebas con `unittest`: posiciones exactas, coincidencia más larga, colisiones forzadas, archivos inválidos, equivalencia regex ↔ AFD, y pruebas de la ventana. Dos auditorías independientes (`docs/06_auditoria.md`) incluyeron 20 000 entradas aleatorias sin fallos.
+27. **¿Cómo saben que funciona?** 183 pruebas con `unittest`: posiciones exactas, coincidencia más larga, colisiones forzadas, archivos inválidos, equivalencia regex ↔ AFD, y pruebas de la ventana. Dos auditorías independientes (`docs/06_auditoria.md`) incluyeron 20 000 entradas aleatorias sin fallos.
 28. **¿Qué limitaciones tiene?** No hay análisis sintáctico completo ni semántico. Cuatro mensajes repiten un dato de `reglas.py` (hay que actualizar el texto si cambia el dato). El análisis animado de un archivo de 5 000 líneas tarda unos 6 segundos. Con Tcl/Tk 8.6, el coloreado posterior a un emoji puede desplazarse (el análisis es correcto).
 29. **¿Cómo se cambia el aspecto de la ventana?** Todos los colores están en `ui/estilos.py` (`TEMA`, `COLORES_TOKEN`) y los estilos `ttk` en `aplicar_tema`; ningún otro archivo de `ui/` tiene un color (arquitectura §17.3).
 30. **¿Dónde se ven los errores durante la evaluación?** En cinco sitios a la vez: línea roja en la Consola, fila nueva en el Manejador de errores (siempre visible, con el total en su título), subrayado y línea rosada con ✗ en el editor, y los contadores de la barra de estado (arquitectura §17.5).
@@ -498,10 +527,12 @@ Preparación: `git status` limpio; terminal abierta en `SmartLexStudio/`; ventan
 | 0:40–1:30 | Pulsar **Analizar** (F5). Ver la pestaña Tokens llenarse línea por línea, con la ✓ de cada línea evaluada (deslizador «Pausa por línea»). Responder **No** al diálogo final (captura `1_correcto_tokens.png`) | «La evaluación es progresiva: un token por paso, agrupados por línea. 111 tokens, léxico válido, estructura válida: cadena VÁLIDA. Al final se ofrece ver la tabla de símbolos.» |
 | 1:30–2:30 | Botón **Ver tabla de símbolos** (captura `2_tabla_simbolos.png`). Señalar `fin`: hash 101387, cubeta 30; y las filas resaltadas | «Tabla hash propia. `fin`: 102·31+105 = 3267; 3267·31+110 = 101387; módulo 79 = 30. Las filas resaltadas comparten cubeta: colisiones resueltas por encadenamiento. Hubo 14 colisiones al insertar; tras dos redimensionados quedan 7.» |
 | 2:30–3:20 | Pestaña Tokens, clic en `45.5`, luego pestaña **Autómatas** (captura `4_automatas.png`) | «Este decimal lo reconoció el AFD de números con el recorrido q0, q1, q1, q2, q3. Abajo está la tabla de transiciones: es la misma que usa el lexer.» |
-| 3:20–4:40 | Menú **Ejemplos ▾** → `incorrecto.flow`. **Paso a paso** (F10) tres veces: el tercer token es `2pi`. Luego **Analizar** para terminar; responder **No**. Clic en un error y doble clic (captura `5_incorrecto_errores.png`) | «`2pi` empieza con dígito: el AFD termina en un estado de error y aparece LEX-004 en ese instante, con el análisis sin terminar (requisito 5). No se detiene: modo pánico. Al final, 15 errores con código, mensaje y sugerencia; doble clic lleva a la posición.» |
+| 3:20–4:40 | Menú **Ejemplos ▾** → `incorrecto.flow`. **Paso a paso** (F10) tres veces: el tercer token es `2pi`. Luego **Analizar** para terminar; responder **No**. Clic en un error y doble clic (captura `5_incorrecto_errores.png`) | «`2pi` empieza con dígito: el AFD termina en un estado de error y aparece LEX-004 en ese instante, con el análisis sin terminar (requisito 5). No se detiene: modo pánico. Al final, 17 errores con código, mensaje y sugerencia; doble clic lleva a la posición.» |
 | 4:40–5:10 | Pestaña **Resumen** (captura `3_resumen.png`) y la barra de estado con el veredicto | «Veredictos separados: léxico y estructura. Los estructurales —falta `fin`, paréntesis sin cerrar— los detecta el validador con una pila, porque eso no es regular.» |
 | 5:10–6:00 | Modificación en vivo (ejercicio 1): añadir `repetir` en `config/reglas.py`, reabrir la aplicación, escribir `inicio repetir fin` y analizar. Después `git checkout -- .` | «Una línea de datos y ningún algoritmo tocado: abierto/cerrado. La batería avisa con una sola prueba, la que fija que FlowLang 1.0 tiene 17 reservadas.» |
 
+**Minuto extra, la duración (si sobra tiempo):** escribir `esperar 10s;` dentro del programa, analizar y pulsar `10s` en Tokens: la pestaña Autómatas muestra `q0 → q1 → q1 → q7` y la categoría Duración, en verde azulado. «Un entero pegado a su unidad; en la tabla de símbolos vale 10000 milisegundos.» Después `esperar 10 s;` (dos tokens: el espacio separa) y `esperar 10seg;` (`LEX-004`, con la sugerencia que nombra las unidades `ms`, `s`, `m` y `h`).
+
 **Si no hay tkinter en el equipo:** `python main.py --consola ejemplos/incorrecto.flow` muestra tokens, errores, veredicto y pregunta si se quiere ver la tabla de símbolos.
 
-**Si preguntan por las pruebas:** `python -m unittest discover -s tests -t .` (≈ 25 s) → `Ran 118 tests … OK`.
+**Si preguntan por las pruebas:** `python -m unittest discover -s tests -t .` (≈ 25 s) → `Ran 183 tests`: todas en verde salvo `test_listar_ejemplos` si existe `ejemplos/practica.flow`.

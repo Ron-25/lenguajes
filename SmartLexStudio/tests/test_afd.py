@@ -1,4 +1,4 @@
-"""Pruebas de las reglas (config), el motor AFD y la equivalencia regex <-> AFD."""
+"""Pruebas de las reglas, del motor AFD y de que cada regex describa lo mismo que su autómata."""
 from __future__ import annotations
 
 import itertools
@@ -20,6 +20,8 @@ class TestReglas(unittest.TestCase):
         self.assertEqual(len(reglas.LETRAS), 52, aviso(52, "letras"))
         self.assertEqual(len(reglas.SUGERENCIAS_CARACTER), 8, aviso(8, "sugerencias de carácter"))
         self.assertEqual(len(reglas.AUTOMATAS), 4, aviso(4, "autómatas"))
+        self.assertEqual(len(TipoToken), 13, aviso(13, "categorías de token"))
+        self.assertEqual(len(reglas.UNIDADES_TIEMPO), 4, aviso(4, "unidades de tiempo"))
 
     def test_tipo_dato_booleano_es_tipo_de_dato(self):
         self.assertIn(reglas.TIPO_DATO_BOOLEANO, reglas.TIPOS_DE_DATO)
@@ -36,6 +38,15 @@ class TestReglas(unittest.TestCase):
                 self.assertEqual(tipo, TipoToken.ERROR)
             else:
                 re.compile(info["regex"])
+
+    def test_unidades_de_tiempo_coinciden_con_afd_y_regex(self):
+        numero = AFD(reglas.AFD_NUMERO)
+        for unidad in reglas.UNIDADES_TIEMPO:
+            r = numero.reconocer("7" + unidad)
+            self.assertEqual((r.longitud, r.tipo), (1 + len(unidad), TipoToken.DURACION), unidad)
+        regex = reglas.INFO_CATEGORIAS[TipoToken.DURACION]["regex"]
+        alternativas = re.fullmatch(r"\[0-9\]\+\(\?:(.*)\)", regex).group(1).split("|")
+        self.assertEqual(set(alternativas), set(reglas.UNIDADES_TIEMPO))
 
     def test_escapes_coinciden_con_afd_cadena(self):
         fila = reglas.AFD_CADENA["transiciones"]["q2"]
@@ -73,6 +84,16 @@ class TestMotorAFD(unittest.TestCase):
             (".5", ("q0", "q6", "q4"), None, "LEX-003"),
             ("12abc", ("q0", "q1", "q1", "q5", "q5", "q5"), None, "LEX-004"),
             ("1.5abc", ("q0", "q1", "q2", "q3", "q4", "q4", "q4"), None, "LEX-003"),
+            ("10s", ("q0", "q1", "q1", "q7"), TipoToken.DURACION, None),
+            ("2h", ("q0", "q1", "q7"), TipoToken.DURACION, None),
+            ("5m", ("q0", "q1", "q8"), TipoToken.DURACION, None),
+            ("500ms", ("q0", "q1", "q1", "q1", "q8", "q7"), TipoToken.DURACION, None),
+            ("10x", ("q0", "q1", "q1", "q5"), None, "LEX-004"),
+            ("10sx", ("q0", "q1", "q1", "q7", "q5"), None, "LEX-004"),
+            ("5mm", ("q0", "q1", "q8", "q5"), None, "LEX-004"),
+            ("5min", ("q0", "q1", "q8", "q5", "q5"), None, "LEX-004"),
+            ("10S", ("q0", "q1", "q1", "q5"), None, "LEX-004"),
+            ("3.5s", ("q0", "q1", "q2", "q3", "q4"), None, "LEX-003"),
         ]
         for texto, recorrido, tipo, codigo in casos:
             with self.subTest(texto=texto):
@@ -99,26 +120,31 @@ class TestMotorAFD(unittest.TestCase):
         self.assertTrue(self.identificador.acepta("_x1"))
         self.assertFalse(self.identificador.acepta(""))
         self.assertFalse(self.identificador.acepta("1x"))
-        self.assertFalse(self.numero.acepta("3."))  # termina en estado de error
+        self.assertFalse(self.numero.acepta("3."))  # termina en un estado de error
 
 
 class TestEquivalenciaRegexAFD(unittest.TestCase):
     ALFABETO = ["a", "1", "_", ".", '"', "\\", "\n", "/", "*", " ", "q", "n", "t"]
+    # Los números usan un alfabeto propio y más corto: con `s`, `m` y `h` el producto cartesiano del
+    # alfabeto completo hasta longitud 5 tardaría minutos. La `a` es la letra que no es unidad.
+    ALFABETO_NUMEROS = ["1", ".", "_", "a", "s", "m", "h", " "]
 
     def test_equivalencia_hasta_longitud_5(self):
         parejas = [
-            (reglas.AFD_IDENTIFICADOR, TipoToken.IDENTIFICADOR),
-            (reglas.AFD_NUMERO, TipoToken.ENTERO),
-            (reglas.AFD_NUMERO, TipoToken.DECIMAL),
-            (reglas.AFD_CADENA, TipoToken.CADENA),
-            (reglas.AFD_COMENTARIO, TipoToken.COMENTARIO),
+            (reglas.AFD_IDENTIFICADOR, TipoToken.IDENTIFICADOR, self.ALFABETO),
+            (reglas.AFD_NUMERO, TipoToken.ENTERO, self.ALFABETO_NUMEROS),
+            (reglas.AFD_NUMERO, TipoToken.DECIMAL, self.ALFABETO_NUMEROS),
+            (reglas.AFD_NUMERO, TipoToken.DURACION, self.ALFABETO_NUMEROS),
+            (reglas.AFD_CADENA, TipoToken.CADENA, self.ALFABETO),
+            (reglas.AFD_COMENTARIO, TipoToken.COMENTARIO, self.ALFABETO),
         ]
-        casos = [(AFD(d), re.compile(reglas.INFO_CATEGORIAS[t]["regex"]), t) for d, t in parejas]
         diferencias = []
-        for largo in range(0, 6):
-            for letras in itertools.product(self.ALFABETO, repeat=largo):
-                cadena = "".join(letras)
-                for afd, patron, tipo in casos:
+        for definicion, tipo, alfabeto in parejas:
+            afd = AFD(definicion)
+            patron = re.compile(reglas.INFO_CATEGORIAS[tipo]["regex"])
+            for largo in range(0, 6):
+                for letras in itertools.product(alfabeto, repeat=largo):
+                    cadena = "".join(letras)
                     r = afd.reconocer(cadena, 0)
                     por_afd = r.longitud == len(cadena) and r.tipo == tipo
                     if por_afd != (patron.fullmatch(cadena) is not None):

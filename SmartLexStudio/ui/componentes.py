@@ -1,4 +1,4 @@
-"""Componentes de la ventana: cabecera, vista del lenguaje, consola y barra de estado (arquitectura §17.2)."""
+"""Piezas de la ventana: cabecera, referencia del lenguaje, consola y barra de estado."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -13,10 +13,10 @@ from ui.estilos import TEMA, fuente_codigo, fuente_interfaz
 
 _MAX_LINEAS_CONSOLA = 5000
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
-PAUSA_POR_DEFECTO_MS = 120  # deslizador «Pausa por línea» (§17.7); la ventana las reexporta
+PAUSA_POR_DEFECTO_MS = 120  # del deslizador «Pausa por línea»; interfaz.py las importa de aquí
 PAUSA_MAXIMA_MS = 500
 
-# (clave, texto, estilo) de los botones de la fila 2 de la cabecera, por grupos separados por una barra
+# (clave, texto, estilo) de los botones de la segunda fila de la cabecera; cada grupo va separado por una barra
 _GRUPO_ARCHIVO = (("nuevo", "Nuevo archivo", "Secundario.TButton"), ("abrir", "Abrir archivo…", "Primario.TButton"))
 _GRUPO_GUARDAR = (("guardar", "Guardar", "Secundario.TButton"), ("limpiar", "Limpiar", "Secundario.TButton"))
 _GRUPO_EJECUCION = (("analizar", "Analizar", "Secundario.TButton"), ("paso", "Paso a paso", "Secundario.TButton"),
@@ -65,7 +65,7 @@ class Cabecera(tk.Frame):
         tk.Frame(fila, width=1, height=24, background=TEMA["cabecera_tenue"]).pack(side="left", padx=(2, 6))
 
     def _menu_ejemplos(self, fila) -> None:
-        """Menubutton «Ejemplos ▾»: el menu se rellena cada vez que se abre (un archivo nuevo aparece sin reiniciar)."""
+        """Menú «Ejemplos»: se rellena cada vez que se abre, así un archivo nuevo aparece sin reiniciar."""
         self.menu_ejemplos = tk.Menu(fila, tearoff=0, postcommand=self._llenar_ejemplos)
         boton = ttk.Menubutton(fila, text="Ejemplos", style="Cabecera.TMenubutton", menu=self.menu_ejemplos, width=0)
         boton.pack(side="left", padx=(0, 6))
@@ -90,27 +90,27 @@ class Cabecera(tk.Frame):
         self._etiqueta_pausa.configure(text=f"{self.pausa_ms()} ms")
 
     def pausa_ms(self) -> int:
-        """Valor del deslizador redondeado a multiplos de 10."""
+        """Valor del deslizador en múltiplos de 10 ms."""
         return int(round(float(self._escala.get()) / 10) * 10)
 
     def establecer_pausa(self, ms: int) -> None:
-        """Fija el deslizador (pruebas y capturas)."""
+        """Fija el deslizador por código (lo usan las pruebas y las capturas)."""
         self._escala.set(ms)
         self._actualizar_etiqueta()
 
     def habilitar(self, nombres: Iterable[str]) -> None:
-        """Activa los botones indicados y desactiva el resto."""
+        """Activa solo los botones indicados."""
         activos = set(nombres)
         for nombre, boton in self.botones.items():
             boton.state(["!disabled"] if nombre in activos else ["disabled"])
 
     def habilitar_ver_tabla(self, activo: bool) -> None:
-        """«Ver tabla de símbolos» solo esta disponible al terminar el analisis."""
+        """«Ver tabla de símbolos» solo está disponible al terminar el análisis."""
         self.boton_tabla.state(["!disabled"] if activo else ["disabled"])
 
 
 class VistaLenguaje(ttk.Frame):
-    """Referencia de FlowLang (config.reglas): arbol de palabras, operadores, delimitadores y limites."""
+    """Referencia de FlowLang armada desde `config.reglas`: palabras, números, operadores, delimitadores y límites."""
 
     def __init__(self, padre) -> None:
         super().__init__(padre, style="Panel.TFrame")
@@ -138,6 +138,12 @@ class VistaLenguaje(ttk.Frame):
         raiz = self._nodo("", f"Palabras reservadas ({len(reglas.PALABRAS_RESERVADAS)})", abierto=True)
         for palabra, descripcion in reglas.PALABRAS_RESERVADAS.items():
             self._nodo(raiz, palabra, descripcion)
+        numeros = self._nodo("", "Números")
+        for tipo in (TipoToken.ENTERO, TipoToken.DECIMAL, TipoToken.DURACION):
+            info = reglas.INFO_CATEGORIAS[tipo]
+            grupo = self._nodo(numeros, tipo.value, info["descripcion"])
+            for ejemplo in info["ejemplos"]:
+                self._nodo(grupo, ejemplo, f"Ejemplo de {tipo.value.lower()}: {info['descripcion']}")
         simbolos = self._nodo("", "Operadores")
         for tipo in (TipoToken.OPERADOR_ARITMETICO, TipoToken.OPERADOR_RELACIONAL,
                      TipoToken.OPERADOR_LOGICO, TipoToken.ASIGNACION):
@@ -165,7 +171,7 @@ class VistaLenguaje(ttk.Frame):
 
 
 class PanelConsola(ttk.Frame):
-    """Registro de la evaluacion con colores por nivel."""
+    """Registro de la evaluación, con un color por nivel."""
 
     def __init__(self, padre) -> None:
         super().__init__(padre, style="Panel.TFrame")
@@ -182,7 +188,7 @@ class PanelConsola(ttk.Frame):
             self.texto.tag_configure(nivel, foreground=color)
 
     def escribir(self, texto: str, nivel: str = "normal") -> None:
-        """Agrega una linea y baja el desplazamiento al final."""
+        """Agrega una línea y baja hasta el final."""
         self.texto.configure(state="normal")
         self.texto.insert("end", texto + "\n", nivel)
         exceso = int(self.texto.index("end-1c").split(".")[0]) - _MAX_LINEAS_CONSOLA
@@ -193,19 +199,19 @@ class PanelConsola(ttk.Frame):
             self._id_bajar = self.after_idle(self._bajar_al_final)
 
     def _bajar_al_final(self) -> None:
-        """Un solo desplazamiento por ciclo de eventos aunque se escriban cientos de lineas (AUD-17)."""
+        """Un solo desplazamiento por ciclo de eventos; bajar con cada línea haría lento un archivo largo."""
         self._id_bajar = None
         self.texto.see("end")
 
     def limpiar(self) -> None:
-        """Borra todo el registro."""
+        """Vacía el registro."""
         self.texto.configure(state="normal")
         self.texto.delete("1.0", "end")
         self.texto.configure(state="disabled")
 
 
 class BarraEstado(ttk.Frame):
-    """Barra inferior: contadores a la izquierda; estado, Lin/Col y veredicto a la derecha."""
+    """Barra inferior: contadores a la izquierda; estado, posición del cursor y veredicto a la derecha."""
 
     def __init__(self, padre) -> None:
         super().__init__(padre, style="Estado.TFrame", height=28)
@@ -224,20 +230,20 @@ class BarraEstado(ttk.Frame):
         self.establecer_veredicto(None)
 
     def establecer_estado(self, texto: str) -> None:
-        """Mensaje de estado (§10.4)."""
+        """Mensaje del estado de la aplicación."""
         self._estado.configure(text=texto)
 
     def establecer_contadores(self, validas: int, con_errores: int, tokens: int, simbolos: int, errores: int) -> None:
-        """Los cinco contadores en una sola etiqueta."""
+        """Los contadores del análisis en una sola etiqueta."""
         self.contadores.configure(text=(f"Líneas válidas: {validas}  ·  Líneas con errores: {con_errores}  ·  "
                                         f"Tokens: {tokens}  ·  Símbolos: {simbolos}  ·  Errores: {errores}"))
 
     def establecer_posicion(self, linea: int, columna: int) -> None:
-        """Posicion del cursor."""
+        """Línea y columna del cursor."""
         self._posicion.configure(text=f"Lín {linea}, Col {columna}")
 
     def establecer_veredicto(self, valido: bool | None) -> None:
-        """Veredicto final del analisis; `None` lo borra."""
+        """Veredicto del análisis; None lo borra."""
         if valido is None:
             self.veredicto.configure(text="")
         elif valido:

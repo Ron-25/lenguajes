@@ -1,4 +1,4 @@
-"""Modelos de datos del dominio: tokens, diagnosticos y entradas de la tabla de simbolos."""
+"""Datos del dominio: categorías de token, tokens, diagnósticos y entradas de la tabla de símbolos."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,12 +6,13 @@ from enum import Enum
 
 
 class TipoToken(Enum):
-    """Categorias de token de FlowLang; el valor es el nombre para mostrar."""
+    """Categorías de token; el valor es el nombre que se muestra en pantalla."""
 
     PALABRA_RESERVADA = "Palabra reservada"
     IDENTIFICADOR = "Identificador"
     ENTERO = "Entero"
     DECIMAL = "Decimal"
+    DURACION = "Duración"
     CADENA = "Cadena"
     OPERADOR_ARITMETICO = "Operador aritmético"
     OPERADOR_RELACIONAL = "Operador relacional"
@@ -23,7 +24,7 @@ class TipoToken(Enum):
 
 
 class TipoDiagnostico(Enum):
-    """Origen de un diagnostico."""
+    """De dónde viene un diagnóstico."""
 
     LEXICO = "Léxico"
     ESTRUCTURAL = "Estructural"
@@ -32,7 +33,7 @@ class TipoDiagnostico(Enum):
 
 @dataclass(frozen=True)
 class Token:
-    """Un lexema reconocido con su categoria y su posicion (desde 1)."""
+    """Un lexema con su categoría y su posición (línea y columna empiezan en 1)."""
 
     tipo: TipoToken
     lexema: str
@@ -41,18 +42,18 @@ class Token:
 
     @property
     def longitud(self) -> int:
-        """Cantidad de caracteres del lexema."""
+        """Caracteres del lexema."""
         return len(self.lexema)
 
     @property
     def es_significativo(self) -> bool:
-        """False para comentarios y errores, que el validador ignora."""
+        """Falso para comentarios y errores: el validador estructural no los mira."""
         return self.tipo not in (TipoToken.COMENTARIO, TipoToken.ERROR)
 
 
 @dataclass(frozen=True)
 class Diagnostico:
-    """Un error o aviso con codigo, mensaje, sugerencia y posicion (0 en los de archivo)."""
+    """Un error con código, mensaje, sugerencia y posición (0 y 0 en los de archivo)."""
 
     codigo: str
     tipo: TipoDiagnostico
@@ -66,7 +67,7 @@ class Diagnostico:
 
 @dataclass
 class EntradaSimbolo:
-    """Una fila de la tabla de simbolos; acumula las apariciones del lexema."""
+    """Una fila de la tabla de símbolos; acumula las apariciones del lexema."""
 
     lexema: str
     categoria: TipoToken

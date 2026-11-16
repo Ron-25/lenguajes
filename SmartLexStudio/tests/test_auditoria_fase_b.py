@@ -1,4 +1,4 @@
-"""Pruebas de regresion de la auditoria final (AUD-15 en adelante, docs/06_auditoria.md)."""
+"""Regresiones de la auditoría final: cada prueba fija un defecto ya corregido."""
 from __future__ import annotations
 
 import subprocess
@@ -14,7 +14,7 @@ INCORRECTO = str(RAIZ / "ejemplos" / "incorrecto.flow")
 
 
 def _hay_tk() -> bool:
-    """Igual que en test_ui_humo (D-38): se comprueba Tk en un subproceso."""
+    """Igual que en test_ui_humo: Tk se comprueba en un subproceso."""
     try:
         r = subprocess.run([sys.executable, "-c", "import tkinter; tkinter.Tk().destroy()"],
                            capture_output=True, timeout=30)
@@ -58,9 +58,9 @@ w.destroy()
 @unittest.skipUnless(HAY_TK, "tkinter o pantalla no disponibles")
 class TestDestruccion(unittest.TestCase):
     def test_aud28_destruir_con_after_pendientes(self):
-        """Destruir la ventana con tick, debounce y desplazamientos pendientes no deja
-        callbacks huerfanos («invalid command name … ("after" script)»). En subproceso porque
-        Tcl escribe el error directamente en el descriptor 2."""
+        """Destruir la ventana con el latido, la espera del editor y los desplazamientos pendientes no deja
+        callbacks huérfanos («invalid command name … ("after" script)»). Va en un subproceso porque
+        Tcl escribe ese error directo en el descriptor 2."""
         r = subprocess.run([sys.executable, "-c", _SCRIPT_DESTRUIR], cwd=RAIZ,
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -78,7 +78,7 @@ class TestAuditoriaFaseB(unittest.TestCase):
         for p in parches:
             self.addCleanup(p.stop)
         self.messagebox.askyesno.return_value = False
-        self.messagebox.askyesnocancel.return_value = False  # el MagicMock por defecto es verdadero (D-70)
+        self.messagebox.askyesnocancel.return_value = False  # el MagicMock devuelve verdadero por defecto
         self.v = interfaz.VentanaPrincipal(solicitar_archivo=False)
         self.v.cabecera.establecer_pausa(0)
         self.addCleanup(self.v.destroy)
@@ -97,8 +97,8 @@ class TestAuditoriaFaseB(unittest.TestCase):
             time.sleep(0.01)
 
     def test_aud16_cambio_pendiente_no_invalida_un_analisis_terminado(self):
-        """Escribir y analizar enseguida: el aviso de cambio (debounce 300 ms) ya no marca
-        como desactualizado un resultado que se calculó con ese mismo texto."""
+        """Escribir y analizar enseguida: el aviso de cambio (espera de 300 ms) ya no marca como
+        desactualizado un resultado calculado con ese mismo texto."""
         self.v.editor.texto.insert("1.0", "inicio x fin")
         self.v.update()
         self.v.analizar()
@@ -107,7 +107,7 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.assertEqual(self.v.estado, "TERMINADO")
 
     def test_aud17_un_solo_desplazamiento_por_tick(self):
-        """Con muchos pasos por tick, Treeview.see (lineal en filas) no se llama por cada token."""
+        """Con muchos pasos por latido, Treeview.see (que cuesta más cuantas más filas hay) no se llama por cada token."""
         fuente = "inicio\n" + "numero x = 1 + 2.5 * y; // c\n" * 1000 + "fin\n"
         self.v.editor.establecer_texto(fuente)
         llamadas = []
@@ -122,8 +122,8 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.assertLess(time.perf_counter() - inicio, 30)
 
     def test_aud18_botones_con_ancho_natural(self):
-        """Los ocho botones de la cabecera son ttk.Button con texto y no heredan el ancho minimo del
-        tema clam (width=0); la cabecera cabe en el ancho minimo de la ventana (§17.10)."""
+        """Los ocho botones de la cabecera son ttk.Button con texto y no heredan el ancho mínimo del
+        tema clam (width=0); la cabecera cabe en el ancho mínimo de la ventana."""
         from tkinter import ttk
         self.v.update()
         botones = self.v.cabecera.botones

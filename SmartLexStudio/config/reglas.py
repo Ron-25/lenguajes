@@ -1,24 +1,24 @@
-"""Reglas de FlowLang 1.0 expresadas solo como datos (sin funciones ni clases)."""
+"""Reglas de FlowLang 1.0 como datos: sin funciones, para que cambiar el lenguaje no toque `core/`."""
 from __future__ import annotations
 
 import string
 
 from core.modelos import TipoToken
 
-# --- Lenguaje y archivos -----------------------------------------------------
+# Lenguaje y archivos
 NOMBRE_LENGUAJE = "FlowLang"
 VERSION_LENGUAJE = "1.0"
 EXTENSIONES_PERMITIDAS = (".flow", ".txt")
 CODIFICACION = "utf-8"
 TAMANO_MAXIMO_BYTES = 1_000_000
 
-# --- Alfabeto y clases de caracter ------------------------------------------
+# Alfabeto y clases de carácter
 LETRAS = string.ascii_letters
 DIGITOS = "0123456789"
 ESPACIOS = " \t\r\n"
 LETRA, DIGITO, SALTO, OTRO = "letra", "digito", "salto", "otro"
 
-# --- Palabras reservadas -----------------------------------------------------
+# Palabras reservadas
 PALABRAS_RESERVADAS = {
     "inicio": "Marca el comienzo del programa.",
     "fin": "Marca el final del programa.",
@@ -36,7 +36,7 @@ PALABRAS_RESERVADAS = {
     "leer": "Lee el valor de un sensor o entrada.",
     "activar": "Enciende un dispositivo.",
     "desactivar": "Apaga un dispositivo.",
-    "esperar": "Detiene el programa durante un tiempo.",
+    "esperar": "Detiene el programa durante un tiempo, por ejemplo 10s.",
 }
 TIPOS_DE_DATO = ("numero", "decimal", "texto", "booleano", "dispositivo")
 VALORES_BOOLEANOS = {"verdadero": True, "falso": False}
@@ -44,12 +44,14 @@ TIPO_DATO_BOOLEANO = "booleano"
 TIPO_DATO_LITERAL = {
     TipoToken.ENTERO: "numero",
     TipoToken.DECIMAL: "decimal",
+    TipoToken.DURACION: "duracion",
     TipoToken.CADENA: "texto",
 }
+UNIDADES_TIEMPO = {"ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000}
 PALABRA_INICIO = "inicio"
 PALABRA_FIN = "fin"
 
-# --- Simbolos fijos ----------------------------------------------------------
+# Operadores y delimitadores
 OPERADORES = {
     "+": TipoToken.OPERADOR_ARITMETICO,
     "-": TipoToken.OPERADOR_ARITMETICO,
@@ -79,7 +81,7 @@ PARES_AGRUPACION = {"(": ")", "{": "}"}
 ESCAPES_VALIDOS = {"n": "\n", "t": "\t", '"': '"', "\\": "\\"}
 LONGITUD_MAXIMA_IDENTIFICADOR = 32
 
-# --- Automatas finitos deterministas (tablas de transicion) ------------------
+# Autómatas finitos deterministas: una tabla de transiciones cada uno
 AFD_IDENTIFICADOR = {
     "nombre": "AFD de identificadores",
     "inicial": "q0",
@@ -96,14 +98,17 @@ AFD_NUMERO = {
     "inicial": "q0",
     "transiciones": {
         "q0": {DIGITO: "q1", ".": "q6"},
-        "q1": {DIGITO: "q1", ".": "q2", LETRA: "q5", "_": "q5"},
+        "q1": {DIGITO: "q1", ".": "q2", "s": "q7", "h": "q7", "m": "q8", LETRA: "q5", "_": "q5"},
         "q2": {DIGITO: "q3", ".": "q4", LETRA: "q4", "_": "q4"},
         "q3": {DIGITO: "q3", ".": "q4", LETRA: "q4", "_": "q4"},
         "q4": {DIGITO: "q4", ".": "q4", LETRA: "q4", "_": "q4"},
         "q5": {DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
         "q6": {DIGITO: "q4"},
+        "q7": {DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+        "q8": {"s": "q7", DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
     },
-    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL},
+    "aceptacion": {"q1": TipoToken.ENTERO, "q3": TipoToken.DECIMAL,
+                   "q7": TipoToken.DURACION, "q8": TipoToken.DURACION},
     "errores": {"q2": "LEX-003", "q4": "LEX-003", "q5": "LEX-004"},
 }
 
@@ -135,14 +140,14 @@ AFD_COMENTARIO = {
     "errores": {"q3": "LEX-007", "q4": "LEX-007"},
 }
 
-# El orden es la prioridad en caso de empate de longitud.
+# El orden desempata cuando dos reconocedores consumen lo mismo.
 AUTOMATAS = (AFD_COMENTARIO, AFD_CADENA, AFD_NUMERO, AFD_IDENTIFICADOR)
 
-# --- Informacion de cada categoria (modo educativo y panel lateral) ----------
+# Descripción, expresión regular y ejemplos de cada categoría (pestañas Autómatas y Lenguaje)
 INFO_CATEGORIAS = {
     TipoToken.PALABRA_RESERVADA: {
         "descripcion": "Palabra con significado fijo en el lenguaje; no puede usarse como nombre.",
-        # Se deriva del diccionario: agregar una palabra reservada actualiza tambien su regex.
+        # Se arma desde el diccionario: agregar una palabra reservada actualiza también su regex.
         "regex": "|".join(PALABRAS_RESERVADAS),
         "ejemplos": ("inicio", "si", "mostrar"),
     },
@@ -160,6 +165,11 @@ INFO_CATEGORIAS = {
         "descripcion": "Número con parte entera y parte decimal separadas por un punto.",
         "regex": r"[0-9]+\.[0-9]+",
         "ejemplos": ("45.5", "0.0", "3.14"),
+    },
+    TipoToken.DURACION: {
+        "descripcion": "Tiempo: un entero pegado a su unidad (ms, s, m, h), como en `esperar 10s;`.",
+        "regex": "[0-9]+(?:ms|s|m|h)",
+        "ejemplos": ("10s", "500ms", "2h"),
     },
     TipoToken.CADENA: {
         "descripcion": "Texto entre comillas dobles en una sola línea; admite \\n, \\t, \\\" y \\\\.",
@@ -214,12 +224,13 @@ SUGERENCIAS_CARACTER = {
     ":": "Las instrucciones terminan con `;`.",
 }
 
-# --- Tabla de simbolos -------------------------------------------------------
+# Tabla de símbolos
 CATEGORIAS_EN_TABLA = frozenset({
     TipoToken.PALABRA_RESERVADA,
     TipoToken.IDENTIFICADOR,
     TipoToken.ENTERO,
     TipoToken.DECIMAL,
+    TipoToken.DURACION,
     TipoToken.CADENA,
 })
 CAPACIDAD_INICIAL_TABLA = 17

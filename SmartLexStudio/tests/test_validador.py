@@ -1,4 +1,4 @@
-"""Pruebas del validador estructural (reglas E1-E4)."""
+"""Pruebas del validador estructural: inicio y fin, y balance de paréntesis y llaves."""
 from __future__ import annotations
 
 import unittest
@@ -38,7 +38,7 @@ class TestValidador(unittest.TestCase):
 
     def test_incorrecto_flow(self):
         fuente = (RAIZ / "ejemplos" / "incorrecto.flow").read_text(encoding="utf-8")
-        self.assertEqual([d[:3] for d in validar(fuente)], [("SIN-005", 9, 8), ("SIN-003", 12, 22)])
+        self.assertEqual([d[:3] for d in validar(fuente)], [("SIN-005", 9, 8), ("SIN-003", 13, 31)])
 
 
 if __name__ == "__main__":

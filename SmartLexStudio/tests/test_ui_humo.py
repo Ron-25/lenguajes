@@ -1,4 +1,4 @@
-"""Prueba de humo de la interfaz: flujo progresivo, navegacion y casos de la auditoria."""
+"""Prueba de humo de la interfaz: flujo progresivo, navegación y los defectos que ya se corrigieron."""
 from __future__ import annotations
 
 import subprocess
@@ -9,8 +9,8 @@ from pathlib import Path
 from unittest import mock
 
 def _hay_tk() -> bool:
-    """Prueba en un subproceso si se puede abrir una ventana (un Tk() de prueba destruido
-    antes de las pruebas hace fallar al siguiente en macOS con Tk 9)."""
+    """Comprueba en un subproceso si se puede abrir una ventana: un Tk() de prueba destruido
+    antes de las pruebas hace fallar a la siguiente en macOS con Tk 9."""
     try:
         resultado = subprocess.run([sys.executable, "-c", "import tkinter; tkinter.Tk().destroy()"],
                                    capture_output=True, timeout=30)
@@ -36,7 +36,7 @@ class TestUIHumo(unittest.TestCase):
         for p in parches:
             self.addCleanup(p.stop)
         self.messagebox.askyesno.return_value = False
-        self.messagebox.askyesnocancel.return_value = False  # el MagicMock por defecto es verdadero (D-70)
+        self.messagebox.askyesnocancel.return_value = False  # el MagicMock devuelve verdadero por defecto
         self.ventanas = []
 
     def crear(self, **kwargs):
@@ -67,13 +67,13 @@ class TestUIHumo(unittest.TestCase):
     def test_flujo_completo_incorrecto(self):
         v = self.terminar(INCORRECTO)
         p = v.panel_resultados
-        self.assertEqual(self.filas(p.arbol_tokens), 57)
-        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 15)
+        self.assertEqual(self.filas(p.arbol_tokens), 63)
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 17)
         self.messagebox.askyesno.assert_called_once()
         self.assertIn("tabla de símbolos", self.messagebox.askyesno.call_args[0][1])
         self.assertTrue(p.tabla_simbolos_habilitada())
         v.ver_tabla_simbolos()
-        self.assertEqual(self.filas(p.arbol_simbolos), 18)
+        self.assertEqual(self.filas(p.arbol_simbolos), 19)
 
     def test_progresividad(self):
         v = self.crear(solicitar_archivo=False)
@@ -122,7 +122,7 @@ class TestUIHumo(unittest.TestCase):
         v = self.terminar(INCORRECTO)
         for _ in range(2):
             v.abrir_archivo(str(RAIZ / "no_existe.flow"))
-        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 16)
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 18)
         codigos = [v.panel_errores.arbol_errores.item(i, "values")[0]
                    for i in v.panel_errores.arbol_errores.get_children()]
         self.assertEqual(sum(c.startswith("ARC") for c in codigos), 1)
@@ -150,7 +150,7 @@ class TestUIHumo(unittest.TestCase):
     def test_fuera_del_bmp(self):
         import tkinter
         if tkinter.TkVersion < 9:
-            self.skipTest("Tk 8.6 cuenta los emoji como dos unidades (D-34)")
+            self.skipTest("Tk 8.6 cuenta los emoji como dos unidades")
         v = self.crear(solicitar_archivo=False)
         v.editor.establecer_texto('inicio "😀" x fin')
         v.analizar()

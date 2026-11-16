@@ -1,4 +1,4 @@
-"""Pruebas de los modelos y del analizador lexico."""
+"""Pruebas de los modelos y del analizador léxico."""
 from __future__ import annotations
 
 import dataclasses
@@ -14,7 +14,7 @@ T = TipoToken
 
 
 def analizar(fuente: str):
-    """Devuelve (tokens como tuplas, diagnosticos como (codigo, linea, columna, lexema))."""
+    """Tokens como tuplas y diagnósticos como (código, línea, columna, lexema)."""
     lexer = Lexer(fuente)
     tokens = lexer.analizar()
     return ([(t.tipo, t.lexema, t.linea, t.columna) for t in tokens],
@@ -30,8 +30,8 @@ class TestModelos(unittest.TestCase):
         with self.assertRaises(dataclasses.FrozenInstanceError):
             diagnostico.linea = 2
 
-    def test_doce_tipos(self):
-        self.assertEqual(len(T), 12)
+    def test_trece_tipos(self):
+        self.assertEqual(len(T), 13)
 
     def test_longitud_y_significativo(self):
         self.assertEqual(Token(T.CADENA, '"ab"', 1, 1).longitud, 4)
@@ -114,6 +114,23 @@ class TestLexer(unittest.TestCase):
         self.verificar("x1.5", [(T.IDENTIFICADOR, "x1", 1, 1), (T.ERROR, ".5", 1, 3)],
                        [("LEX-003", 1, 3, ".5")])
 
+    def test_duraciones_validas(self):
+        for texto in ("10s", "500ms", "5m", "2h", "007s"):
+            self.verificar(texto, [(T.DURACION, texto, 1, 1)])
+
+    def test_duraciones_mal_escritas(self):
+        for texto in ("10x", "10sx", "5mm", "10S", "5min", "10seg"):
+            self.verificar(texto, [(T.ERROR, texto, 1, 1)], [("LEX-004", 1, 1, texto)])
+        for texto in ("3.5s", "1.5s"):
+            self.verificar(texto, [(T.ERROR, texto, 1, 1)], [("LEX-003", 1, 1, texto)])
+
+    def test_duracion_coincidencia_mas_larga_y_espacios(self):
+        self.verificar("10ms", [(T.DURACION, "10ms", 1, 1)])
+        self.verificar("10 s", [(T.ENTERO, "10", 1, 1), (T.IDENTIFICADOR, "s", 1, 4)])
+        self.verificar("10s;", [(T.DURACION, "10s", 1, 1), (T.DELIMITADOR, ";", 1, 4)])
+        self.verificar("s m h ms", [(T.IDENTIFICADOR, x, 1, c) for x, c in
+                                    (("s", 1), ("m", 3), ("h", 5), ("ms", 7))])
+
     def test_caracteres_desconocidos(self):
         _, diags = analizar("x.")
         self.assertEqual(diags, [("LEX-001", 1, 2, ".")])
@@ -191,6 +208,9 @@ class TestEjemplos(unittest.TestCase):
         lexer = Lexer(self.leer("correcto.flow"))
         tokens = lexer.analizar()
         self.assertEqual(len(tokens), 111)
+        self.assertEqual(sum(t.tipo == T.DURACION for t in tokens), 1)
+        duracion = next(t for t in tokens if t.tipo == T.DURACION)
+        self.assertEqual((duracion.lexema, duracion.linea, duracion.columna), ("30s", 15, 17))
         self.assertEqual(lexer.manejador.cantidad(), 0)
         primero = next(t for t in tokens if t.es_significativo)
         ultimo = [t for t in tokens if t.es_significativo][-1]
@@ -199,25 +219,25 @@ class TestEjemplos(unittest.TestCase):
 
     def test_casos_limite(self):
         lexer = Lexer(self.leer("casos_limite.flow"))
-        self.assertEqual(len(lexer.analizar()), 118)
+        self.assertEqual(len(lexer.analizar()), 139)
         self.assertEqual(lexer.manejador.cantidad(), 0)
 
     def test_incorrecto(self):
         lexer = Lexer(self.leer("incorrecto.flow"))
         tokens = lexer.analizar()
-        self.assertEqual(len(tokens), 57)
-        self.assertEqual(sum(t.tipo == T.ERROR for t in tokens), 13)
+        self.assertEqual(len(tokens), 63)
+        self.assertEqual(sum(t.tipo == T.ERROR for t in tokens), 15)
         esperados = [
             ("LEX-004", 2, 12, "2pi"), ("LEX-003", 2, 18, "3.14.15"), ("LEX-003", 3, 21, "5."),
             ("LEX-002", 4, 20, '"Hola mundo;'), ("LEX-006", 5, 21, "\\q"), ("LEX-001", 6, 24, "@"),
             ("LEX-001", 7, 29, "&"), ("LEX-005", 8, 12, "identificador_demasiado_largo_para_flowlang"),
             ("LEX-001", 10, 17, "'"), ("LEX-001", 10, 23, "'"), ("LEX-001", 12, 19, "$"),
-            ("LEX-001", 12, 21, "#"),
+            ("LEX-001", 12, 21, "#"), ("LEX-004", 13, 13, "5min"), ("LEX-003", 13, 27, "1.5s"),
         ]
         obtenidos = [(d.codigo, d.linea, d.columna, d.lexema) for d in lexer.manejador.diagnosticos]
-        self.assertEqual(obtenidos[:12], esperados)
-        self.assertEqual(obtenidos[12][:3], ("LEX-007", 13, 1))
-        self.assertEqual(len(obtenidos), 13)
+        self.assertEqual(obtenidos[:14], esperados)
+        self.assertEqual(obtenidos[14][:3], ("LEX-007", 14, 1))
+        self.assertEqual(len(obtenidos), 15)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
-"""Tabla de simbolos: tabla hash propia con encadenamiento separado (solo listas)."""
+"""Tabla de símbolos: tabla hash hecha a mano, con una lista por cubeta para las colisiones."""
 from __future__ import annotations
 
+import string
 from dataclasses import dataclass
 from typing import Callable
 
@@ -9,7 +10,7 @@ from core.modelos import EntradaSimbolo, Token, TipoToken
 
 
 def hash_polinomial(lexema: str) -> int:
-    """Hash polinomial base 31 por el metodo de Horner, modulo 2^32."""
+    """Hash polinomial de base 31 (Horner) módulo 2^32: h = h * 31 + código del carácter."""
     valor = 0
     for caracter in lexema:
         valor = (valor * reglas.BASE_HASH + ord(caracter)) % reglas.MODULO_HASH
@@ -17,7 +18,7 @@ def hash_polinomial(lexema: str) -> int:
 
 
 def siguiente_primo(n: int) -> int:
-    """Menor numero primo mayor o igual que n."""
+    """Primer primo mayor o igual que n; la capacidad prima reparte mejor las cubetas."""
     candidato = max(n, 2)
     while any(candidato % d == 0 for d in range(2, int(candidato ** 0.5) + 1)):
         candidato += 1
@@ -26,7 +27,7 @@ def siguiente_primo(n: int) -> int:
 
 @dataclass(frozen=True)
 class ResultadoInstalacion:
-    """Lo que ocurrio al instalar un token: entrada, novedad, colision y redimensionado."""
+    """Lo que pasó al instalar un token: su entrada, si era nueva, si colisionó y si hubo redimensionado."""
 
     entrada: EntradaSimbolo
     es_nueva: bool
@@ -37,7 +38,7 @@ class ResultadoInstalacion:
 
 @dataclass(frozen=True)
 class EstadisticasTabla:
-    """Fotografia del estado de la tabla."""
+    """Estado de la tabla en un momento dado."""
 
     capacidad: int
     cantidad: int
@@ -49,7 +50,7 @@ class EstadisticasTabla:
 
 
 class TablaSimbolos:
-    """Tabla hash generica de lexemas; la funcion hash se inyecta por el constructor."""
+    """Tabla hash de lexemas; la función hash se recibe por el constructor para poder cambiarla."""
 
     def __init__(self, capacidad: int = reglas.CAPACIDAD_INICIAL_TABLA,
                  funcion_hash: Callable[[str], int] = hash_polinomial,
@@ -66,12 +67,12 @@ class TablaSimbolos:
 
     @property
     def capacidad(self) -> int:
-        """Cantidad actual de cubetas."""
+        """Cubetas que tiene ahora."""
         return self._capacidad
 
     @property
     def colisiones(self) -> int:
-        """Colisiones historicas (no cambia al redimensionar)."""
+        """Colisiones acumuladas al insertar; redimensionar no las reinicia."""
         return self._colisiones
 
     def __len__(self) -> int:
@@ -81,25 +82,25 @@ class TablaSimbolos:
         return self.buscar(lexema) is not None
 
     def indice(self, lexema: str) -> int:
-        """Cubeta que le corresponde al lexema con la capacidad actual."""
+        """Cubeta del lexema con la capacidad actual."""
         return self._funcion_hash(lexema) % self._capacidad
 
     def buscar(self, lexema: str) -> EntradaSimbolo | None:
-        """Recorre la cubeta del lexema comparando uno por uno."""
+        """Busca el lexema recorriendo solo su cubeta."""
         for entrada in self._cubetas[self.indice(lexema)]:
             if entrada.lexema == lexema:
                 return entrada
         return None
 
     def instalar(self, token: Token) -> ResultadoInstalacion:
-        """Agrega el lexema del token, o suma una aparicion si ya existe."""
+        """Agrega el lexema, o suma una aparición si ya estaba."""
         posicion = (token.linea, token.columna)
         existente = self.buscar(token.lexema)
         if existente is not None:
             existente.apariciones.append(posicion)
             return ResultadoInstalacion(existente, False, False, self.indice(token.lexema), False)
         cubeta = self._cubetas[self.indice(token.lexema)]
-        hubo_colision = len(cubeta) > 0  # se cuenta antes de insertar
+        hubo_colision = len(cubeta) > 0  # hay colisión si la cubeta ya tenía algo antes de insertar
         if hubo_colision:
             self._colisiones += 1
         entrada = EntradaSimbolo(token.lexema, token.tipo, self._funcion_hash(token.lexema),
@@ -113,7 +114,7 @@ class TablaSimbolos:
                                     self.indice(token.lexema), redimensiono)
 
     def _redimensionar(self) -> None:
-        """Nueva capacidad prima >= 2*capacidad y reubicacion usando el hash guardado."""
+        """Duplica la capacidad (al primo siguiente) y recoloca las entradas con el hash que ya guardan."""
         antiguas = self._cubetas
         self._capacidad = siguiente_primo(2 * self._capacidad)
         self._cubetas = [[] for _ in range(self._capacidad)]
@@ -123,15 +124,15 @@ class TablaSimbolos:
         self._redimensionados += 1
 
     def cubetas(self) -> list[list[EntradaSimbolo]]:
-        """Copia superficial de las cubetas."""
+        """Copia de las cubetas para mostrarlas sin tocar la tabla."""
         return [list(cubeta) for cubeta in self._cubetas]
 
     def entradas(self) -> list[EntradaSimbolo]:
-        """Todas las entradas por cubeta ascendente y orden de insercion."""
+        """Todas las entradas, por cubeta y en orden de inserción dentro de cada una."""
         return [entrada for cubeta in self._cubetas for entrada in cubeta]
 
     def estadisticas(self) -> EstadisticasTabla:
-        """Datos de la tabla para mostrar en pantalla."""
+        """Cifras de la tabla para el resumen."""
         largos = [len(cubeta) for cubeta in self._cubetas]
         return EstadisticasTabla(
             capacidad=self._capacidad,
@@ -145,11 +146,15 @@ class TablaSimbolos:
 
 
 def valor_literal(token: Token) -> object:
-    """Valor Python de un literal o booleano; None para cualquier otro token."""
+    """Valor del literal (duraciones en milisegundos) o del booleano; None para el resto."""
     if token.tipo == TipoToken.ENTERO:
         return int(token.lexema)
     if token.tipo == TipoToken.DECIMAL:
         return float(token.lexema)
+    if token.tipo == TipoToken.DURACION:
+        # la unidad es lo que sigue a los dígitos; así una unidad nueva en `reglas` no exige tocar esto
+        corte = len(token.lexema.rstrip(string.ascii_lowercase))
+        return int(token.lexema[:corte]) * reglas.UNIDADES_TIEMPO[token.lexema[corte:]]
     if token.tipo == TipoToken.CADENA:
         return _interpretar_escapes(token.lexema[1:-1])
     if token.tipo == TipoToken.PALABRA_RESERVADA:
@@ -158,7 +163,7 @@ def valor_literal(token: Token) -> object:
 
 
 def _interpretar_escapes(contenido: str) -> str:
-    """Reemplaza cada secuencia de escape valida por su caracter."""
+    """Cambia cada escape válido por su carácter; una barra suelta se deja como está."""
     resultado = []
     i = 0
     while i < len(contenido):
@@ -174,7 +179,10 @@ def _interpretar_escapes(contenido: str) -> str:
 
 def registrar_token(tabla: TablaSimbolos, token: Token,
                     anterior: Token | None = None) -> ResultadoInstalacion | None:
-    """Instala el token si su categoria va a la tabla y anota tipo de dato y declaracion."""
+    """Instala el token si su categoría va a la tabla y anota su tipo de dato y su declaración.
+
+    Un identificador queda declarado en su primera aparición precedida por un tipo (`numero x`).
+    """
     if token.tipo not in reglas.CATEGORIAS_EN_TABLA:
         return None
     resultado = tabla.instalar(token)

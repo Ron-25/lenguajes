@@ -1,4 +1,4 @@
-"""Lectura, escritura y validacion de archivos fuente (errores ARC-...)."""
+"""Lectura, escritura y validación de archivos fuente (errores ARC-)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,7 +9,7 @@ from core.modelos import Diagnostico
 
 
 class ErrorArchivo(Exception):
-    """Error de archivo que transporta su Diagnostico para mostrarlo con el formato comun."""
+    """Error de archivo; lleva su Diagnostico para mostrarlo igual que los demás."""
 
     def __init__(self, diagnostico: Diagnostico) -> None:
         super().__init__(diagnostico.mensaje)
@@ -21,7 +21,7 @@ def _error(codigo: str, ruta: Path) -> ErrorArchivo:
 
 
 def cargar_fuente(ruta: str | Path) -> str:
-    """Lee un archivo fuente validandolo; lanza ErrorArchivo (ARC-001 a ARC-006)."""
+    """Lee un archivo fuente; ErrorArchivo con ARC-001 a ARC-006 si no es utilizable."""
     ruta = Path(ruta)
     if not ruta.exists():
         raise _error("ARC-001", ruta)
@@ -36,16 +36,16 @@ def cargar_fuente(ruta: str | Path) -> str:
     except OSError:
         raise _error("ARC-005", ruta) from None
     try:
-        texto = datos.decode("utf-8-sig")  # acepta (y quita) la marca BOM
+        texto = datos.decode("utf-8-sig")  # quita la marca BOM de algunos editores
     except UnicodeDecodeError:
         raise _error("ARC-004", ruta) from None
-    if not texto.strip(reglas.ESPACIOS):  # "solo espacios" segun el lenguaje, no segun Unicode
+    if not texto.strip(reglas.ESPACIOS):  # «solo espacios» según FlowLang, no según Unicode
         raise _error("ARC-003", ruta)
     return texto.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def guardar_fuente(ruta: str | Path, contenido: str) -> None:
-    """Guarda el texto en UTF-8; OSError o texto no codificable se convierten en ARC-005."""
+    """Guarda en UTF-8; un OSError o un texto no codificable se vuelven ARC-005."""
     ruta = Path(ruta)
     try:
         datos = contenido.encode(reglas.CODIFICACION)  # antes de abrir: si falla, no se trunca el archivo
@@ -55,12 +55,12 @@ def guardar_fuente(ruta: str | Path, contenido: str) -> None:
 
 
 def plantilla_nueva() -> str:
-    """Programa minimo valido: `inicio`, una linea sangrada vacia y `fin` (sin literales repetidos)."""
+    """Programa mínimo válido: `inicio`, una línea sangrada vacía y `fin`."""
     return f"{reglas.PALABRA_INICIO}\n    \n{reglas.PALABRA_FIN}\n"
 
 
 def crear_fuente(ruta: str | Path) -> str:
-    """Crea un archivo nuevo con la plantilla y la devuelve; ARC-002 si la extension no es permitida."""
+    """Crea el archivo con la plantilla; ARC-002 si la extensión no es permitida."""
     ruta = Path(ruta)
     if ruta.suffix.lower() not in reglas.EXTENSIONES_PERMITIDAS:
         raise _error("ARC-002", ruta)
@@ -70,7 +70,7 @@ def crear_fuente(ruta: str | Path) -> str:
 
 
 def listar_ejemplos(directorio: str | Path | None = None) -> list[Path]:
-    """Archivos de ejemplo con extension permitida, ordenados por nombre."""
+    """Archivos de la carpeta de ejemplos con extensión permitida, por nombre."""
     if directorio is None:
         directorio = Path(__file__).resolve().parent.parent / "ejemplos"
     directorio = Path(directorio)

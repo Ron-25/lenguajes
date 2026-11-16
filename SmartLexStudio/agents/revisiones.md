@@ -166,3 +166,9 @@ B9 (D-42) y B10 (D-43) revisados: correctos, con pruebas significativas. Baterí
 | AUD-36 | Baja | `ui/interfaz.py` (divisores) | Solo ~4 filas visibles de la Tabla de símbolos en 1440×880 | Escalado (proporciones §17.2) | Escalado a architect-fable |
 
 O-2 (pausa en 0 ms) no es defecto: el valor por defecto real es 120 ms; el driver de capturas lo pone en 0. D-73: aprobable; sugerir deslizador de 120 px. Batería: 3 corridas `Ran 176 tests`, 2 fallas esperadas (archivos del usuario), 0 trazas.
+
+### Fase E, T4: líneas del grep (d) que se dejan
+
+- `ui/paneles.py:15`, `("linea", "Lín", 50)` en `COLUMNAS_TOKENS`: `"linea"` es el identificador de la columna de Tk, no un comentario.
+
+Un hallazgo de T1: `valor_literal` quitaba la unidad con `rstrip("smh")`, que fallaba al añadir una unidad con otra letra (ejercicio 11, `d`). Ahora corta en el primer carácter que no es dígito; el resultado para `ms`, `s`, `m` y `h` es el mismo.

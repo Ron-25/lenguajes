@@ -92,7 +92,7 @@
 <p><b>En la aplicación:</b></p>
 <ol>
   <li>Pulsar <b>Paso a paso</b> (⏭, tecla F10) varias veces sobre <code>correcto.flow</code>: sale un token por paso.</li>
-  <li>En el panel <b>Tokens</b>, seleccionar <code>45.5</code> y abrir <b>Modo educativo</b> (franja derecha): se ve la regla, el recorrido <code>q0 → q1 → q1 → q2 → q3</code> y la tabla de transiciones.</li>
+  <li>En el panel <b>Tokens</b>, seleccionar <code>45.5</code> y abrir la pestaña <b>Autómatas</b>: se ve la regla, el recorrido <code>q0 → q1 → q1 → q2 → q3</code> y la tabla de transiciones. Repetirlo con <code>30s</code> (línea 15): <code>q0 → q1 → q1 → q7</code>.</li>
 </ol>
 <h3>Guion</h3>
 <p><b>1. Lexema y token (20 s).</b> «El lexema es el texto, <code>45.5</code>. El token es ese lexema ya clasificado: Decimal, línea 6, columna 23.»</p>
@@ -129,7 +129,7 @@
 <p><b>En la aplicación:</b></p>
 <ol>
   <li>Abrir <code>incorrecto.flow</code> y pulsar <b>Paso a paso</b> tres veces: el tercer token es <code>2pi</code> y el error aparece en ese instante.</li>
-  <li>Pulsar <b>Analizar</b> (▶, F5) para terminar: salen 15 errores en el panel <b>Problemas</b>. Doble clic en uno para ir a su línea; el indicador <code>✗ 15 ⌃ ⌄</code> del editor también navega (F2).</li>
+  <li>Pulsar <b>Analizar</b> (▶, F5) para terminar: salen 17 errores en el <b>Manejador de errores</b> (derecha). Doble clic en uno para ir a su línea; F2 y Shift+F2 también navegan entre errores.</li>
   <li>Al terminar, la aplicación ofrece ver la tabla de símbolos.</li>
 </ol>
 <ul>
@@ -188,6 +188,7 @@
   <tr><td>Identificador</td><td>Empieza con letra o <code>_</code>; sigue con letras, dígitos o <code>_</code>; máximo 32 caracteres. Sin <code>ñ</code> ni tildes.</td><td><code>temperatura</code>, <code>_x1</code></td></tr>
   <tr><td>Entero</td><td><code>[0-9]+</code></td><td><code>28</code></td></tr>
   <tr><td>Decimal</td><td><code>[0-9]+\.[0-9]+</code> — dígitos a ambos lados del punto</td><td><code>45.5</code> (no <code>5.</code> ni <code>.5</code>)</td></tr>
+  <tr><td>Duración</td><td><code>[0-9]+(?:ms|s|m|h)</code> — entero pegado a su unidad, en minúscula</td><td><code>10s</code>, <code>500ms</code>, <code>2h</code> (no <code>10 s</code>, <code>1.5s</code> ni <code>5min</code>)</td></tr>
   <tr><td>Cadena</td><td>Entre comillas dobles, en una línea. Escapes: <code>\n \t \" \\</code></td><td><code>"Hola"</code></td></tr>
   <tr><td>Op. aritméticos</td><td><code>+ - * / %</code></td><td></td></tr>
   <tr><td>Op. relacionales</td><td><code>== != &lt; &lt;= &gt; &gt;=</code></td><td></td></tr>
@@ -274,14 +275,14 @@
 <table>
   <tr><th>Archivo</th><th>Qué hace</th></tr>
   <tr><td><code>config/reglas.py</code></td><td>Solo datos: palabras reservadas, operadores, delimitadores, escapes, longitud máxima (32), parámetros de la tabla hash (17, 0,75, 31) y las 4 tablas de los autómatas.</td></tr>
-  <tr><td><code>core/modelos.py</code></td><td>Los «moldes»: <code>TipoToken</code> (12 categorías), <code>Token</code>, <code>Diagnostico</code>, <code>EntradaSimbolo</code>.</td></tr>
+  <tr><td><code>core/modelos.py</code></td><td>Los «moldes»: <code>TipoToken</code> (13 categorías), <code>Token</code>, <code>Diagnostico</code>, <code>EntradaSimbolo</code>.</td></tr>
   <tr><td><code>core/afd.py</code></td><td>Motor genérico de autómatas: <code>clase_caracter</code>, <code>siguiente_estado</code> (δ), <code>reconocer</code> (prefijo más largo), <code>acepta</code>.</td></tr>
   <tr><td><code>core/lexer.py</code></td><td><code>reconocer_lexema</code>: ejecuta los 4 AFD y la tabla de operadores, gana el más largo, distingue reservadas. <code>Lexer.tokens()</code>: recorre el archivo, cuenta línea y columna, reporta errores y sigue (modo pánico). Es un generador.</td></tr>
   <tr><td><code>core/errores.py</code></td><td><code>CATALOGO</code> con los 19 errores (único lugar con los textos); <code>crear_diagnostico</code>; <code>ManejadorErrores</code> que los acumula y resume.</td></tr>
   <tr><td><code>core/validador.py</code></td><td>Comprobaciones estructurales: <code>inicio</code>/<code>fin</code> y balance de paréntesis y llaves con una pila.</td></tr>
   <tr><td><code>core/simbolos.py</code></td><td><code>hash_polinomial</code>, la clase <code>TablaSimbolos</code> (lista de listas, encadenamiento, redimensionado) y <code>registrar_token</code> (qué entra y qué datos se anotan).</td></tr>
   <tr><td><code>application/archivos.py</code></td><td>Lee el archivo validando existencia, extensión, tamaño, codificación y vacío (errores ARC); guarda y crea archivos nuevos.</td></tr>
-  <tr><td><code>application/analisis_service.py</code></td><td><code>SesionAnalisis</code>: análisis por pasos (un token por llamada a <code>siguiente_paso()</code>); <code>ResultadoAnalisis</code>; <code>explicar_token</code> para el Modo educativo.</td></tr>
+  <tr><td><code>application/analisis_service.py</code></td><td><code>SesionAnalisis</code>: análisis por pasos (un token por llamada a <code>siguiente_paso()</code>); <code>ResultadoAnalisis</code>; <code>explicar_token</code> para la pestaña Autómatas.</td></tr>
   <tr><td><code>ui/</code></td><td>La ventana estilo PyCharm: <code>estilos.py</code> (colores), <code>iconos.py</code>, <code>editor.py</code>, <code>componentes.py</code>, <code>paneles.py</code>, <code>interfaz.py</code>. No sabe analizar: pide pasos a <code>application/</code> y los dibuja.</td></tr>
   <tr><td><code>main.py</code></td><td>Abre la ventana; con <code>--consola archivo.flow</code> imprime el resultado en texto.</td></tr>
   <tr><td><code>tests/</code></td><td>Pruebas automáticas (unittest): equivalencia AFD–regex, colisiones forzadas, errores, archivos, integración y la interfaz.</td></tr>
@@ -297,23 +298,25 @@
     <span class="s">"inicial"</span>: <span class="s">"q0"</span>,
     <span class="s">"transiciones"</span>: {
         <span class="s">"q0"</span>: {DIGITO: <span class="s">"q1"</span>, <span class="s">"."</span>: <span class="s">"q6"</span>},
-        <span class="s">"q1"</span>: {DIGITO: <span class="s">"q1"</span>, <span class="s">"."</span>: <span class="s">"q2"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
+        <span class="s">"q1"</span>: {DIGITO: <span class="s">"q1"</span>, <span class="s">"."</span>: <span class="s">"q2"</span>, <span class="s">"s"</span>: <span class="s">"q7"</span>, <span class="s">"h"</span>: <span class="s">"q7"</span>, <span class="s">"m"</span>: <span class="s">"q8"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
         <span class="s">"q2"</span>: {DIGITO: <span class="s">"q3"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
         <span class="s">"q3"</span>: {DIGITO: <span class="s">"q3"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
         <span class="s">"q4"</span>: {DIGITO: <span class="s">"q4"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
         <span class="s">"q5"</span>: {DIGITO: <span class="s">"q5"</span>, <span class="s">"."</span>: <span class="s">"q5"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
         <span class="s">"q6"</span>: {DIGITO: <span class="s">"q4"</span>},
+        <span class="s">"q7"</span>: {DIGITO: <span class="s">"q5"</span>, <span class="s">"."</span>: <span class="s">"q5"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
+        <span class="s">"q8"</span>: {<span class="s">"s"</span>: <span class="s">"q7"</span>, DIGITO: <span class="s">"q5"</span>, <span class="s">"."</span>: <span class="s">"q5"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
     },
-    <span class="s">"aceptacion"</span>: {<span class="s">"q1"</span>: ENTERO, <span class="s">"q3"</span>: DECIMAL},           <span class="c"># estados finales buenos</span>
+    <span class="s">"aceptacion"</span>: {<span class="s">"q1"</span>: ENTERO, <span class="s">"q3"</span>: DECIMAL, <span class="s">"q7"</span>: DURACION, <span class="s">"q8"</span>: DURACION},  <span class="c"># estados finales buenos</span>
     <span class="s">"errores"</span>:    {<span class="s">"q2"</span>: <span class="s">"LEX-003"</span>, <span class="s">"q4"</span>: <span class="s">"LEX-003"</span>, <span class="s">"q5"</span>: <span class="s">"LEX-004"</span>},  <span class="c"># finales de error</span>
 }</pre>
-<p>Se lee como un diagrama de estados: desde q0, con un dígito se pasa a q1 (entero). Con punto se va a q2, y con otro dígito a q3 (decimal).</p>
+<p>Se lee como un diagrama de estados: desde q0, con un dígito se pasa a q1 (entero). Con punto se va a q2, y con otro dígito a q3 (decimal). Con <code>s</code> o <code>h</code> se va a q7 y con <code>m</code> a q8: ambos son duración, y q8 sigue a q7 con una <code>s</code> (<code>ms</code>). El AFD de números tiene 9 estados; el mínimo del lenguaje (entero, decimal y duración) necesita 6: q0–q3, q7 y q8.</p>
 
 <h2>Las cuatro piezas del motor</h2>
 <table>
   <tr><th>Pieza</th><th>Qué hace</th></tr>
   <tr><td><code>clase_caracter(c)</code></td><td>Agrupa caracteres: letra → <code>LETRA</code>, dígito → <code>DIGITO</code>, salto → <code>SALTO</code>. Así la tabla no necesita 52 columnas para las letras; es como escribir «dígito» en la flecha del diagrama.</td></tr>
-  <tr><td><code>ResultadoAFD</code></td><td>Lo que devuelve: <code>longitud</code> reconocida, <code>tipo</code> (si fue aceptación), <code>codigo_error</code> (si fue error) y <code>recorrido</code> (estados visitados, que muestra el Modo educativo).</td></tr>
+  <tr><td><code>ResultadoAFD</code></td><td>Lo que devuelve: <code>longitud</code> reconocida, <code>tipo</code> (si fue aceptación), <code>codigo_error</code> (si fue error) y <code>recorrido</code> (estados visitados, que muestra la pestaña Autómatas).</td></tr>
   <tr><td><code>siguiente_estado(q, c)</code></td><td>La función de transición δ(q, a). Busca: 1) el carácter exacto, 2) su clase, 3) el comodín <code>OTRO</code>. Si no hay, devuelve <code>None</code> y el autómata se detiene.</td></tr>
   <tr><td><code>reconocer(texto, inicio)</code></td><td>Avanza carácter por carácter y <b>recuerda el último estado final</b> por el que pasó: devuelve el prefijo más largo reconocido.</td></tr>
 </table>
@@ -335,6 +338,7 @@
 <ul>
   <li><code>3.4.5</code> → q0, q1, q2, q3, q4 → <b>LEX-003</b>, número mal formado.</li>
   <li><code>12abc</code> → q0, q1, q5 → <b>LEX-004</b>, identificador que empieza con dígito.</li>
+  <li><code>10s</code> → q0, q1, q1, q7 → <b>DURACION</b> (10000 ms); <code>500ms</code> → q0 q1 q1 q1 q8 q7; <code>10seg</code> → q0 q1 q1 q7 q5 q5 q5 → <b>LEX-004</b>, porque tras los dígitos no hay exactamente una unidad.</li>
 </ul>
 
 <h2>Cómo usa el lexer los autómatas</h2>
@@ -467,16 +471,16 @@ x = x + <span class="n">5</span>;
 <h1>9. El manejador de errores</h1>
 <ul>
   <li><b>Detección léxica:</b> el AFD termina en un estado de error, o ningún reconocedor acepta el carácter (LEX-001). El lexer llama a <code>ManejadorErrores.reportar(codigo, linea, columna, lexema)</code>.</li>
-  <li><b>Modo pánico:</b> se descarta el lexema inválido, se emite un token ERROR y <b>el análisis continúa</b>. Por eso <code>incorrecto.flow</code> muestra sus 15 errores en una sola pasada.</li>
+  <li><b>Modo pánico:</b> se descarta el lexema inválido, se emite un token ERROR y <b>el análisis continúa</b>. Por eso <code>incorrecto.flow</code> muestra sus 17 errores en una sola pasada.</li>
   <li><b>Catálogo único:</b> <code>CATALOGO</code> en <code>core/errores.py</code>; cada error con tipo, título, mensaje y sugerencia.</li>
-  <li><b>Durante la evaluación</b> (requisito 5): cada paso trae los errores de ese token y la ventana los pinta al instante (Problemas, consola, subrayado rojo y ✗ en el margen). <b>Al final</b> se ofrece «¿Desea ver la tabla de símbolos?».</li>
+  <li><b>Durante la evaluación</b> (requisito 5): cada paso trae los errores de ese token y la ventana los pinta al instante (Manejador de errores, consola, subrayado rojo y ✗ en el margen). <b>Al final</b> se ofrece «¿Desea ver la tabla de símbolos?».</li>
 </ul>
 <table>
   <tr><th>Código</th><th>Error</th><th>Ejemplo</th></tr>
   <tr><td>LEX-001</td><td>Carácter no reconocido</td><td><code>@</code>, <code>#</code>, <code>ñ</code></td></tr>
   <tr><td>LEX-002</td><td>Cadena sin cerrar</td><td><code>"Hola</code></td></tr>
-  <tr><td>LEX-003</td><td>Número mal formado</td><td><code>3.</code>, <code>3.4.5</code>, <code>.5</code></td></tr>
-  <tr><td>LEX-004</td><td>Identificador que empieza con dígito</td><td><code>2pi</code>, <code>12abc</code></td></tr>
+  <tr><td>LEX-003</td><td>Número mal formado</td><td><code>3.</code>, <code>3.4.5</code>, <code>.5</code>, <code>1.5s</code></td></tr>
+  <tr><td>LEX-004</td><td>Identificador que empieza con dígito</td><td><code>2pi</code>, <code>12abc</code>, <code>5min</code></td></tr>
   <tr><td>LEX-005</td><td>Identificador de más de 32 caracteres</td><td></td></tr>
   <tr><td>LEX-006</td><td>Escape inválido en cadena</td><td><code>"C:\gatos"</code></td></tr>
   <tr><td>LEX-007</td><td>Comentario de bloque sin cerrar</td><td><code>/* ...</code></td></tr>
@@ -507,15 +511,15 @@ x = x + <span class="n">5</span>;
 
 <h2>Capturas de la aplicación</h2>
 <img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/1_correcto_tokens.png">
-<div class="pie">correcto.flow analizado: 111 tokens, cadena válida. Proyecto a la izquierda, Tokens a la derecha, consola abajo.</div>
+<div class="pie">correcto.flow analizado: 111 tokens, cadena válida. Editor con ✓ por línea, Manejador de errores a la derecha y pestañas de resultados abajo; <code>30s</code> sale en verde azulado como Duración.</div>
 <img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/5_incorrecto_errores.png">
-<div class="pie">incorrecto.flow: 15 errores en Problemas, ✗ en el margen, subrayado rojo e indicador ✗ 15 ⌃ ⌄.</div>
+<div class="pie">incorrecto.flow: 17 errores en el Manejador de errores (aquí <code>5min</code>, con su detalle), ✗ en el margen y subrayado rojo.</div>
 <img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/2_tabla_simbolos.png">
 <div class="pie">Tabla de símbolos: cubeta, hash, lexema, categoría, tipo, valor, declaración y apariciones; filas resaltadas = colisiones.</div>
-<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/4_modo_educativo.png">
-<div class="pie">Modo educativo del decimal 45.5: regla, recorrido del AFD, hash, cubeta y tabla de transiciones.</div>
-<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/3_estadisticas.png">
-<div class="pie">Estadísticas: veredicto léxico y estructural y tokens por categoría.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/4_automatas.png">
+<div class="pie">Pestaña Autómatas con la duración <code>30s</code>: reconocedor, recorrido q0 → q1 → q1 → q7, hash, cubeta y tabla de transiciones.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/3_resumen.png">
+<div class="pie">Resumen: veredicto léxico y estructural y tokens por categoría.</div>
 
 <h2>Atajos de teclado</h2>
 <table>

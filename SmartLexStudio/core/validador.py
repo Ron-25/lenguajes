@@ -1,4 +1,4 @@
-"""Comprobaciones estructurales ligeras (inicio/fin y balance con pila), reglas E1-E4."""
+"""Comprobación estructural ligera: `inicio`/`fin` y balance de paréntesis y llaves."""
 from __future__ import annotations
 
 from typing import Iterable
@@ -17,7 +17,7 @@ def _diagnosticar(codigo: str, token: Token) -> Diagnostico:
 
 
 def _validar_balance(tokens: list[Token]) -> list[Diagnostico]:
-    """E4: usa una pila porque el balance de parentesis no es un lenguaje regular."""
+    """Balance con una pila: el anidamiento de paréntesis no se puede expresar con un AFD."""
     cierres = set(reglas.PARES_AGRUPACION.values())
     pila: list[Token] = []
     diagnosticos: list[Diagnostico] = []
@@ -38,7 +38,7 @@ def _validar_balance(tokens: list[Token]) -> list[Diagnostico]:
 
 
 def validar_estructura(tokens: Iterable[Token]) -> list[Diagnostico]:
-    """Reglas E1-E4 sobre los tokens significativos, ordenado por (linea, columna)."""
+    """Diagnósticos estructurales de los tokens significativos, ordenados por línea y columna."""
     significativos = [t for t in tokens if t.es_significativo]
     if not significativos:
         return [crear_diagnostico("SIN-001", 1, 1)]

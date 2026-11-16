@@ -1,4 +1,4 @@
-"""Manejador de errores (derecha) y pestanas de resultados (abajo): arquitectura §17.5 y §17.6."""
+"""Manejador de errores (a la derecha) y pestañas de resultados (abajo)."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -27,18 +27,18 @@ _AYUDA_ERRORES = "Clic en un error: ver el detalle completo.  Doble clic: ir a s
 
 
 def recortar(texto: object, maximo: int = _MAX_TEXTO) -> str:
-    """Texto en una linea (saltos como ⏎) y recortado a `maximo` caracteres."""
+    """Texto en una sola línea (saltos como ⏎), recortado a `maximo` caracteres."""
     limpio = str(texto).replace("\n", "⏎").replace("\t", "→")
     return limpio if len(limpio) <= maximo else limpio[:maximo] + "…"
 
 
 def formatear_apariciones(apariciones) -> str:
-    """Posiciones legibles `lin:col, lin:col` (AUD-33; antes se mostraba la lista Python cruda)."""
+    """Posiciones como `lín:col, lín:col`, en vez de la lista de Python."""
     return recortar(", ".join(f"{linea}:{columna}" for linea, columna in apariciones), 60)
 
 
 def formatear_valor(valor: object) -> str:
-    """Valor del literal como en FlowLang: booleanos con su palabra, cadenas entre comillas, nada para None (AUD-33)."""
+    """Valor como se escribe en FlowLang: booleanos con su palabra, cadenas con comillas, nada para None."""
     if valor is None:
         return ""
     if isinstance(valor, bool):
@@ -49,7 +49,7 @@ def formatear_valor(valor: object) -> str:
 
 
 def _tabla(padre, columnas, estirar: tuple[str, ...] = ()) -> ttk.Treeview:
-    """Treeview con barras de desplazamiento dentro de `padre`; las columnas de `estirar` se reparten el sobrante."""
+    """Treeview con barras de desplazamiento; las columnas de `estirar` se reparten el ancho que sobra."""
     marco = ttk.Frame(padre, style="Panel.TFrame")
     marco.pack(fill="both", expand=True)
     arbol = ttk.Treeview(marco, columns=[c[0] for c in columnas], show="headings", selectmode="browse")
@@ -76,7 +76,7 @@ def _texto_solo_lectura(padre, fuente) -> tk.Text:
 
 
 def _escribir_tabla_transiciones(t: tk.Text, automata: dict) -> None:
-    """Tabla de transiciones y estados finales de un AFD (la usan la explicacion de un token y el selector)."""
+    """Tabla de transiciones y estados finales de un AFD, para la explicación de un token y para el selector."""
     t.insert("end", "\nTabla de transiciones de " + automata["nombre"] + "\n", "campo")
     for estado, fila in automata["transiciones"].items():
         celdas = "   ".join(f"{k} → {v}" for k, v in fila.items())
@@ -86,12 +86,12 @@ def _escribir_tabla_transiciones(t: tk.Text, automata: dict) -> None:
 
 
 def _modulo_hash() -> str:
-    """El modulo de la funcion hash como se escribe en la formula (2³² si es 2 ** 32)."""
+    """El módulo del hash como se escribe en la fórmula (2³² si es 2 ** 32)."""
     return "2³²" if reglas.MODULO_HASH == 2 ** 32 else str(reglas.MODULO_HASH)
 
 
 class PanelResultados(ttk.Frame):
-    """Pestanas de resultados (vista pasiva): muestra lo que le entrega la ventana y avisa de la seleccion de tokens."""
+    """Pestañas de resultados. No calcula nada: muestra lo que le da la ventana y avisa cuando se elige un token."""
 
     def __init__(self, padre, al_seleccionar_token: Callable[[Token], None]) -> None:
         super().__init__(padre)
@@ -115,7 +115,6 @@ class PanelResultados(ttk.Frame):
             self.cuaderno.add(self._marcos[clave], text=titulo)
         self.limpiar()
 
-    # --- construccion ----------------------------------------------------
     def _construir_tokens(self, marco) -> None:
         self.arbol_tokens = _tabla(marco, COLUMNAS_TOKENS)
         for tipo, color in COLORES_TOKEN.items():
@@ -146,25 +145,23 @@ class PanelResultados(ttk.Frame):
         t.tag_configure("error", foreground=TEMA["error"])
         t.tag_configure("vacio", foreground=TEMA["texto_tenue"])
 
-    # --- eventos ---------------------------------------------------------
     def _seleccion_token(self, _evento) -> None:
         seleccion = self.arbol_tokens.selection()
         if seleccion and seleccion[0] in self._tokens:
             self._al_token(self._tokens[seleccion[0]])
 
-    # --- API publica -------------------------------------------------------
     @property
     def vista_actual(self) -> str:
-        """Clave de la pestana visible (tokens, simbolos, resumen, automatas, lenguaje, consola)."""
+        """Clave de la pestaña visible: tokens, simbolos, resumen, automatas, lenguaje o consola."""
         elegida = self.cuaderno.select()
         return next(clave for clave, marco in self._marcos.items() if str(marco) == str(elegida))
 
     def mostrar(self, nombre: str) -> None:
-        """Deja visible la pestana `nombre`."""
+        """Muestra la pestaña `nombre`."""
         self.cuaderno.select(self._marcos[nombre])
 
     def agregar_token(self, numero: int, token: Token) -> None:
-        """Agrega una fila a la pestana Tokens (coloreada por categoria)."""
+        """Agrega una fila a la pestaña Tokens, con el color de su categoría."""
         iid = self.arbol_tokens.insert("", "end", tags=(token.tipo.name,), values=(
             numero, token.linea, token.columna, token.tipo.value, recortar(token.lexema)))
         self._tokens[iid] = token
@@ -173,13 +170,13 @@ class PanelResultados(ttk.Frame):
             self._id_ver_token = self.after_idle(self._ver_ultimo_token)
 
     def _ver_ultimo_token(self) -> None:
-        """Desplaza a la ultima fila una vez por ciclo de eventos (`see` es lineal en filas; AUD-17)."""
+        """Baja a la última fila una vez por ciclo de eventos; `see` cuesta más cuantas más filas hay."""
         self._id_ver_token = None
         if self._ultimo_token is not None and self.arbol_tokens.exists(self._ultimo_token):
             self.arbol_tokens.see(self._ultimo_token)
 
     def mostrar_tabla_simbolos(self, tabla) -> None:
-        """Llena la pestana de simbolos en orden de cubeta y resume la funcion hash y las estadisticas."""
+        """Llena la tabla de símbolos por cubeta y escribe la fórmula del hash y las cifras de la tabla."""
         self.arbol_simbolos.delete(*self.arbol_simbolos.get_children())
         for indice, cubeta in enumerate(tabla.cubetas()):
             for entrada in cubeta:
@@ -197,7 +194,7 @@ class PanelResultados(ttk.Frame):
             f"Colisiones al insertar: {e.colisiones}  ·  En la tabla actual: {visibles} (filas resaltadas)"))
 
     def mostrar_estadisticas(self, resultado: ResultadoAnalisis) -> None:
-        """Pestana Resumen: veredictos, tokens por categoria con barras, lineas, caracteres y errores por tipo."""
+        """Pestaña Resumen: veredictos, tokens por categoría con barras, líneas, caracteres y errores por tipo."""
         c, base = self.lienzo, fuente_interfaz(12)[0]
         c.delete("all")
         y = 20
@@ -243,7 +240,7 @@ class PanelResultados(ttk.Frame):
         c.configure(scrollregion=(0, 0, 500, y + 20))
 
     def mostrar_explicacion(self, explicacion: ExplicacionToken) -> None:
-        """Pestana Autómatas: todo lo que se sabe del token y el selector en el AFD que lo reconocio."""
+        """Pestaña Autómatas: lo que se sabe del token, con el selector puesto en el AFD que lo reconoció."""
         t = self.educativo
         t.configure(state="normal")
         t.delete("1.0", "end")
@@ -264,7 +261,7 @@ class PanelResultados(ttk.Frame):
         t.configure(state="disabled")
 
     def mostrar_automata(self, nombre: str) -> None:
-        """Solo la tabla de transiciones y los estados finales del AFD `nombre` (selector sin token)."""
+        """Solo la tabla de transiciones y los estados finales del AFD `nombre`, sin token."""
         automata = next(a for a in reglas.AUTOMATAS if a["nombre"] == nombre)
         self.selector_automata.set(nombre)
         t = self.educativo
@@ -274,7 +271,7 @@ class PanelResultados(ttk.Frame):
         t.configure(state="disabled")
 
     def limpiar(self) -> None:
-        """Vacia las vistas de resultados, deshabilita la tabla de simbolos y vuelve a la pestana Tokens."""
+        """Vacía los resultados, deshabilita la tabla de símbolos y vuelve a la pestaña Tokens."""
         for arbol in (self.arbol_tokens, self.arbol_simbolos):
             arbol.delete(*arbol.get_children())
         self._tokens.clear()
@@ -291,16 +288,16 @@ class PanelResultados(ttk.Frame):
         self.mostrar("tokens")
 
     def habilitar_tabla_simbolos(self, activo: bool) -> None:
-        """La pestana de la tabla de simbolos solo esta disponible al terminar el analisis."""
+        """La tabla de símbolos solo está disponible al terminar el análisis."""
         self.cuaderno.tab(self._marcos["simbolos"], state="normal" if activo else "disabled")
 
     def tabla_simbolos_habilitada(self) -> bool:
-        """True si la tabla de simbolos esta disponible."""
+        """True si la tabla de símbolos está disponible."""
         return str(self.cuaderno.tab(self._marcos["simbolos"], "state")) == "normal"
 
 
 class PanelErrores(ttk.Frame):
-    """Manejador de errores (derecha, siempre visible): titulo con el total, tabla y detalle del error elegido."""
+    """Manejador de errores: título con el total, tabla y detalle del error elegido."""
 
     def __init__(self, padre, al_seleccionar_error: Callable[[Diagnostico], None]) -> None:
         super().__init__(padre)
@@ -331,7 +328,7 @@ class PanelErrores(ttk.Frame):
             self.titulo.configure(text="Manejador de errores (sin errores)", style="Titulo.TLabel")
 
     def _mostrar_detalle_error(self, _evento=None) -> None:
-        """Detalle completo del error elegido: las columnas pueden recortarse (AUD-20)."""
+        """Detalle completo del error elegido, porque las columnas de la tabla recortan el texto."""
         seleccion = self.arbol_errores.selection()
         d = self._errores.get(seleccion[0]) if seleccion else None
         if d is None:
@@ -359,7 +356,7 @@ class PanelErrores(ttk.Frame):
         self._actualizar_titulo()
 
     def quitar_errores_de_archivo(self) -> None:
-        """Elimina las filas de errores de archivo (ARC-...), para que quede como maximo una (D-42)."""
+        """Quita las filas de errores de archivo (ARC-) para que se vea una sola a la vez."""
         for iid, diagnostico in list(self._errores.items()):
             if diagnostico.tipo == TipoDiagnostico.ARCHIVO:
                 self.arbol_errores.delete(iid)
@@ -368,7 +365,7 @@ class PanelErrores(ttk.Frame):
         self._mostrar_detalle_error()
 
     def limpiar(self) -> None:
-        """Vacia la tabla y el detalle."""
+        """Vacía la tabla y el detalle."""
         self.arbol_errores.delete(*self.arbol_errores.get_children())
         self._errores.clear()
         self._actualizar_titulo()

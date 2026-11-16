@@ -1,4 +1,4 @@
-"""Tema claro academico: colores, fuentes y estilos ttk (unico lugar con colores; arquitectura §17.3)."""
+"""Tema claro: colores, fuentes y estilos ttk. Es el único archivo de la interfaz con colores escritos."""
 from __future__ import annotations
 
 import sys
@@ -41,6 +41,7 @@ COLORES_TOKEN = {
     TipoToken.IDENTIFICADOR: "#1F2937",
     TipoToken.ENTERO: "#1565C0",
     TipoToken.DECIMAL: "#1565C0",
+    TipoToken.DURACION: "#00796B",
     TipoToken.CADENA: "#A14A00",
     TipoToken.OPERADOR_ARITMETICO: "#37474F",
     TipoToken.OPERADOR_RELACIONAL: "#37474F",
@@ -51,7 +52,7 @@ COLORES_TOKEN = {
     TipoToken.ERROR: "#C62828",
 }
 
-# La cursiva y la negrita no son colores: el editor las aplica a estas categorias.
+# Cursiva y negrita no son colores; el editor las aplica a estas categorías.
 TIPOS_EN_CURSIVA = (TipoToken.COMENTARIO,)
 TIPOS_EN_NEGRITA = (TipoToken.PALABRA_RESERVADA,)
 
@@ -60,12 +61,12 @@ _FUENTES_INTERFAZ = ("Inter", "SF Pro Text", "Segoe UI", "Helvetica Neue", "Deja
 
 
 def _puntos(tamano: int) -> int:
-    """Tamano de diseno (pixeles) a puntos de Tk: igual en macOS, x0,75 en el resto (D-51)."""
+    """Tamaño de diseño en píxeles a puntos de Tk: igual en macOS, por 0,75 en el resto."""
     return tamano if sys.platform == "darwin" else round(tamano * 0.75)
 
 
 def _primera_disponible(candidatas: tuple[str, ...], por_defecto: str) -> str:
-    """Primera familia de `candidatas` instalada; si no hay raiz de Tk, `por_defecto`."""
+    """Primera familia de `candidatas` instalada; `por_defecto` si Tk aún no tiene ventana raíz."""
     try:
         instaladas = set(tkfont.families())
     except (tk.TclError, RuntimeError):
@@ -74,12 +75,12 @@ def _primera_disponible(candidatas: tuple[str, ...], por_defecto: str) -> str:
 
 
 def fuente_codigo(tamano: int = 13) -> tuple[str, int]:
-    """Fuente monoespaciada: la primera disponible de la lista, con respaldo generico."""
+    """Fuente monoespaciada: la primera disponible de la lista."""
     return (_primera_disponible(_FUENTES_CODIGO, "Courier"), _puntos(tamano))
 
 
 def fuente_interfaz(tamano: int = 13) -> tuple[str, int]:
-    """Fuente proporcional para la interfaz."""
+    """Fuente proporcional de la interfaz."""
     return (_primera_disponible(_FUENTES_INTERFAZ, "Helvetica"), _puntos(tamano))
 
 
@@ -106,7 +107,7 @@ def _estilos_basicos(estilo: ttk.Style, base: tuple[str, int]) -> None:
 
 
 def _estilos_cabecera(estilo: ttk.Style, base: tuple[str, int]) -> None:
-    """Botones, menu y deslizador de la cabecera azul marino (solo opciones estandar de clam; D-62)."""
+    """Botones, menú y deslizador de la cabecera azul marino, con opciones que el tema clam admite."""
     boton = (base[0], _puntos(11))
     for nombre, fondo, texto, encima in (("Primario", TEMA["acento"], TEMA["blanco"], TEMA["acento_claro"]),
                                          ("Secundario", TEMA["panel"], TEMA["texto"], TEMA["barra"])):
@@ -125,7 +126,7 @@ def _estilos_cabecera(estilo: ttk.Style, base: tuple[str, int]) -> None:
 
 
 def _estilos_tablas(estilo: ttk.Style, base: tuple[str, int]) -> None:
-    """Treeview claro con filas de 24 px y cabecera con borde; pestanas, combobox y divisores."""
+    """Treeview claro con filas de 24 px y cabecera con borde; pestañas, combobox y divisores."""
     estilo.configure("Treeview", background=TEMA["panel"], fieldbackground=TEMA["panel"],
                      foreground=TEMA["texto"], rowheight=24, borderwidth=0, relief="flat")
     estilo.map("Treeview", background=[("selected", TEMA["seleccion_fila"])],
@@ -149,7 +150,7 @@ def _estilos_tablas(estilo: ttk.Style, base: tuple[str, int]) -> None:
 
 
 def _estilos_barras(estilo: ttk.Style) -> None:
-    """Barras de desplazamiento finas y sin flechas; si el tema no lo admite, queda el aspecto base."""
+    """Barras de desplazamiento finas y sin flechas; si el tema no lo admite se queda el aspecto base."""
     for orientacion, lado in (("Vertical", "ns"), ("Horizontal", "ew")):
         nombre = f"{orientacion}.TScrollbar"
         estilo.configure(nombre, background=TEMA["deslizador"], troughcolor=TEMA["panel"],
@@ -164,7 +165,7 @@ def _estilos_barras(estilo: ttk.Style) -> None:
 
 
 def aplicar_tema(raiz: tk.Misc) -> None:
-    """Configura ttk (tema clam) con la paleta clara."""
+    """Aplica la paleta clara sobre el tema clam de ttk."""
     estilo = ttk.Style(raiz)
     estilo.theme_use("clam")
     raiz.configure(background=TEMA["fondo"])

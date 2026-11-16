@@ -1,4 +1,4 @@
-"""Editor de codigo: titulo, margen con numeros y marcas ✓/✗, resaltado por tokens y marcas de error (§17.4)."""
+"""Editor de código: título, margen con número de línea y ✓/✗, color por categoría y marcas de error."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -12,12 +12,12 @@ RETARDO_CAMBIO_MS = 300
 
 
 def _normalizar(texto: str) -> str:
-    """Convierte \\r\\n y \\r en \\n (D-34): las columnas del lexer deben coincidir con las de Tk."""
+    """Convierte \\r\\n y \\r en \\n: Tk cuenta un solo carácter por salto y las columnas del lexer deben coincidir."""
     return texto.replace("\r\n", "\n").replace("\r", "\n")
 
 
 class EditorCodigo(ttk.Frame):
-    """Text con margen `numero + marca`; avisa de cambios (con debounce) y del movimiento del cursor."""
+    """Text con un margen `número marca` al lado; avisa de los cambios (con espera) y del movimiento del cursor."""
 
     def __init__(self, padre, al_cambiar: Callable[[], None] | None = None,
                  al_mover_cursor: Callable[[int, int], None] | None = None) -> None:
@@ -68,13 +68,12 @@ class EditorCodigo(ttk.Frame):
         self.margen.bind("<MouseWheel>", lambda e: self.texto.event_generate("<MouseWheel>", delta=e.delta))
         self._refrescar_margen()
 
-    # --- configuracion -------------------------------------------------
     def establecer_nombre(self, nombre: str | None) -> None:
-        """Titulo «Archivo de entrada: nombre» («(sin archivo)» si no hay)."""
+        """Título «Archivo de entrada: nombre», o «(sin archivo)»."""
         self._titulo.configure(text=f"Archivo de entrada: {nombre or '(sin archivo)'}")
 
     def ir_a_error(self, direccion: int) -> None:
-        """Salta a la marca siguiente (+1) o anterior (-1) respecto al cursor, dando la vuelta al final."""
+        """Salta a la marca de error siguiente (+1) o anterior (-1), dando la vuelta al llegar al final."""
         marcas = sorted(set(self._marcas))
         if not marcas:
             return
@@ -86,7 +85,7 @@ class EditorCodigo(ttk.Frame):
         self.ir_a(*destino)
 
     def _configurar_etiquetas(self) -> None:
-        """Se crean de menor a mayor prioridad: linea_actual < linea_error < categorias < marca_error < actual < sel."""
+        """Las etiquetas de Tk se pisan por orden de creación: línea actual, línea con error, categorías, lexema con error, token actual y selección."""
         self.texto.tag_configure("linea_actual", background=TEMA["linea_actual"])
         self.texto.tag_configure("linea_error", background=TEMA["error_fondo"])
         base = fuente_codigo(13)
@@ -111,13 +110,12 @@ class EditorCodigo(ttk.Frame):
     def _etiqueta(tipo: TipoToken) -> str:
         return f"tok_{tipo.name}"
 
-    # --- texto -----------------------------------------------------------
     def obtener_texto(self) -> str:
-        """Contenido sin el salto final de Tk y con saltos normalizados."""
+        """Texto sin el salto final que Tk agrega siempre."""
         return _normalizar(self.texto.get("1.0", "end-1c"))
 
     def establecer_texto(self, texto: str) -> None:
-        """Reemplaza todo el contenido (sin disparar al_cambiar)."""
+        """Reemplaza el contenido sin avisar de un cambio."""
         estado = str(self.texto.cget("state"))
         self.descartar_cambio_pendiente()
         self._silencio = True
@@ -135,22 +133,21 @@ class EditorCodigo(ttk.Frame):
         self._marcar_linea_actual()
 
     def limpiar(self) -> None:
-        """Vacia el editor."""
+        """Vacía el editor."""
         self.establecer_texto("")
 
     def descartar_cambio_pendiente(self) -> None:
-        """Anula el aviso de cambio aun no emitido (el texto actual ya se va a usar; AUD-16)."""
+        """Cancela el aviso de cambio que aún no salió: el texto actual ya se va a analizar."""
         if self._id_cambio is not None:
             self.after_cancel(self._id_cambio)
             self._id_cambio = None
 
     def solo_lectura(self, activo: bool) -> None:
-        """Bloquea o libera la edicion."""
+        """Bloquea o libera la edición."""
         self.texto.configure(state="disabled" if activo else "normal")
 
-    # --- resaltado y marcas ----------------------------------------------
     def resaltar(self, tokens: Iterable[Token]) -> None:
-        """Colorea cada token segun su categoria."""
+        """Colorea cada token según su categoría."""
         for tipo in TipoToken:
             self.texto.tag_remove(self._etiqueta(tipo), "1.0", "end")
         for token in tokens:
@@ -158,7 +155,7 @@ class EditorCodigo(ttk.Frame):
             self.texto.tag_add(self._etiqueta(token.tipo), inicio, f"{inicio}+{token.longitud}c")
 
     def marcar_errores(self, diagnosticos: Iterable[Diagnostico]) -> None:
-        """Por cada diagnostico con posicion: lexema subrayado con fondo rojizo, linea rosada y ✗ en el margen."""
+        """Por cada diagnóstico con posición: lexema con fondo rojizo, línea rosada y ✗ en el margen."""
         for d in diagnosticos:
             if d.linea <= 0:
                 continue
@@ -171,17 +168,17 @@ class EditorCodigo(ttk.Frame):
             self._pintar_marca(d.linea)
 
     def marcar_lineas_evaluadas(self, lineas: Iterable[int]) -> None:
-        """Registra lineas ya recorridas por el lexer: reciben ✓ (o ✗ si tienen error)."""
+        """Marca las líneas que el lexer ya recorrió: ✓, o ✗ si tienen error."""
         for n in lineas:
             self._lineas_evaluadas.add(n)
             self._pintar_marca(n)
 
     def conteo_lineas(self) -> tuple[int, int]:
-        """(lineas validas, lineas con errores): evaluadas sin error y con error."""
+        """(líneas válidas, líneas con errores) entre las ya evaluadas."""
         return len(self._lineas_evaluadas - self._lineas_error), len(self._lineas_error)
 
     def limpiar_marcas(self) -> None:
-        """Quita subrayados, lineas rosadas, marcas del margen y token actual."""
+        """Quita lexemas marcados, líneas rosadas, marcas del margen y token actual."""
         for etiqueta in ("marca_error", "linea_error", "actual"):
             self.texto.tag_remove(etiqueta, "1.0", "end")
         self._lineas_evaluadas.clear()
@@ -190,8 +187,7 @@ class EditorCodigo(ttk.Frame):
         self._refrescar_margen()
 
     def resaltar_token_actual(self, token: Token | None) -> None:
-        """Resalta el token indicado y lo hace visible; None quita el resaltado y vuelve
-        la vista al cursor (AUD-19)."""
+        """Resalta el token indicado y lo hace visible; None quita el resaltado y devuelve la vista al cursor."""
         self.texto.tag_remove("actual", "1.0", "end")
         if token is None:
             if self._id_ver is not None:
@@ -205,27 +201,26 @@ class EditorCodigo(ttk.Frame):
             self._id_ver = self.after_idle(self._ver_token_actual)
 
     def _ver_token_actual(self) -> None:
-        """Hace visible el token resaltado una vez por ciclo de eventos (AUD-17)."""
+        """Muestra el token resaltado una vez por ciclo de eventos, no una por cada token del análisis."""
         self._id_ver = None
         rango = self.texto.tag_ranges("actual")
         if rango:
             self.texto.see(rango[0])
 
     def ir_a(self, linea: int, columna: int) -> None:
-        """Lleva el cursor a (linea, columna) desde 1 y da el foco al editor."""
+        """Lleva el cursor a (línea, columna), contadas desde 1, y da el foco al editor."""
         self.texto.mark_set("insert", f"{linea}.{columna - 1}")
         self.texto.see("insert")
         self.texto.focus_set()
         self._cursor_movido()
 
     def posicion_cursor(self) -> tuple[int, int]:
-        """(linea, columna) del cursor, ambas desde 1."""
+        """(línea, columna) del cursor, contadas desde 1."""
         linea, columna = self.texto.index("insert").split(".")
         return int(linea), int(columna) + 1
 
-    # --- margen y eventos --------------------------------------------------
     def _fila_margen(self, n: int) -> tuple[str, str | None]:
-        """Texto del margen de la linea `n` (`numero marca`) y la etiqueta de su marca."""
+        """Texto del margen de la línea `n` (`número marca`) y la etiqueta de su marca."""
         if n in self._lineas_error:
             return f"{n} ✗", "marca_error"
         if n in self._lineas_evaluadas and self.texto.get(f"{n}.0", f"{n}.end").strip():
@@ -233,7 +228,7 @@ class EditorCodigo(ttk.Frame):
         return f"{n}  ", None
 
     def _refrescar_margen(self) -> None:
-        """Reconstruye todo el margen (cambia el numero de lineas)."""
+        """Rehace todo el margen; hace falta cuando cambia la cantidad de líneas."""
         total = int(self.texto.index("end-1c").split(".")[0])
         self.margen.configure(state="normal", width=max(6, len(str(total)) + 4))
         self.margen.delete("1.0", "end")
@@ -250,7 +245,7 @@ class EditorCodigo(ttk.Frame):
             self.margen.tag_add(etiqueta, f"{n}.end-1c", f"{n}.end")
 
     def _pintar_marca(self, n: int) -> None:
-        """Cambia solo la fila `n` del margen (evita reconstruirlo entero por cada linea evaluada)."""
+        """Cambia solo la fila `n` del margen; rehacerlo entero por cada línea evaluada sería lento."""
         if n > int(self.margen.index("end-1c").split(".")[0]):
             return
         texto, _etiqueta = self._fila_margen(n)

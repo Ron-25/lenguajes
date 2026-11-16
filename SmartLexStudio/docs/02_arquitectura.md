@@ -105,7 +105,7 @@ main.py ─▶ ui/ ─────────▶ application/ ─────�
 
 | Tipo | Clase | Campos | Notas |
 |---|---|---|---|
-| Categoría de token | `TipoToken(Enum)` | 12 miembros (§2 de la especificación) | El `value` es el nombre para mostrar («Palabra reservada») |
+| Categoría de token | `TipoToken(Enum)` | 13 miembros (§2 de la especificación) | El `value` es el nombre para mostrar («Palabra reservada») |
 | Tipo de diagnóstico | `TipoDiagnostico(Enum)` | `LEXICO`, `ESTRUCTURAL`, `ARCHIVO` | |
 | Token | `Token` — `dataclass(frozen=True)` | `tipo`, `lexema`, `linea`, `columna` | Inmutable. Propiedades `longitud` y `es_significativo` |
 | Diagnóstico | `Diagnostico` — `dataclass(frozen=True)` | `codigo`, `tipo`, `titulo`, `mensaje`, `sugerencia`, `linea`, `columna`, `lexema` | Inmutable |
@@ -492,6 +492,8 @@ Revisión final del arquitecto sobre el commit `3a8f372` (115 pruebas en verde).
 | Rediseño §16 | Implementado: `ui/iconos.py` nuevo; `PanelProblemas`; `RAIZ_PROYECTO` vive en `componentes.py`; zona inferior inicial de 250 px (no 210); `F2`/`Shift+F2` solo en `bind_all`; sin rombo `◆` en el menú de ejecución; las técnicas «por validar» (`Panedwindow.forget/insert`, barras sin flechas, globos) funcionaron sin alternativa | D-54…D-57 |
 | Capturas | `docs/capturas/capturar.py` fotografía la ventana por su identificador (`id_ventana.swift`) | D-58 |
 
+Literales de duración §18 (Fase E): implementado como se diseñó, con una diferencia: el panel **Lenguaje** (`VistaLenguaje`) no se generaba de `INFO_CATEGORIAS` sino que arma su árbol a mano, así que se añadió un grupo «Números» (Entero, Decimal, Duración, cada uno con sus ejemplos) tomado de `INFO_CATEGORIAS`. La pestaña Autómatas sí se genera de `reglas.AUTOMATAS`: la tabla de `AFD_NUMERO` con q7 y q8 sale sin recortes. Las pruebas de equivalencia regex y AFD usan un alfabeto propio y más corto para los números (con `s`, `m`, `h` el alfabeto completo hasta longitud 5 tardaba minutos).
+
 Rediseño §17 (Fase D): implementado. Diferencias con la especificación: el menú «Ejemplos» no lleva «▾» en su texto (el tema `clam` ya dibuja su flecha; D-73); `PAUSA_POR_DEFECTO_MS` y `PAUSA_MAXIMA_MS` viven en `ui/componentes.py` y `ui/interfaz.py` los importa; el deslizador mide 80 px y los botones usan fuente 11 y relleno (7, 4) para que la cabecera quepa en 1100 px; el cuadro de detalle del manejador mide 178 px fijos; se añadió el estilo `PanelError.TLabel`; la pestaña Resumen responde a la rueda del ratón; `ui/iconos.py` y las zonas ocultables desaparecen.
 
 Pendiente menor tras esta revisión (tareas B9 y B10): un único error de archivo visible a la vez en la pestaña Errores, y una línea por dato en el `detalle` del Modo educativo.
@@ -826,7 +828,7 @@ Se conservan las claves que siguen en uso (cambia el valor), se eliminan las que
 | `cabecera` | `#14213D` | fondo de la cabecera |
 | `cabecera_tenue` | `#A9B6CC` | subtítulo y etiquetas sobre la cabecera |
 
-`COLORES_TOKEN` (sigue por `TipoToken`, todas las categorías; el Ejercicio 7 de la guía no cambia de mecanismo): `PALABRA_RESERVADA #0B3FA8`, `IDENTIFICADOR #1F2937`, `ENTERO #1565C0`, `DECIMAL #1565C0`, `CADENA #A14A00`, `OPERADOR_ARITMETICO`/`RELACIONAL`/`LOGICO`/`ASIGNACION #37474F`, `DELIMITADOR #5F6B7A`, `COMENTARIO #7A8594`, `ERROR #C62828`. Junto a `TIPOS_EN_CURSIVA = (COMENTARIO,)` se añade `TIPOS_EN_NEGRITA = (PALABRA_RESERVADA,)`; el editor aplica ambas con `font=` en la etiqueta. Tipografías y `_puntos()` (D-51) no cambian.
+`COLORES_TOKEN` (sigue por `TipoToken`, todas las categorías; el Ejercicio 7 de la guía no cambia de mecanismo): `PALABRA_RESERVADA #0B3FA8`, `IDENTIFICADOR #1F2937`, `ENTERO #1565C0`, `DECIMAL #1565C0`, `DURACION #00796B` (contraste 5,3:1 sobre blanco y 4,7:1 sobre `error_fondo`), `CADENA #A14A00`, `OPERADOR_ARITMETICO`/`RELACIONAL`/`LOGICO`/`ASIGNACION #37474F`, `DELIMITADOR #5F6B7A`, `COMENTARIO #7A8594`, `ERROR #C62828`. Junto a `TIPOS_EN_CURSIVA = (COMENTARIO,)` se añade `TIPOS_EN_NEGRITA = (PALABRA_RESERVADA,)`; el editor aplica ambas con `font=` en la etiqueta. Tipografías y `_puntos()` (D-51) no cambian.
 
 Estilos `ttk` nuevos o cambiados en `aplicar_tema`: `Treeview` blanco con filas de 24 px y cabecera `barra` con borde; `TNotebook`/`TNotebook.Tab` (activa `panel` + texto `acento`, inactiva `barra`, deshabilitada `texto_tenue`); los cuatro estilos de la cabecera; `Titulo.TLabel` (negrita) y `TituloError.TLabel` (negrita, `error`); `Estado.TFrame`/`Estado.TLabel` sobre `barra`; `Veredicto.TLabel`; `TCombobox` de solo lectura.
 

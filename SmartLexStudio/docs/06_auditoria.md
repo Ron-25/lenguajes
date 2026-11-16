@@ -40,7 +40,7 @@ Todo se ejecutó; nada se tomó del reporte del desarrollador.
 | Dependencias `ui → application → core → config → modelos` | Cumple | `afd`, `lexer`, `validador`, `simbolos` → `reglas`; `errores` → `modelos`; sin ciclos |
 | Motor AFD ejecuta las tablas | Cumple | `AFD.reconocer` es el bucle `estado = δ(estado, c)` sobre `reglas.AFD_*`; el lexer construye los AFD desde `reglas.AUTOMATAS` y no tiene casos especiales salvo símbolos fijos, reservadas y `len() > 32` (lo que la arquitectura §4.3 declara) |
 | Tabla hash propia | Cumple | Solo listas; `buscar` recorre la cubeta; `_redimensionar` reubica **todas** las entradas con su `valor_hash`; no usa `dict`, `set` ni `hash()` |
-| Valores de la especificación §12 | Cumple | 111/57/118 tokens; 36 entradas, capacidad 79, 14 colisiones, 2 redimensionados; los 15 diagnósticos de `incorrecto.flow` con posición exacta |
+| Valores de la especificación §12 | Cumple | 111/63/139 tokens (con la categoría `DURACION`); 36 entradas, capacidad 79, 14 colisiones, 2 redimensionados; los 17 diagnósticos de `incorrecto.flow` con posición exacta |
 | Pruebas requeridas A3–A9 | Cumple con una desviación | Todas presentes; el alfabeto de la prueba de equivalencia no tenía la letra `n` (AUD-04, corregido) |
 
 ### 4. Hallazgos

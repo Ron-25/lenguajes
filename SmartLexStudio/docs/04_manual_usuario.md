@@ -45,7 +45,7 @@ La ventana es clara, de estilo académico: cabecera azul marino, editor a la izq
 1. **Cabecera, fila 1**: «SmartLex Studio», el subtítulo «Analizador léxico de FlowLang · Tabla de símbolos · Manejador de errores» y, a la derecha, **Ayuda** (`F1`) y **Ver tabla de símbolos** (apagado hasta terminar el análisis).
 2. **Cabecera, fila 2**: **Nuevo archivo** (`Ctrl+N`, `Cmd+N` en macOS), **Abrir archivo…** (`Ctrl+O`; es el botón azul), el menú **Ejemplos** (lista los archivos de `ejemplos/` cada vez que se abre; elegir uno lo carga), **Guardar** (`Ctrl+S`), **Limpiar**, y después **Analizar** (`F5`), **Paso a paso** (`F10`) y **Detener** (`Esc`). Los que no se pueden usar en el estado actual aparecen apagados. Al final, el deslizador **Pausa por línea** (0 a 500 ms, 120 por defecto): se puede mover durante el análisis.
 3. **Editor** (izquierda): título «Archivo de entrada: *nombre*» (`(sin archivo)` si no hay). El margen muestra el número de línea y una marca: `✓` verde si la línea ya se evaluó y no tiene errores, `✗` rojo si tiene algún error (léxico o estructural); las líneas en blanco o aún no evaluadas no llevan marca. La línea con error se pinta en rosado y el texto erróneo va subrayado en rojo sobre fondo rojizo. Las palabras reservadas van en azul y negrita, los comentarios en gris cursiva. `F2` y `Shift+F2` saltan al siguiente y al anterior error.
-4. **Manejador de errores** (derecha, siempre visible): el título dice «(15 errores)», «(1 error)» o «(sin errores)». La tabla tiene las columnas `Código`, `Línea`, `Col`, `Lexema` y `Error`; debajo, el cuadro de detalle con el código, la posición, el lexema, el mensaje y la sugerencia del error elegido. Los errores de archivo (`ARC-…`) muestran «—» en Línea y Col.
+4. **Manejador de errores** (derecha, siempre visible): el título dice «(17 errores)», «(1 error)» o «(sin errores)». La tabla tiene las columnas `Código`, `Línea`, `Col`, `Lexema` y `Error`; debajo, el cuadro de detalle con el código, la posición, el lexema, el mensaje y la sugerencia del error elegido. Los errores de archivo (`ARC-…`) muestran «—» en Línea y Col.
 5. **Pestañas de resultados** (abajo, a todo el ancho): **Tokens**, **Tabla de símbolos**, **Resumen**, **Autómatas**, **Lenguaje** (referencia de FlowLang: palabras reservadas, operadores, delimitadores, escapes y límites) y **Consola** (una línea por token; al final los veredictos) (sección 5).
 6. **Barra de estado**: a la izquierda los contadores `Líneas válidas · Líneas con errores · Tokens · Símbolos · Errores`; a la derecha el estado, `Lín N, Col M` y el **veredicto** («✓ El archivo es válido para FlowLang» en verde o «✗ El archivo NO es válido para FlowLang» en rojo; se borra al editar el texto).
 
@@ -86,6 +86,8 @@ Con el análisis detenido a mitad se ve el avance por línea: las líneas de arr
 ### Tokens
 Una fila por token reconocido, coloreada según su categoría. Columnas: `#` (orden), `Lín`, `Col` (posición desde 1), `Categoría` y `Lexema`. Al hacer clic en una fila, el token se resalta en el editor y la pestaña Autómatas lo explica. Los comentarios y los fragmentos erróneos también aparecen (categorías *Comentario* y *Error*).
 
+Las categorías de número son tres: *Entero* (`28`), *Decimal* (`45.5`) y *Duración* (`30s`), un entero pegado a su unidad de tiempo (`ms`, `s`, `m` o `h`) que FlowLang usa en instrucciones como `esperar 10s;`. Cada categoría tiene su color; la Duración se ve en verde azulado. En la tabla de símbolos, una duración guarda su valor en milisegundos (`10s` vale 10000, `5m` vale 300000), de modo que `60s` y `1m` son dos entradas con el mismo valor. Con un espacio de por medio (`10 s`) ya no es una duración: son un entero y un identificador.
+
 ### Tabla de símbolos
 Se habilita **al terminar** el análisis. Es una tabla hash con encadenamiento: las filas se ordenan por cubeta y las entradas que comparten cubeta (colisión) tienen un fondo distinto. Encima, una línea con la **función hash real** (`h = (h · 31 + código(c)) mod 2³²`, `cubeta = h mod capacidad`) y el resumen:
 
@@ -101,7 +103,7 @@ Columnas: `Cubeta`, `Hash`, `Lexema`, `Categoría`, `Tipo` (tipo de dato: el de 
 Aparece al terminar: veredicto léxico, estructural y global; tokens por categoría con barras proporcionales; número de líneas, caracteres y tokens; errores por tipo.
 
 ### Autómatas
-Arriba, el selector **Autómata** con los cuatro AFD de FlowLang: al elegir uno se ve su tabla de transiciones y sus estados finales. Al hacer clic en un token (o con *Paso a paso*) explica ese token: lexema, categoría y posición; descripción; la **expresión regular** de su categoría; el **reconocedor** (qué autómata lo leyó, que queda elegido en el selector) y el **recorrido de estados** (por ejemplo `q0 → q1 → q1 → q2 → q3` para `45.5`); para errores, el código y la sugerencia; si el lexema está en la tabla, su hash, cubeta, tipo y número de apariciones. Al final muestra la tabla de transiciones del autómata usado.
+Arriba, el selector **Autómata** con los cuatro AFD de FlowLang: al elegir uno se ve su tabla de transiciones y sus estados finales. Al hacer clic en un token (o con *Paso a paso*) explica ese token: lexema, categoría y posición; descripción; la **expresión regular** de su categoría; el **reconocedor** (qué autómata lo leyó, que queda elegido en el selector) y el **recorrido de estados** (por ejemplo `q0 → q1 → q1 → q2 → q3` para `45.5` o `q0 → q1 → q1 → q7` para `30s`); para errores, el código y la sugerencia; si el lexema está en la tabla, su hash, cubeta, tipo y número de apariciones. Al final muestra la tabla de transiciones del autómata usado.
 
 ![Pestaña Autómatas](capturas/4_automatas.png)
 
@@ -118,8 +120,8 @@ Un programa es **válido** cuando no tiene errores léxicos (`LEX`) ni estructur
 |---|---|---|
 | `LEX-001` | Carácter no reconocido | Un símbolo que no pertenece a FlowLang (`@`, `#`, `&` suelto…). Elimínalo o cámbialo; el mensaje a veces sugiere el símbolo correcto. |
 | `LEX-002` | Cadena sin cerrar | Falta la comilla de cierre en la misma línea. |
-| `LEX-003` | Número mal formado | Por ejemplo `3.`, `.5` o `3.4.5`. Un decimal lleva dígitos a ambos lados de un único punto. |
-| `LEX-004` | Identificador inválido | Empieza con un dígito (`2pi`, `12abc`). Comienza con una letra o `_`. |
+| `LEX-003` | Número mal formado | Por ejemplo `3.`, `.5`, `3.4.5` o `1.5s`. Un decimal lleva dígitos a ambos lados de un único punto, y las duraciones son enteras: se escribe `1500ms`, no `1.5s`. |
+| `LEX-004` | Identificador inválido | Empieza con un dígito (`2pi`, `12abc`) o es una duración con unidad desconocida (`5min`, `10seg`, `10S`). Comienza con una letra o `_`; si querías una duración, las unidades son `ms`, `s`, `m` y `h`, en minúscula y pegadas al número. |
 | `LEX-005` | Identificador demasiado largo | Más de 32 caracteres. |
 | `LEX-006` | Secuencia de escape inválida | Dentro de una cadena solo valen `\n`, `\t`, `\"` y `\\`. |
 | `LEX-007` | Comentario de bloque sin cerrar | Falta el `*/`. |

@@ -1,4 +1,4 @@
-"""Catalogo unico de diagnosticos y manejador que los acumula y consulta."""
+"""Catálogo de diagnósticos y el manejador que los acumula durante un análisis."""
 from __future__ import annotations
 
 from typing import Iterable
@@ -18,10 +18,12 @@ CATALOGO: dict[str, dict] = {
                 "sugerencia": 'Agregue `"` al final de la cadena; las cadenas no pueden ocupar varias líneas.'},
     "LEX-003": {"tipo": _LEX, "titulo": "Número mal formado",
                 "mensaje": "'{lexema}' no es un número válido.",
-                "sugerencia": "Un decimal necesita dígitos a ambos lados de un único punto, por ejemplo 3.14 o 0.5."},
+                "sugerencia": "Un decimal necesita dígitos a ambos lados de un único punto, por ejemplo 3.14 o 0.5. "
+                              "Las duraciones se escriben con enteros: 1500ms, no 1.5s."},
     "LEX-004": {"tipo": _LEX, "titulo": "Identificador inválido",
                 "mensaje": "'{lexema}' no es válido: un identificador no puede comenzar con un dígito.",
-                "sugerencia": "Comience el nombre con una letra o `_`; si quería un número, quite las letras."},
+                "sugerencia": "Comience el nombre con una letra o `_`; si quería un número, quite las letras; "
+                              "si quería una duración, las unidades son ms, s, m y h (por ejemplo 10s)."},
     "LEX-005": {"tipo": _LEX, "titulo": "Identificador demasiado largo",
                 "mensaje": "El identificador '{lexema}' supera el máximo de 32 caracteres.",
                 "sugerencia": "Use un nombre más corto."},
@@ -78,7 +80,7 @@ _NOMBRES_PLURALES = {
 
 def crear_diagnostico(codigo: str, linea: int = 0, columna: int = 0,
                       lexema: str = "", sugerencia: str | None = None) -> Diagnostico:
-    """Construye un Diagnostico rellenando la plantilla del catalogo (KeyError si no existe)."""
+    """Diagnóstico a partir de la plantilla del catálogo; KeyError si el código no existe."""
     datos = CATALOGO[codigo]
     return Diagnostico(
         codigo=codigo,
@@ -93,54 +95,54 @@ def crear_diagnostico(codigo: str, linea: int = 0, columna: int = 0,
 
 
 class ManejadorErrores:
-    """Acumula los diagnosticos de un analisis y responde consultas sobre ellos."""
+    """Acumula los diagnósticos de un análisis y responde consultas sobre ellos."""
 
     def __init__(self) -> None:
         self._diagnosticos: list[Diagnostico] = []
 
     def reportar(self, codigo: str, linea: int = 0, columna: int = 0,
                  lexema: str = "", sugerencia: str | None = None) -> Diagnostico:
-        """Crea un diagnostico del catalogo, lo guarda y lo devuelve."""
+        """Crea el diagnóstico del catálogo, lo guarda y lo devuelve."""
         diagnostico = crear_diagnostico(codigo, linea, columna, lexema, sugerencia)
         self._diagnosticos.append(diagnostico)
         return diagnostico
 
     def agregar(self, diagnostico: Diagnostico) -> None:
-        """Guarda un diagnostico ya construido."""
+        """Guarda un diagnóstico ya construido."""
         self._diagnosticos.append(diagnostico)
 
     def extender(self, diagnosticos: Iterable[Diagnostico]) -> None:
-        """Guarda varios diagnosticos ya construidos."""
+        """Guarda varios diagnósticos ya construidos."""
         self._diagnosticos.extend(diagnosticos)
 
     @property
     def diagnosticos(self) -> list[Diagnostico]:
-        """Copia de los diagnosticos en orden de reporte."""
+        """Copia de la lista, en el orden en que se reportaron."""
         return list(self._diagnosticos)
 
     def ordenados(self) -> list[Diagnostico]:
-        """Diagnosticos ordenados por (linea, columna, codigo)."""
+        """Ordenados por línea, columna y código."""
         return sorted(self._diagnosticos, key=lambda d: (d.linea, d.columna, d.codigo))
 
     def por_tipo(self, tipo: TipoDiagnostico) -> list[Diagnostico]:
-        """Diagnosticos de un tipo, en orden de reporte."""
+        """Los de un tipo, en orden de reporte."""
         return [d for d in self._diagnosticos if d.tipo == tipo]
 
     def por_linea(self) -> dict[int, list[Diagnostico]]:
-        """Agrupa los diagnosticos por linea."""
+        """Agrupa por línea."""
         grupos: dict[int, list[Diagnostico]] = {}
         for diagnostico in self._diagnosticos:
             grupos.setdefault(diagnostico.linea, []).append(diagnostico)
         return grupos
 
     def cantidad(self, tipo: TipoDiagnostico | None = None) -> int:
-        """Cantidad total de diagnosticos, o de un tipo concreto."""
+        """Cantidad total, o la de un tipo."""
         if tipo is None:
             return len(self._diagnosticos)
         return len(self.por_tipo(tipo))
 
     def hay_errores(self, tipo: TipoDiagnostico | None = None) -> bool:
-        """True si hay al menos un diagnostico (del tipo indicado, si se da)."""
+        """True si hay al menos uno (del tipo indicado, si se da)."""
         return self.cantidad(tipo) > 0
 
     def resumen(self) -> str:
@@ -156,5 +158,5 @@ class ManejadorErrores:
         return f"{total} {'error' if total == 1 else 'errores'}: {', '.join(partes)}"
 
     def limpiar(self) -> None:
-        """Elimina todos los diagnosticos."""
+        """Vacía el manejador."""
         self._diagnosticos.clear()

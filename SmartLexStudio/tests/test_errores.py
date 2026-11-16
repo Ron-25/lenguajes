@@ -1,4 +1,4 @@
-"""Pruebas del catalogo y del manejador de errores."""
+"""Pruebas del catálogo y del manejador de errores."""
 from __future__ import annotations
 
 import unittest
@@ -42,7 +42,7 @@ class TestManejador(unittest.TestCase):
         self.m.reportar("LEX-001", 2, 9, "#")
         self.m.reportar("LEX-001", 2, 3, "$")
         self.assertEqual([(d.linea, d.columna) for d in self.m.ordenados()], [(2, 3), (2, 9), (5, 1)])
-        self.assertEqual(self.m.diagnosticos[0].linea, 5)  # orden de reporte intacto
+        self.assertEqual(self.m.diagnosticos[0].linea, 5)  # el orden de reporte no cambia
 
     def test_consultas(self):
         self.m.reportar("LEX-001", 1, 1, "@")

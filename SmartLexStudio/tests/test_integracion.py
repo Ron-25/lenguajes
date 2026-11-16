@@ -1,4 +1,4 @@
-"""Pruebas de integracion: servicio de analisis sobre los ejemplos y sesiones progresivas."""
+"""Pruebas de integración: el servicio de análisis sobre los ejemplos y las sesiones paso a paso."""
 from __future__ import annotations
 
 import subprocess
@@ -29,7 +29,8 @@ class TestEjemplos(unittest.TestCase):
         e = r.tabla.estadisticas()
         self.assertEqual((len(r.tabla), e.capacidad, e.colisiones, e.redimensionados), (36, 79, 14, 2))
         self.assertEqual(r.conteo_por_tipo(), {
-            T.PALABRA_RESERVADA: 21, T.IDENTIFICADOR: 21, T.ENTERO: 9, T.DECIMAL: 3, T.CADENA: 4,
+            T.PALABRA_RESERVADA: 21, T.IDENTIFICADOR: 21, T.ENTERO: 8, T.DECIMAL: 3, T.DURACION: 1,
+            T.CADENA: 4,
             T.OPERADOR_ARITMETICO: 6, T.OPERADOR_RELACIONAL: 5, T.OPERADOR_LOGICO: 4,
             T.ASIGNACION: 7, T.DELIMITADOR: 29, T.COMENTARIO: 2})
         temperatura = r.tabla.buscar("temperatura")
@@ -38,25 +39,38 @@ class TestEjemplos(unittest.TestCase):
         self.assertEqual(r.tabla.buscar("humedad").apariciones, [(6, 13), (13, 30), (23, 9), (23, 19)])
         self.assertEqual(len(r.tabla.buscar("ciclos").apariciones), 5)
         self.assertEqual(r.tabla.buscar("45.5").valor, 45.5)
+        duracion = r.tabla.buscar("30s")
+        self.assertEqual((duracion.categoria, duracion.tipo_dato, duracion.valor, duracion.valor_hash),
+                         (T.DURACION, "duracion", 30000, 50614))
+        self.assertEqual(r.tabla.buscar("30").categoria, T.ENTERO)
+        self.assertEqual(r.tabla.estadisticas().cubetas_ocupadas, 29)
 
     def test_incorrecto(self):
         r = analizar_archivo(ejemplo("incorrecto.flow"))
         self.assertFalse(r.es_valida_lexicamente)
         self.assertFalse(r.es_valida_estructuralmente)
         self.assertFalse(r.es_valida)
-        self.assertEqual(len(r.tokens), 57)
+        self.assertEqual(len(r.tokens), 63)
+        self.assertEqual(sum(t.tipo == T.ERROR for t in r.tokens), 15)
         self.assertEqual([d.codigo for d in r.diagnosticos], (
             ["LEX-004", "LEX-003", "LEX-003", "LEX-002", "LEX-006", "LEX-001", "LEX-001", "LEX-005",
-             "LEX-001", "LEX-001", "LEX-001", "LEX-001", "LEX-007", "SIN-005", "SIN-003"]))
-        self.assertEqual([(d.linea, d.columna) for d in r.diagnosticos][-2:], [(9, 8), (12, 22)])
+             "LEX-001", "LEX-001", "LEX-001", "LEX-001", "LEX-004", "LEX-003", "LEX-007",
+             "SIN-005", "SIN-003"]))
+        posiciones = [(d.linea, d.columna) for d in r.diagnosticos]
+        self.assertEqual(posiciones[12:], [(13, 13), (13, 27), (14, 1), (9, 8), (13, 31)])
+        self.assertEqual(len(r.diagnosticos), 17)
         e = r.tabla.estadisticas()
-        self.assertEqual((len(r.tabla), e.capacidad, e.colisiones), (18, 37, 7))
-        self.assertEqual(r.lineas_invalidas(), [2, 3, 4, 5, 6, 7, 8, 10, 12, 13])
+        self.assertEqual((len(r.tabla), e.capacidad, e.colisiones, e.redimensionados), (19, 37, 8, 1))
+        self.assertEqual(r.lineas_invalidas(), [2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14])
 
     def test_casos_limite(self):
         r = analizar_archivo(ejemplo("casos_limite.flow"))
         self.assertTrue(r.es_valida)
-        self.assertEqual(len(r.tokens), 118)
+        self.assertEqual(len(r.tokens), 139)
+        self.assertEqual(r.conteo_por_tipo()[T.DURACION], 5)
+        self.assertEqual(r.diagnosticos, [])
+        e = r.tabla.estadisticas()
+        self.assertEqual((len(r.tabla), e.capacidad, e.colisiones), (40, 79, 11))
 
     def test_archivo_inexistente_propaga_error(self):
         with self.assertRaises(ErrorArchivo):
@@ -155,6 +169,12 @@ class TestExplicarToken(unittest.TestCase):
         self.assertEqual(e.reconocedor, "AFD de números")
         self.assertEqual(e.recorrido, ("q0", "q1", "q1", "q2", "q3"))
         self.assertEqual(e.regex, reglas.INFO_CATEGORIAS[T.DECIMAL]["regex"])
+
+    def test_duracion(self):
+        e = explicar_token(Token(T.DURACION, "30s", 15, 17))
+        self.assertEqual((e.reconocedor, e.recorrido), ("AFD de números", ("q0", "q1", "q1", "q7")))
+        self.assertEqual(e.regex, reglas.INFO_CATEGORIAS[T.DURACION]["regex"])
+        self.assertIn("Categoría: Duración", e.detalle)
 
     def test_detalle_una_linea_por_dato(self):
         e = explicar_token(Token(T.DECIMAL, "45.5", 6, 23))

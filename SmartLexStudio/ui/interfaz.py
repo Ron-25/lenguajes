@@ -1,4 +1,4 @@
-"""Ventana principal: coordina las vistas y consume la sesion de analisis con `after`."""
+"""Ventana principal: coordina las vistas y avanza la sesión de análisis con `after`."""
 from __future__ import annotations
 
 import sys
@@ -16,9 +16,9 @@ from ui.editor import EditorCodigo
 from ui.estilos import aplicar_tema
 from ui.paneles import PanelErrores, PanelResultados
 
-DURACION_MAXIMA_ANIMACION_MS = 10000  # tope de la animacion completa (la pausa por linea se acorta en archivos largos)
-PASOS_MAXIMOS_POR_TICK = 500          # una linea larguisima no debe bloquear la ventana
-PRESUPUESTO_TICK_S = 0.03             # AUD-34: un latido atrasado agrupa lineas hasta 30 ms y cede para repintar
+DURACION_MAXIMA_ANIMACION_MS = 10000  # tope de la animación completa: en archivos largos se acorta la pausa por línea
+PASOS_MAXIMOS_POR_TICK = 500          # una línea larguísima no debe bloquear la ventana
+PRESUPUESTO_TICK_S = 0.03             # si el reloj va atrasado, el latido agrupa líneas hasta 30 ms y cede para repintar
 TITULO_SOLICITUD = "Seleccione el archivo con las cadenas de entrada"
 
 SIN_FUENTE, LISTO, ANALIZANDO, TERMINADO = "SIN_FUENTE", "LISTO", "ANALIZANDO", "TERMINADO"
@@ -40,7 +40,7 @@ _AYUDA = (
 
 
 class VentanaPrincipal(tk.Tk):
-    """Mini-IDE de SmartLex Studio. Los metodos publicos son los que usan atajos, botones y pruebas."""
+    """Ventana de SmartLex Studio. Los métodos públicos son los que usan los atajos, los botones y las pruebas."""
 
     def __init__(self, solicitar_archivo: bool = True) -> None:
         super().__init__()
@@ -49,10 +49,10 @@ class VentanaPrincipal(tk.Tk):
         self.ruta_actual: Path | None = None
         self._id_tick: str | None = None
         self._errores_vistos = 0
-        self._linea_en_curso = 0   # ultima linea con tokens que el analisis ya empezo (0 = ninguna)
+        self._linea_en_curso = 0   # última línea que el análisis ya empezó (0 = ninguna)
         self._lineas_fuente = 1
-        self._ritmo = (0.0, 0, -1)  # AUD-34: (instante de referencia, lineas animadas desde entonces, pausa usada)
-        self._texto_guardado = ""  # texto del editor en la ultima carga o guardado (detecta cambios)
+        self._ritmo = (0.0, 0, -1)  # (instante de referencia, líneas animadas desde entonces, pausa usada)
+        self._texto_guardado = ""  # texto del editor en la última carga o guardado, para detectar cambios
         aplicar_tema(self)
         self._configurar_ventana()
         self._construir()
@@ -64,20 +64,20 @@ class VentanaPrincipal(tk.Tk):
             self.after(100, self._solicitar_archivo_inicial)
 
     def destroy(self) -> None:
-        """Cancela todos los `after` pendientes del interprete (tick, debounce del editor,
-        desplazamientos diferidos) antes de destruir: si no, el bucle de eventos los ejecuta
-        despues y Tcl informa «invalid command name … ("after" script)» (AUD-28)."""
+        """Cancela los `after` pendientes (latido, espera del editor, desplazamientos) antes de destruir.
+
+        Si no, Tcl los ejecuta después y escribe «invalid command name … ("after" script)».
+        """
         try:
             pendientes = self.tk.splitlist(self.tk.call("after", "info"))
         except tk.TclError:
             pendientes = ()
         for identificador in pendientes:
-            # solo se cancela en Tcl: cada widget borra su propio comando al destruirse
+            # se cancela directo en Tcl; cada widget borra su propio comando al destruirse
             self.tk.call("after", "cancel", identificador)
         self._id_tick = None
         super().destroy()
 
-    # --- construccion ----------------------------------------------------
     def _configurar_ventana(self) -> None:
         ancho = min(1280, self.winfo_screenwidth())
         alto = min(800, self.winfo_screenheight() - 60)
@@ -86,7 +86,7 @@ class VentanaPrincipal(tk.Tk):
         self.title("SmartLex Studio")
 
     def _construir(self) -> None:
-        """Disposicion de la arquitectura §17.2: cabecera, editor + errores, pestanas de resultados y barra de estado."""
+        """Cabecera arriba; editor y manejador de errores en el medio; pestañas de resultados y barra de estado abajo."""
         self.cabecera = Cabecera(self, {
             "nuevo": self.nuevo_archivo, "abrir": self.abrir_archivo, "guardar": self.guardar_archivo,
             "analizar": self.analizar, "paso": self.paso_a_paso, "detener": self.detener,
@@ -109,7 +109,7 @@ class VentanaPrincipal(tk.Tk):
         self._colocar_divisores()
 
     def _colocar_divisores(self) -> None:
-        """Tamanos iniciales: errores 38 % del ancho, resultados 40 % del alto (los divisores se arrastran)."""
+        """Tamaños iniciales: errores 38 % del ancho y resultados 40 % del alto; los divisores se pueden arrastrar."""
         self.update_idletasks()
         ancho, alto = self.superior.winfo_width(), self.cuerpo.winfo_height()
         self.superior.sashpos(0, ancho - int(ancho * 0.38))
@@ -124,10 +124,9 @@ class VentanaPrincipal(tk.Tk):
             atajos.update({"<Command-n>": self.nuevo_archivo, "<Command-o>": self.abrir_archivo, "<Command-s>": self.guardar_archivo})
         for secuencia, accion in atajos.items():
             self.bind_all(secuencia, lambda _e, f=accion: f())
-        # En un Text, Ctrl+O inserta un salto de linea (clase Text): se abre el archivo y "break" evita las dos cosas (AUD-31)
+        # El Text de Tk inserta un salto de línea con Ctrl+O; "break" evita que además de abrir el archivo lo haga
         self.editor.texto.bind("<Control-o>", lambda _e: (self.abrir_archivo(), "break")[1])
 
-    # --- estado ----------------------------------------------------------
     def _actualizar_estado(self, estado: str, mensaje: str | None = None) -> None:
         self.estado = estado
         self.cabecera.habilitar(_BOTONES_POR_ESTADO[estado])
@@ -136,7 +135,7 @@ class VentanaPrincipal(tk.Tk):
         self.barra_estado.establecer_estado(mensaje or textos[estado])
 
     def _poner_titulo(self) -> None:
-        """Titulo de la ventana y titulo del editor."""
+        """Título de la ventana y del editor."""
         nombre = f" — {self.ruta_actual.name}" if self.ruta_actual else ""
         self.title(f"SmartLex Studio{nombre}")
         self.editor.establecer_nombre(self.ruta_actual.name if self.ruta_actual else None)
@@ -158,13 +157,12 @@ class VentanaPrincipal(tk.Tk):
         self.editor.limpiar_marcas()
         self.editor.solo_lectura(False)
 
-    # --- archivos --------------------------------------------------------
     def _solicitar_archivo_inicial(self) -> None:
         if self.estado == SIN_FUENTE and not self.editor.obtener_texto().strip():
             self.abrir_archivo()
 
     def _confirmar_descartar(self, titulo: str) -> bool:
-        """True si se puede continuar: no hay cambios sin guardar, o el usuario los guardo o los descarta (AUD-29)."""
+        """True si se puede continuar: no hay cambios sin guardar, o el usuario los guardó o los descartó."""
         if self.editor.obtener_texto() == self._texto_guardado:
             return True
         respuesta = messagebox.askyesnocancel(titulo, "Hay cambios sin guardar. ¿Guardarlos antes de continuar?")
@@ -172,11 +170,11 @@ class VentanaPrincipal(tk.Tk):
             return False
         if respuesta:
             self.guardar_archivo()
-            return self.editor.obtener_texto() == self._texto_guardado  # False si se cancelo el guardado
+            return self.editor.obtener_texto() == self._texto_guardado  # sigue distinto si se canceló el guardado
         return True
 
     def abrir_archivo(self, ruta=None) -> None:
-        """Carga un archivo (pidiendolo si no se da la ruta) y lo muestra en el editor."""
+        """Abre un archivo (pide la ruta si no se da) y lo muestra en el editor."""
         if not self._confirmar_descartar("Abrir archivo"):
             return
         if ruta is None:
@@ -194,7 +192,7 @@ class VentanaPrincipal(tk.Tk):
         self._mostrar_fuente(Path(ruta), texto)
 
     def _mostrar_fuente(self, ruta: Path, texto: str) -> None:
-        """Pone `texto` en el editor como el archivo abierto `ruta` (abrir y crear comparten esto)."""
+        """Pone `texto` en el editor como el archivo abierto `ruta`; lo comparten abrir y crear."""
         self._reiniciar_resultados()
         self.editor.establecer_texto(texto)
         self.editor.resaltar(tokenizar(self.editor.obtener_texto()))
@@ -205,7 +203,7 @@ class VentanaPrincipal(tk.Tk):
         self._actualizar_estado(LISTO)
 
     def nuevo_archivo(self) -> None:
-        """Crea un archivo con la plantilla minima: pregunta por cambios sin guardar y por la ruta."""
+        """Crea un archivo con la plantilla mínima; antes pregunta por cambios sin guardar y por la ruta."""
         if not self._confirmar_descartar("Nuevo archivo"):
             return
         carpeta = self.ruta_actual.parent if self.ruta_actual else RAIZ_PROYECTO / "ejemplos"
@@ -221,7 +219,7 @@ class VentanaPrincipal(tk.Tk):
             self._mostrar_error_archivo(error.diagnostico)
             return
         self._mostrar_fuente(Path(ruta), texto)
-        self.editor.ir_a(2, len(texto.splitlines()[1]) + 1)  # final de la linea sangrada de la plantilla
+        self.editor.ir_a(2, len(texto.splitlines()[1]) + 1)  # al final de la línea sangrada de la plantilla
 
     def _mostrar_error_archivo(self, diagnostico: Diagnostico) -> None:
         self.consola.escribir(f"✗ {diagnostico.codigo} {diagnostico.mensaje} {diagnostico.sugerencia}", "error")
@@ -230,7 +228,7 @@ class VentanaPrincipal(tk.Tk):
         messagebox.showerror(diagnostico.titulo, f"{diagnostico.mensaje}\n\n{diagnostico.sugerencia}")
 
     def guardar_archivo(self) -> None:
-        """Guarda el contenido del editor (pide la ruta si el archivo es nuevo)."""
+        """Guarda el editor; pide la ruta si el archivo es nuevo."""
         ruta = self.ruta_actual
         if ruta is None:
             elegida = filedialog.asksaveasfilename(
@@ -250,9 +248,8 @@ class VentanaPrincipal(tk.Tk):
         self._poner_titulo()
         self.consola.escribir(f"Guardado: {ruta.name}", "info")
 
-    # --- analisis --------------------------------------------------------
     def _sincronizar_con_texto(self) -> None:
-        """Si se escribio texto sin abrir archivo, el editor ya es una fuente valida."""
+        """Si se escribió texto sin abrir archivo, el editor ya sirve como fuente."""
         if self.estado == SIN_FUENTE and self.editor.obtener_texto().strip():
             self._actualizar_estado(LISTO)
 
@@ -270,7 +267,7 @@ class VentanaPrincipal(tk.Tk):
         self._actualizar_estado(ANALIZANDO)
 
     def analizar(self) -> None:
-        """Inicia (o continua) la evaluacion progresiva con un temporizador."""
+        """Inicia o continúa la evaluación progresiva con un temporizador."""
         self._sincronizar_con_texto()
         if self.estado == SIN_FUENTE:
             self.abrir_archivo()
@@ -284,13 +281,15 @@ class VentanaPrincipal(tk.Tk):
         self._id_tick = self.after(1, self._tick)
 
     def _pausa_efectiva(self) -> int:
-        """Pausa entre lineas: el deslizador, acortada para que un archivo largo no dure mas del tope."""
+        """Pausa entre líneas: la del deslizador, acortada para que un archivo largo no pase del tope."""
         return min(self.cabecera.pausa_ms(), DURACION_MAXIMA_ANIMACION_MS // max(1, self._lineas_fuente))
 
     def _atrasado(self) -> bool:
-        """AUD-34: el trabajo de cada linea se suma a la pausa; si el reloj va por detras del ritmo
-        `lineas x pausa` (o la pausa es 0), el latido sigue con la linea siguiente sin esperar.
-        Si el deslizador cambia, el ritmo se reinicia (no se recupera el atraso de la pausa anterior)."""
+        """True si el reloj va por detrás del ritmo `líneas × pausa`.
+
+        El trabajo de cada línea se suma a la pausa, así que sin esto la animación duraría más
+        de lo que marca el deslizador. Si el deslizador cambia, el ritmo se reinicia.
+        """
         pausa = self._pausa_efectiva()
         inicio, lineas, pausa_usada = self._ritmo
         if pausa != pausa_usada:
@@ -299,8 +298,11 @@ class VentanaPrincipal(tk.Tk):
         return pausa == 0 or (time.monotonic() - inicio) * 1000 > lineas * pausa
 
     def _tick(self) -> None:
-        """Un latido: consume pasos hasta terminar la linea en curso y espera la pausa (§17.7);
-        si va atrasado respecto del tope, agrupa lineas dentro de PRESUPUESTO_TICK_S (AUD-34)."""
+        """Un latido: consume pasos hasta terminar la línea en curso y espera la pausa.
+
+        Si va atrasado, sigue con la línea siguiente sin esperar, pero cede a Tk al pasar
+        PRESUPUESTO_TICK_S para que la ventana se repinte.
+        """
         self._id_tick = None
         linea = self._linea_en_curso
         limite = time.monotonic() + PRESUPUESTO_TICK_S
@@ -317,7 +319,7 @@ class VentanaPrincipal(tk.Tk):
         self._id_tick = self.after(1, self._tick)
 
     def paso_a_paso(self) -> None:
-        """Consume exactamente un paso y lo explica en la pestana Autómatas."""
+        """Consume un solo paso y lo explica en la pestaña Autómatas."""
         self._sincronizar_con_texto()
         if self.estado == SIN_FUENTE:
             self.abrir_archivo()
@@ -328,13 +330,13 @@ class VentanaPrincipal(tk.Tk):
         self._consumir_paso(educativo=True)
 
     def detener(self) -> None:
-        """Pausa la evaluacion; analizar o paso a paso la continuan."""
+        """Pausa la evaluación; Analizar y Paso a paso la continúan."""
         if self._id_tick is not None:
             self._cancelar_temporizador()
             self._actualizar_estado(ANALIZANDO, "Evaluación detenida (F5 continúa, F10 avanza un paso)")
 
     def _consumir_paso(self, educativo: bool) -> bool:
-        """Aplica un paso a las vistas (lo usan el temporizador y «Paso a paso»); False cuando la sesion ya termino."""
+        """Aplica un paso a las vistas, para el temporizador y «Paso a paso»; False cuando la sesión terminó."""
         paso = self.sesion.siguiente_paso()
         if paso is None:
             self._finalizar()
@@ -362,7 +364,7 @@ class VentanaPrincipal(tk.Tk):
         return True
 
     def _cerrar_linea_en_curso(self) -> None:
-        """La linea que se estaba recorriendo ya termino: recibe su ✓ o su ✗."""
+        """La línea que se recorría terminó: recibe su ✓ o su ✗."""
         if self._linea_en_curso > 0:
             self.editor.marcar_lineas_evaluadas([self._linea_en_curso])
 
@@ -400,17 +402,17 @@ class VentanaPrincipal(tk.Tk):
             self.consola.escribir("Líneas léxicamente inválidas: " + ", ".join(map(str, lineas)), "error")
 
     def ver_tabla_simbolos(self) -> None:
-        """Muestra la pestana de la tabla de simbolos (solo disponible al terminar)."""
+        """Muestra la pestaña de la tabla de símbolos, que solo existe al terminar."""
         if self.panel_resultados.tabla_simbolos_habilitada():
             self.panel_resultados.mostrar("simbolos")
 
     def _habilitar_simbolos(self, activo: bool) -> None:
-        """Pestana de la tabla y boton de la cabecera, a la vez."""
+        """Lo mismo que el botón de la cabecera y la pestaña."""
         self.panel_resultados.habilitar_tabla_simbolos(activo)
         self.cabecera.habilitar_ver_tabla(activo)
 
     def limpiar(self) -> None:
-        """Deja la aplicacion sin archivo y sin resultados (pregunta si hay cambios sin guardar)."""
+        """Deja la aplicación sin archivo y sin resultados; pregunta si hay cambios sin guardar."""
         if not self._confirmar_descartar("Limpiar"):
             return
         self._reiniciar_resultados()
@@ -422,17 +424,16 @@ class VentanaPrincipal(tk.Tk):
         self._actualizar_estado(SIN_FUENTE)
 
     def salir(self) -> None:
-        """Cierra la ventana (boton de cierre), preguntando si hay cambios sin guardar; `destroy` no pregunta."""
+        """Cierra la ventana preguntando por cambios sin guardar; `destroy` no pregunta."""
         if self._confirmar_descartar("Salir"):
             self.destroy()
 
     def mostrar_ayuda(self) -> None:
-        """Atajos y modo de uso."""
+        """Muestra los atajos y el modo de uso."""
         messagebox.showinfo("Ayuda de SmartLex Studio", _AYUDA)
 
-    # --- eventos de las vistas -------------------------------------------
     def _al_editar(self) -> None:
-        """El usuario cambio el texto: re-resalta y deja obsoletos los resultados."""
+        """El usuario cambió el texto: vuelve a colorear y deja obsoletos los resultados."""
         if self.estado == ANALIZANDO:
             return
         texto = self.editor.obtener_texto()

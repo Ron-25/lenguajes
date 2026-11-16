@@ -1,4 +1,4 @@
-"""Punto de entrada de SmartLex Studio: interfaz grafica o, con --consola, modo texto."""
+"""Punto de entrada: interfaz gráfica o, con --consola, modo texto."""
 from __future__ import annotations
 
 import sys
@@ -8,7 +8,7 @@ from application.archivos import ErrorArchivo
 
 
 def _preguntar(texto: str) -> str:
-    """input() que trata el fin de la entrada (Ctrl+D, tuberia cerrada) o Ctrl+C como respuesta vacia (AUD-21)."""
+    """input() que toma el fin de la entrada (Ctrl+D, tubería cerrada) o Ctrl+C como respuesta vacía."""
     try:
         return input(texto)
     except (EOFError, KeyboardInterrupt):
@@ -17,7 +17,7 @@ def _preguntar(texto: str) -> str:
 
 
 def _modo_consola(argumentos: list[str]) -> int:
-    """Analiza un archivo e imprime tokens, diagnosticos y veredicto (sin tkinter)."""
+    """Analiza un archivo e imprime tokens, diagnósticos y veredicto, sin importar tkinter."""
     ruta = argumentos[0] if argumentos else _preguntar("Archivo de entrada: ")
     try:
         r = analizar_archivo(ruta)
@@ -41,7 +41,7 @@ def _modo_consola(argumentos: list[str]) -> int:
 
 
 def main(argumentos: list[str]) -> int:
-    """Devuelve el codigo de salida del proceso."""
+    """Ejecuta el programa y devuelve el código de salida."""
     if argumentos and argumentos[0] == "--consola":
         return _modo_consola(argumentos[1:])
     try:

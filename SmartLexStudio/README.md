@@ -8,6 +8,7 @@ Analizador léxico educativo con interfaz gráfica tipo IDE para **FlowLang 1.0*
 
 - Análisis léxico con cuatro AFD (comentarios, cadenas, números, identificadores) y coincidencia más larga; sin el módulo `re` en producción.
 - Reglas del lenguaje como **datos** en `config/reglas.py`: agregar una palabra reservada o un operador es añadir una línea.
+- Literales de duración propios de FlowLang (`10s`, `500ms`, `5m`, `2h`) con su categoría y color, y su valor en milisegundos en la tabla de símbolos.
 - Catálogo de 19 diagnósticos (`LEX-`, `SIN-`, `ARC-`) con mensaje y sugerencia; recuperación en modo pánico (no se detiene en el primer error).
 - Comprobación estructural ligera: `inicio`/`fin` y balance de `()` y `{}` con una pila.
 - Tabla de símbolos con hash polinomial, encadenamiento, contador de colisiones y redimensionado.

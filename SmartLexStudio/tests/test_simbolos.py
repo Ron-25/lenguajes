@@ -1,4 +1,4 @@
-"""Pruebas de la funcion hash, la tabla de simbolos y el registro de tokens."""
+"""Pruebas de la función hash, la tabla de símbolos y el registro de tokens."""
 from __future__ import annotations
 
 import unittest
@@ -120,6 +120,8 @@ class TestValorLiteral(unittest.TestCase):
         self.assertEqual(valor_literal(Token(T.ENTERO, "007", 1, 1)), 7)
         self.assertEqual(valor_literal(Token(T.DECIMAL, "45.5", 1, 1)), 45.5)
         self.assertEqual(valor_literal(Token(T.CADENA, '"a\\n\\"b"', 1, 1)), 'a\n"b')
+        for lexema, ms in (("10s", 10000), ("500ms", 500), ("5m", 300000), ("2h", 7200000), ("007s", 7000)):
+            self.assertEqual(valor_literal(Token(T.DURACION, lexema, 1, 1)), ms)
         self.assertIs(valor_literal(Token(T.PALABRA_RESERVADA, "verdadero", 1, 1)), True)
         self.assertIs(valor_literal(Token(T.PALABRA_RESERVADA, "falso", 1, 1)), False)
         self.assertIsNone(valor_literal(Token(T.PALABRA_RESERVADA, "si", 1, 1)))
@@ -156,6 +158,15 @@ class TestRegistrarToken(unittest.TestCase):
                                     ('"a"', "texto", "a"), ("verdadero", "booleano", True)):
             entrada = tabla.buscar(lexema)
             self.assertEqual((entrada.tipo_dato, entrada.valor), (tipo, valor))
+
+    def test_duraciones_en_la_tabla(self):
+        tabla = self.registrar_fuente("esperar 10s; esperar 500ms; esperar 60s; esperar 1m; esperar 2h;")
+        for lexema, ms in (("10s", 10000), ("500ms", 500), ("2h", 7200000)):
+            entrada = tabla.buscar(lexema)
+            self.assertEqual((entrada.categoria, entrada.tipo_dato, entrada.valor),
+                             (T.DURACION, "duracion", ms))
+        self.assertEqual(tabla.buscar("60s").valor, tabla.buscar("1m").valor)
+        self.assertIsNot(tabla.buscar("60s"), tabla.buscar("1m"))
 
 
 if __name__ == "__main__":
