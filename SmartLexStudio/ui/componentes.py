@@ -1,4 +1,4 @@
-"""Piezas de la ventana: cabecera, referencia del lenguaje, consola y barra de estado."""
+"""Piezas de la ventana: barra de título, barra de actividad, explorador, referencia del lenguaje, consola y barra de estado."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -16,59 +16,91 @@ RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 PAUSA_POR_DEFECTO_MS = 120  # del deslizador «Pausa por línea»; interfaz.py las importa de aquí
 PAUSA_MAXIMA_MS = 500
 
-# (clave, texto, estilo) de los botones de la segunda fila de la cabecera; cada grupo va separado por una barra
-_GRUPO_ARCHIVO = (("nuevo", "Nuevo archivo", "Secundario.TButton"), ("abrir", "Abrir archivo…", "Primario.TButton"))
-_GRUPO_GUARDAR = (("guardar", "Guardar", "Secundario.TButton"), ("limpiar", "Limpiar", "Secundario.TButton"))
-_GRUPO_EJECUCION = (("analizar", "Analizar", "Secundario.TButton"), ("paso", "Paso a paso", "Secundario.TButton"),
+# (clave, texto, estilo) de los botones de la barra de título
+_GRUPO_ARCHIVO = (("nuevo", "Nuevo", "Menu.TButton"), ("abrir", "Abrir…", "Menu.TButton"))
+_GRUPO_GUARDAR = (("guardar", "Guardar", "Menu.TButton"), ("limpiar", "Limpiar", "Menu.TButton"))
+_GRUPO_EJECUCION = (("analizar", "Analizar", "Primario.TButton"), ("paso", "Paso a paso", "Secundario.TButton"),
                     ("detener", "Detener", "Secundario.TButton"))
 
 
 class Cabecera(tk.Frame):
-    """Cabecera azul marino de dos filas: marca y ayuda arriba; acciones, ejemplos y pausa abajo."""
+    """Barra de título al estilo de VS Code: menú de archivo a la izquierda, centro de comandos con el
+    archivo abierto y, a la derecha, la ejecución (Analizar, Paso a paso, Detener), la pausa y la ayuda."""
 
     def __init__(self, padre, acciones: dict[str, Callable], al_elegir_ejemplo: Callable[[Path], None],
                  al_ver_tabla: Callable) -> None:
         super().__init__(padre, background=TEMA["cabecera"])
         self._al_elegir = al_elegir_ejemplo
         self.botones: dict[str, ttk.Button] = {}
-        fila1 = tk.Frame(self, background=TEMA["cabecera"])
-        fila2 = tk.Frame(self, background=TEMA["cabecera"])
-        fila1.pack(fill="x", padx=12, pady=(10, 4))
-        fila2.pack(fill="x", padx=12, pady=(0, 10))
-        tk.Label(fila1, text="SmartLex Studio", background=TEMA["cabecera"], foreground=TEMA["blanco"],
-                 font=fuente_interfaz(17) + ("bold",)).pack(side="left")
-        tk.Label(fila1, text=f"Analizador léxico de {reglas.NOMBRE_LENGUAJE} · Tabla de símbolos · Manejador de errores",
-                 background=TEMA["cabecera"], foreground=TEMA["cabecera_tenue"],
-                 font=fuente_interfaz(12)).pack(side="left", padx=(16, 0), pady=(4, 0))
-        self.boton_tabla = ttk.Button(fila1, text="Ver tabla de símbolos", style="Secundario.TButton",
-                                      command=al_ver_tabla, width=0)
-        self.boton_tabla.pack(side="right")
-        self.botones["ayuda"] = ttk.Button(fila1, text="Ayuda", style="Secundario.TButton",
+        fila = tk.Frame(self, background=TEMA["cabecera"])
+        fila.pack(fill="x", padx=(8, 8), pady=4)
+        tk.Frame(self, height=1, background=TEMA["borde"]).pack(fill="x")
+        self._grupo(fila, _GRUPO_ARCHIVO, acciones)
+        self._menu_ejemplos(fila)
+        self._grupo(fila, _GRUPO_GUARDAR, acciones)
+        derecha = tk.Frame(fila, background=TEMA["cabecera"])
+        derecha.pack(side="right")
+        self.botones["ayuda"] = ttk.Button(derecha, text="Ayuda", style="Menu.TButton",
                                            command=acciones["ayuda"], width=0)
-        self.botones["ayuda"].pack(side="right", padx=(0, 8))
-        self._grupo(fila2, _GRUPO_ARCHIVO, acciones)
-        self._menu_ejemplos(fila2)
-        self._grupo(fila2, _GRUPO_GUARDAR, acciones)
-        self._separador(fila2)
-        self._grupo(fila2, _GRUPO_EJECUCION, acciones)
-        self._separador(fila2)
-        self._construir_pausa(fila2)
+        self.botones["ayuda"].pack(side="right")
+        self.boton_tabla = ttk.Button(derecha, text="Tabla de símbolos", style="Menu.TButton",
+                                      command=al_ver_tabla, width=0)
+        self.boton_tabla.pack(side="right", padx=(0, 2))
+        self._separador(derecha)
+        self._construir_pausa(derecha)
+        self._separador(derecha)
+        for clave, texto, estilo in reversed(_GRUPO_EJECUCION):
+            boton = ttk.Button(derecha, text=texto, style=estilo, command=acciones[clave], width=0)
+            boton.pack(side="right", padx=(4, 0))
+            self.botones[clave] = boton
+        self._izquierda_fin = self.botones["limpiar"]
+        self._derecha = derecha
+        self._centro_de_comandos(fila)
         self.habilitar_ver_tabla(False)
 
     def _grupo(self, fila, grupo, acciones) -> None:
         for clave, texto, estilo in grupo:
             boton = ttk.Button(fila, text=texto, style=estilo, command=acciones[clave], width=0)
-            boton.pack(side="left", padx=(0, 6))
+            boton.pack(side="left", padx=(0, 1))
             self.botones[clave] = boton
 
     def _separador(self, fila) -> None:
-        tk.Frame(fila, width=1, height=24, background=TEMA["cabecera_tenue"]).pack(side="left", padx=(2, 6))
+        tk.Frame(fila, width=1, height=18, background=TEMA["borde_entrada"]).pack(side="right", padx=6)
+
+    def _centro_de_comandos(self, fila) -> None:
+        """Caja central como la barra de búsqueda de VS Code; muestra el archivo abierto."""
+        self._caja = tk.Frame(fila, background=TEMA["entrada"], highlightthickness=1,
+                              highlightbackground=TEMA["borde_entrada"], highlightcolor=TEMA["borde_entrada"])
+        self._titulo = tk.Label(self._caja, background=TEMA["entrada"], foreground=TEMA["texto_secundario"],
+                                font=fuente_interfaz(12), padx=28)
+        self._titulo.pack()
+        self.establecer_titulo(None)
+        fila.bind("<Configure>", lambda _e: self.after_idle(self._colocar_centro))
+
+    def _colocar_centro(self) -> None:
+        """Centra la caja en el hueco libre entre los dos grupos de botones; si no cabe, la oculta.
+
+        Va con `place` para que no sume al ancho mínimo de la barra.
+        """
+        inicio = self._izquierda_fin.winfo_x() + self._izquierda_fin.winfo_width() + 12
+        fin = self._derecha.winfo_x() - 12
+        ancho = min(self._caja.winfo_reqwidth(), 360)
+        if fin - inicio < ancho:
+            self._caja.place_forget()
+            return
+        centro = max(inicio + ancho // 2, min(fin - ancho // 2, self._caja.master.winfo_width() // 2))
+        self._caja.place(x=centro, rely=0.5, anchor="center", width=ancho)
+
+    def establecer_titulo(self, nombre: str | None) -> None:
+        """Texto del centro de comandos: el archivo abierto o el nombre de la aplicación."""
+        self._titulo.configure(text=f"{nombre} — SmartLex Studio" if nombre else "SmartLex Studio")
+        self.after_idle(self._colocar_centro)
 
     def _menu_ejemplos(self, fila) -> None:
         """Menú «Ejemplos»: se rellena cada vez que se abre, así un archivo nuevo aparece sin reiniciar."""
         self.menu_ejemplos = tk.Menu(fila, tearoff=0, postcommand=self._llenar_ejemplos)
         boton = ttk.Menubutton(fila, text="Ejemplos", style="Cabecera.TMenubutton", menu=self.menu_ejemplos, width=0)
-        boton.pack(side="left", padx=(0, 6))
+        boton.pack(side="left", padx=(0, 1))
 
     def _llenar_ejemplos(self) -> None:
         self.menu_ejemplos.delete(0, "end")
@@ -76,14 +108,15 @@ class Cabecera(tk.Frame):
             self.menu_ejemplos.add_command(label=ruta.name, command=lambda r=ruta: self._al_elegir(r))
 
     def _construir_pausa(self, fila) -> None:
-        tk.Label(fila, text="Pausa por línea:", background=TEMA["cabecera"], foreground=TEMA["cabecera_tenue"],
-                 font=fuente_interfaz(12)).pack(side="left", padx=(0, 8))
+        """Deslizador «Pausa por línea» (se empaqueta de derecha a izquierda)."""
+        self._etiqueta_pausa = tk.Label(fila, background=TEMA["cabecera"], foreground=TEMA["texto"],
+                                        font=fuente_interfaz(12), width=5, anchor="w")
+        self._etiqueta_pausa.pack(side="right", padx=(6, 0))
         self._escala = ttk.Scale(fila, from_=0, to=PAUSA_MAXIMA_MS, length=80, style="Cabecera.Horizontal.TScale",
                                  command=lambda _v: self._actualizar_etiqueta())
-        self._escala.pack(side="left")
-        self._etiqueta_pausa = tk.Label(fila, background=TEMA["cabecera"], foreground=TEMA["blanco"],
-                                        font=fuente_interfaz(12), width=6, anchor="w")
-        self._etiqueta_pausa.pack(side="left", padx=(8, 0))
+        self._escala.pack(side="right")
+        tk.Label(fila, text="Pausa", background=TEMA["cabecera"], foreground=TEMA["cabecera_tenue"],
+                 font=fuente_interfaz(12)).pack(side="right", padx=(0, 6))
         self.establecer_pausa(PAUSA_POR_DEFECTO_MS)
 
     def _actualizar_etiqueta(self) -> None:
@@ -105,8 +138,130 @@ class Cabecera(tk.Frame):
             boton.state(["!disabled"] if nombre in activos else ["disabled"])
 
     def habilitar_ver_tabla(self, activo: bool) -> None:
-        """«Ver tabla de símbolos» solo está disponible al terminar el análisis."""
+        """«Tabla de símbolos» solo está disponible al terminar el análisis."""
         self.boton_tabla.state(["!disabled"] if activo else ["disabled"])
+
+
+# Dibujos de la barra de actividad: líneas y polígonos sobre una cuadrícula de 48 × 48 px.
+_DIBUJOS = {
+    "explorador": [("poly", (17, 15, 25, 15, 30, 20, 30, 35, 17, 35)), ("line", (25, 15, 25, 20, 30, 20)),
+                   ("line", (13, 19, 13, 31))],
+    "analizar": [("poly", (18, 14, 33, 24, 18, 34))],
+    "lenguaje": [("poly", (15, 15, 33, 15, 33, 34, 15, 34)), ("line", (20, 15, 20, 34)),
+                 ("line", (24, 21, 29, 21)), ("line", (24, 25, 29, 25))],
+    "consola": [("poly", (13, 16, 35, 16, 35, 33, 13, 33)), ("line", (18, 21, 22, 24.5, 18, 28)),
+                ("line", (24, 28, 30, 28))],
+    "ayuda": [("oval", (14, 14, 34, 34)), ("text", (24, 24, "?"))],
+}
+
+
+class _ElementoActividad(tk.Canvas):
+    """Un botón de la barra de actividad: dibujo gris, blanco al pasar o al estar activo, barra azul si activo."""
+
+    def __init__(self, padre, dibujo: str, al_pulsar: Callable[[], None]) -> None:
+        super().__init__(padre, width=48, height=48, background=TEMA["cabecera"], highlightthickness=0,
+                         cursor="hand2")
+        self._activo = False
+        self._encima = False
+        for figura, puntos in _DIBUJOS[dibujo]:
+            if figura == "poly":
+                self.create_polygon(*puntos, outline="", fill="", width=1.5, tags="trazo", joinstyle="round")
+            elif figura == "line":
+                self.create_line(*puntos, fill="", width=1.5, tags=("trazo", "linea"), capstyle="round")
+            elif figura == "oval":
+                self.create_oval(*puntos, outline="", width=1.5, tags="trazo")
+            else:
+                self.create_text(puntos[0], puntos[1], text=puntos[2], tags=("trazo", "letra"),
+                                 font=fuente_interfaz(14) + ("bold",))
+        self._barra = self.create_rectangle(0, 0, 2, 48, fill=TEMA["acento"], outline="", state="hidden")
+        self.bind("<Enter>", lambda _e: self._pintar(encima=True))
+        self.bind("<Leave>", lambda _e: self._pintar(encima=False))
+        self.bind("<Button-1>", lambda _e: al_pulsar())
+        self._pintar()
+
+    def activar(self, activo: bool) -> None:
+        """Marca el elemento como la vista abierta."""
+        self._activo = activo
+        self._pintar()
+
+    def _pintar(self, encima: bool | None = None) -> None:
+        if encima is not None:
+            self._encima = encima
+        color = TEMA["texto"] if (self._activo or self._encima) else TEMA["actividad_tenue"]
+        for item in self.find_withtag("trazo"):
+            tipo = self.type(item)
+            if tipo == "line" or tipo == "text":
+                self.itemconfigure(item, fill=color)
+            else:
+                self.itemconfigure(item, outline=color)
+        self.itemconfigure(self._barra, state="normal" if self._activo else "hidden")
+
+
+class BarraActividad(tk.Frame):
+    """Columna de la izquierda de VS Code: explorador, ejecutar, lenguaje y consola; ayuda abajo."""
+
+    def __init__(self, padre, acciones: dict[str, Callable[[], None]]) -> None:
+        super().__init__(padre, background=TEMA["cabecera"], width=48)
+        self.elementos: dict[str, _ElementoActividad] = {}
+        for clave in ("explorador", "analizar", "lenguaje", "consola"):
+            self.elementos[clave] = _ElementoActividad(self, clave, acciones[clave])
+            self.elementos[clave].pack(side="top")
+        self.elementos["ayuda"] = _ElementoActividad(self, "ayuda", acciones["ayuda"])
+        self.elementos["ayuda"].pack(side="bottom", pady=(0, 6))
+
+    def activar(self, clave: str, activo: bool) -> None:
+        """Enciende o apaga la marca de vista abierta de `clave`."""
+        self.elementos[clave].activar(activo)
+
+
+class Explorador(tk.Frame):
+    """Barra lateral «Explorador»: la carpeta de ejemplos; un clic abre el archivo."""
+
+    def __init__(self, padre, al_abrir: Callable[[Path], None]) -> None:
+        super().__init__(padre, background=TEMA["panel"], width=220)
+        self._al_abrir = al_abrir
+        self._rutas: dict[str, Path] = {}
+        tk.Label(self, text="EXPLORADOR", background=TEMA["panel"], foreground=TEMA["texto_secundario"],
+                 font=fuente_interfaz(11), anchor="w", padx=20, pady=10).pack(fill="x")
+        self.arbol = ttk.Treeview(self, show="tree", selectmode="browse", style="Explorador.Treeview")
+        self.arbol.pack(fill="both", expand=True, padx=(0, 0))
+        self.arbol.tag_configure("carpeta", font=fuente_interfaz(11) + ("bold",))
+        self.arbol.tag_configure("archivo", foreground=TEMA["texto"])
+        self.arbol.tag_configure("abierto", foreground=TEMA["blanco"])
+        self.arbol.bind("<ButtonRelease-1>", self._clic)
+        self.arbol.bind("<Return>", lambda _e: self._abrir(self.arbol.focus()))
+        self.refrescar(None)
+
+    def refrescar(self, actual: Path | None) -> None:
+        """Relee la carpeta de ejemplos y resalta el archivo abierto."""
+        self.arbol.delete(*self.arbol.get_children())
+        self._rutas.clear()
+        carpeta = self.arbol.insert("", "end", text="EJEMPLOS", open=True, tags=("carpeta",))
+        elegido = None
+        rutas = listar_ejemplos()
+        if actual is not None and all(r.resolve() != actual.resolve() for r in rutas):
+            abierto = self.arbol.insert("", 0, text="ABIERTO", open=True, tags=("carpeta",))
+            elegido = self.arbol.insert(abierto, "end", text=actual.name, tags=("archivo", "abierto"))
+            self._rutas[elegido] = actual
+        for ruta in rutas:
+            es_actual = actual is not None and ruta.resolve() == actual.resolve()
+            iid = self.arbol.insert(carpeta, "end", text=ruta.name,
+                                    tags=("archivo", "abierto") if es_actual else ("archivo",))
+            self._rutas[iid] = ruta
+            if es_actual:
+                elegido = iid
+        if elegido is not None:
+            self.arbol.selection_set(elegido)
+            self.arbol.focus(elegido)
+        else:
+            self.arbol.selection_remove(*self.arbol.selection())
+
+    def _clic(self, evento) -> None:
+        self._abrir(self.arbol.identify_row(evento.y))
+
+    def _abrir(self, iid: str) -> None:
+        if iid in self._rutas:
+            self._al_abrir(self._rutas[iid])
 
 
 class VistaLenguaje(ttk.Frame):
@@ -211,23 +366,40 @@ class PanelConsola(ttk.Frame):
 
 
 class BarraEstado(ttk.Frame):
-    """Barra inferior: contadores a la izquierda; estado, posición del cursor y veredicto a la derecha."""
+    """Barra de estado de VS Code: gris en reposo y azul mientras se analiza (como al depurar).
+
+    Izquierda: lenguaje y contadores. Derecha: estado, posición del cursor, codificación y veredicto.
+    """
 
     def __init__(self, padre) -> None:
-        super().__init__(padre, style="Estado.TFrame", height=28)
+        super().__init__(padre, style="Estado.TFrame", height=24)
         self.pack_propagate(False)
+        self._marca = ttk.Label(self, style="Marca.TLabel", text=f"  {reglas.NOMBRE_LENGUAJE}  ", padding=(4, 0))
         self.contadores = ttk.Label(self, style="Estado.TLabel")
         self._estado = ttk.Label(self, style="Estado.TLabel")
         self._posicion = ttk.Label(self, style="Estado.TLabel")
+        self._formato = ttk.Label(self, style="Estado.TLabel", text="UTF-8    LF")
         self.veredicto = ttk.Label(self, style="Veredicto.TLabel")
-        self.contadores.pack(side="left", padx=(14, 0))
-        self.veredicto.pack(side="right", padx=(16, 14))
-        self._posicion.pack(side="right", padx=(16, 0))
-        self._estado.pack(side="right", padx=(16, 0))
+        self._etiquetas = (self.contadores, self._estado, self._posicion, self._formato, self.veredicto)
+        self._marca.pack(side="left", fill="y")
+        self.contadores.pack(side="left", padx=(12, 0))
+        self.veredicto.pack(side="right", padx=(14, 12))
+        self._formato.pack(side="right", padx=(14, 0))
+        self._posicion.pack(side="right", padx=(14, 0))
+        self._estado.pack(side="right", padx=(14, 0))
+        self._valido: bool | None = None
         self.establecer_estado("Listo")
         self.establecer_contadores(0, 0, 0, 0, 0)
         self.establecer_posicion(1, 1)
         self.establecer_veredicto(None)
+
+    def depurando(self, activo: bool) -> None:
+        """Pinta la barra de azul mientras el análisis está en curso."""
+        self.configure(style="Depurando.TFrame" if activo else "Estado.TFrame")
+        for etiqueta in self._etiquetas:
+            etiqueta.configure(style="Depurando.TLabel" if activo else
+                               ("Veredicto.TLabel" if etiqueta is self.veredicto else "Estado.TLabel"))
+        self.establecer_veredicto(self._valido)
 
     def establecer_estado(self, texto: str) -> None:
         """Mensaje del estado de la aplicación."""
@@ -244,9 +416,13 @@ class BarraEstado(ttk.Frame):
 
     def establecer_veredicto(self, valido: bool | None) -> None:
         """Veredicto del análisis; None lo borra."""
+        self._valido = valido
+        azul = str(self.cget("style")) == "Depurando.TFrame"
         if valido is None:
             self.veredicto.configure(text="")
         elif valido:
-            self.veredicto.configure(text=f"✓ El archivo es válido para {reglas.NOMBRE_LENGUAJE}", foreground=TEMA["exito"])
+            self.veredicto.configure(text=f"✓ El archivo es válido para {reglas.NOMBRE_LENGUAJE}",
+                                     foreground=TEMA["blanco"] if azul else TEMA["exito"])
         else:
-            self.veredicto.configure(text=f"✗ El archivo NO es válido para {reglas.NOMBRE_LENGUAJE}", foreground=TEMA["error"])
+            self.veredicto.configure(text=f"✗ El archivo NO es válido para {reglas.NOMBRE_LENGUAJE}",
+                                     foreground=TEMA["blanco"] if azul else TEMA["error"])

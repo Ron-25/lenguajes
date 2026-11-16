@@ -1,6 +1,6 @@
-# 05 · Guía de sustentación — SmartLex Studio
+# 05 · Guía para presentar SmartLex Studio
 
-Para los estudiantes que van a presentar y defender el proyecto. Todo nombre de archivo, función o constante que aparece aquí existe en el código (sobre el commit `03f222f` más los cambios de la Fase E: literales de duración y pasada de comentarios; 183 pruebas, todas en verde salvo `test_listar_ejemplos`, que falla solo porque existe `ejemplos/practica.flow`). Los 11 ejercicios de modificación se ensayaron uno por uno en copias temporales del proyecto; el resultado que se indica en cada uno es el que realmente se obtuvo.
+Esta guía sirve para preparar la presentación y explicar las decisiones del proyecto. Incluye un repaso de los módulos y varios cambios pequeños que se pueden hacer en vivo. Los ejemplos de código y las rutas corresponden a la versión actual del proyecto; conviene volver a ejecutarlos si el código cambia.
 
 **Comandos** (ejecutar siempre dentro de la carpeta `SmartLexStudio/`; donde dice `python` use el intérprete con tkinter, en este equipo `/opt/homebrew/bin/python3.14`):
 
@@ -11,18 +11,18 @@ python -m unittest discover -s tests -t .             # toda la batería (≈ 20
 python -m unittest tests.test_afd -v                  # un archivo de pruebas
 ```
 
-**Antes de la sustentación:** `git status` debe estar limpio. Después de cada modificación en vivo, vuelva al estado original con `git checkout -- .` (deshace todos los cambios no confirmados).
+**Antes de presentar:** comprueba que tienes una copia limpia del proyecto. Si haces cambios durante la demostración, trabaja en una copia aparte para poder volver fácilmente al original.
 
 ---
 
 ## Parte 1 · Conceptos, explicados con este proyecto
 
 ### 1.1 Qué es SmartLex Studio
-Una aplicación de escritorio en Python (solo biblioteca estándar) que recibe un archivo con un programa escrito en **FlowLang** y hace tres cosas, que son los tres temas del proyecto:
+SmartLex Studio es una aplicación de escritorio hecha en Python. Lee programas de **FlowLang** y permite ver cómo se reconocen sus tokens, cómo se guardan en la tabla de símbolos y qué errores aparecen.
 
-1. **Analizador léxico:** parte el texto en *tokens* y decide si la cadena de entrada es válida.
-2. **Tabla de símbolos:** instala los tokens en una tabla **hash** propia.
-3. **Manejador de errores:** detecta, clasifica y explica cada error, y lo muestra **mientras** avanza la evaluación.
+1. **Analizador léxico:** separa el texto en *tokens* y los clasifica.
+2. **Tabla de símbolos:** guarda los lexemas en una tabla hash implementada para el proyecto.
+3. **Manejador de errores:** informa los problemas y permite revisar dónde ocurrieron.
 
 ### 1.2 Qué es FlowLang
 Un lenguaje inventado para el proyecto que describe automatizaciones (riego, luces): 17 palabras reservadas, identificadores, enteros, decimales, **duraciones** (`10s`, `500ms`, `5m`, `2h`), cadenas con escapes, 15 operadores, 6 delimitadores y 2 tipos de comentario. La duración es el rasgo propio de FlowLang: un lenguaje de automatización habla de tiempos, así que `esperar 10s;` lleva un literal con su unidad y no un número suelto. Su definición completa está en `docs/03_especificacion.md` y, como **datos**, en `config/reglas.py`.
@@ -142,7 +142,7 @@ No se usan fábricas, contenedores ni interfaces abstractas: a este tamaño solo
 
 ## Parte 2 · Once ejercicios de modificación
 
-Formato de cada ejercicio: qué se pide · dónde · cambio exacto · cómo comprobarlo · qué prueba cambia · explicación.
+Cada ejercicio propone un cambio pequeño, indica dónde hacerlo y muestra cómo comprobar el resultado.
 
 > **Sobre las pruebas que fallan.** Varias pruebas fijan la definición de FlowLang 1.0 (17 reservadas, 15 operadores…). Si se modifica el lenguaje, **deben** fallar: es la batería avisando de que la especificación cambió. La respuesta correcta ante el profesor es: «falla la prueba que fija ese número; lo actualizo y vuelve a verde».
 

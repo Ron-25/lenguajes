@@ -1,4 +1,4 @@
-"""Pruebas de la interfaz clara: estilos, cabecera, editor, manejador de errores, pestañas y ventana."""
+"""Pruebas de la interfaz (tema oscuro al estilo de VS Code): estilos, cabecera, editor, manejador de errores, pestañas y ventana."""
 from __future__ import annotations
 
 import importlib.util
@@ -31,7 +31,8 @@ CLAVES_TEMA = {
     "fondo", "panel", "barra", "borde", "texto", "texto_codigo", "texto_secundario", "texto_tenue",
     "numero_linea", "blanco", "acento", "acento_claro", "seleccion", "seleccion_fila", "linea_actual",
     "deslizador", "error", "error_fondo", "error_lexema", "exito", "advertencia", "info", "colision",
-    "cabecera", "cabecera_tenue"}
+    "cabecera", "cabecera_tenue", "numero_linea_activo", "encima", "entrada", "borde_entrada",
+    "boton_secundario", "boton_secundario_encima", "actividad_tenue"}
 # nombres de la interfaz anterior que ya no deben quedar en ui/ (partidos para que un grep no los encuentre en este archivo)
 PIEZAS_ELIMINADAS = ("icon" "os", "Boton" "Icono", "Glo" "bo", "Franja" "Herramientas", "Panel" "Herramientas",
                      "Panel" "Lateral", "Panel" "Problemas", "alternar" "_herramienta", "mostrar" "_herramienta",
@@ -42,7 +43,7 @@ PIEZAS_ELIMINADAS = ("icon" "os", "Boton" "Icono", "Glo" "bo", "Franja" "Herrami
 class TestPaletaYReglas(unittest.TestCase):
     """Importan tkinter (ui.estilos) pero no abren ninguna ventana."""
 
-    def test_tema_tiene_las_25_claves_y_son_colores(self):
+    def test_tema_tiene_sus_claves_y_son_colores(self):
         from ui.estilos import COLORES_TOKEN, TEMA
         self.assertEqual(set(TEMA), CLAVES_TEMA)
         for valor in list(TEMA.values()) + list(COLORES_TOKEN.values()):
@@ -236,15 +237,16 @@ class TestRediseno(unittest.TestCase):
         import tkinter.font as tkfont
         from core.modelos import TipoToken
         e = self.v.editor
-        self.assertEqual(e._titulo.cget("text"), "Archivo de entrada: (sin archivo)")
+        self.assertEqual(e._titulo.cget("text"), "Sin título")
         self.v.abrir_archivo(CORRECTO)
-        self.assertEqual(e._titulo.cget("text"), "Archivo de entrada: correcto.flow")
+        self.assertEqual(e._titulo.cget("text"), "correcto.flow")
+        self.assertEqual(e._ruta_editor.cget("text"), "ejemplos  ›  correcto.flow")
         comentario = tkfont.Font(font=e.texto.tag_cget(e._etiqueta(TipoToken.COMENTARIO), "font"))
         reservada = tkfont.Font(font=e.texto.tag_cget(e._etiqueta(TipoToken.PALABRA_RESERVADA), "font"))
         self.assertEqual(comentario.actual("slant"), "italic")
         self.assertEqual(reservada.actual("weight"), "bold")
         self.v.limpiar()
-        self.assertEqual(e._titulo.cget("text"), "Archivo de entrada: (sin archivo)")
+        self.assertEqual(e._titulo.cget("text"), "Sin título")
 
     def test_navegacion_con_f2_entre_errores(self):
         v = self.v
@@ -461,7 +463,7 @@ class TestRediseno(unittest.TestCase):
             v.update()
             time.sleep(0.005)
         self.assertEqual(v.estado, "LISTO")
-        self.assertEqual(v.editor._titulo.cget("text"), "Archivo de entrada: correcto.flow")
+        self.assertEqual(v.editor._titulo.cget("text"), "correcto.flow")
         self.messagebox.askyesnocancel.assert_not_called()  # la solicitud inicial no pregunta por cambios
 
     def test_barra_de_estado_al_terminar(self):
@@ -619,7 +621,7 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(v.editor.obtener_texto(), plantilla_nueva())
         self.assertEqual(v.editor.posicion_cursor(), (2, 5))
         self.assertEqual(v.estado, "LISTO")
-        self.assertEqual(v.editor._titulo.cget("text"), "Archivo de entrada: nuevo.flow")
+        self.assertEqual(v.editor._titulo.cget("text"), "nuevo.flow")
         self.assertEqual(self.filas(v.panel_errores.arbol_errores), 0)
         self.assertEqual(v.panel_resultados.arbol_tokens.get_children(), ())
 

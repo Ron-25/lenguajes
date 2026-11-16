@@ -1,4 +1,4 @@
-"""Editor de código: título, margen con número de línea y ✓/✗, color por categoría y marcas de error."""
+"""Editor de código: pestaña y migas de pan, margen con número de línea y ✓/✗, color por categoría y marcas de error."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -6,7 +6,7 @@ from tkinter import ttk
 from typing import Callable, Iterable
 
 from core.modelos import Diagnostico, TipoToken, Token
-from ui.estilos import COLORES_TOKEN, TEMA, TIPOS_EN_CURSIVA, TIPOS_EN_NEGRITA, fuente_codigo
+from ui.estilos import COLORES_TOKEN, TEMA, TIPOS_EN_CURSIVA, TIPOS_EN_NEGRITA, fuente_codigo, fuente_interfaz
 
 RETARDO_CAMBIO_MS = 300
 
@@ -32,34 +32,31 @@ class EditorCodigo(ttk.Frame):
         self._lineas_error: set[int] = set()
         fuente = fuente_codigo(13)
 
-        self._titulo = ttk.Label(self, style="Titulo.TLabel")
-        self._titulo.grid(row=0, column=0, sticky="w", pady=(0, 6))
-        self.establecer_nombre(None)
-        marco = tk.Frame(self, background=TEMA["panel"], highlightthickness=1, highlightbackground=TEMA["borde"],
-                         highlightcolor=TEMA["borde"])
-        marco.grid(row=1, column=0, sticky="nsew")
-        self.margen = tk.Text(marco, width=7, padx=6, pady=8, takefocus=0, cursor="arrow", wrap="none",
-                              font=fuente, background=TEMA["panel"], foreground=TEMA["numero_linea"],
+        self._construir_pestana()
+        marco = tk.Frame(self, background=TEMA["fondo"], highlightthickness=0)
+        marco.grid(row=2, column=0, sticky="nsew")
+        self.margen = tk.Text(marco, width=7, padx=6, pady=4, takefocus=0, cursor="arrow", wrap="none",
+                              font=fuente, background=TEMA["fondo"], foreground=TEMA["numero_linea"],
                               borderwidth=0, highlightthickness=0, state="disabled")
         self.margen.tag_configure("derecha", justify="right")
         self.margen.tag_configure("marca_error", foreground=TEMA["error"])
         self.margen.tag_configure("marca_ok", foreground=TEMA["exito"])
-        self.texto = tk.Text(marco, wrap="none", undo=True, padx=8, pady=8, font=fuente,
-                             background=TEMA["panel"], foreground=TEMA["texto_codigo"],
-                             insertbackground=TEMA["texto"], selectbackground=TEMA["seleccion"],
-                             inactiveselectbackground=TEMA["seleccion"], borderwidth=0,
-                             highlightthickness=0, tabs=("4c",))
+        self.texto = tk.Text(marco, wrap="none", undo=True, padx=12, pady=4, font=fuente,
+                             background=TEMA["fondo"], foreground=TEMA["texto_codigo"],
+                             insertbackground=TEMA["texto"], insertwidth=2, selectbackground=TEMA["seleccion"],
+                             selectforeground="", inactiveselectbackground=TEMA["seleccion"], borderwidth=0,
+                             highlightthickness=0, tabs=("4c",), spacing1=1, spacing3=1)
+        self.margen.configure(spacing1=1, spacing3=1)
         self._barra_v = ttk.Scrollbar(marco, orient="vertical", command=self._desplazar_ambos)
         self._barra_h = ttk.Scrollbar(marco, orient="horizontal", command=self.texto.xview)
         self.texto.configure(yscrollcommand=self._al_desplazar, xscrollcommand=self._barra_h.set)
         self.margen.grid(row=0, column=0, sticky="ns")
-        tk.Frame(marco, width=1, background=TEMA["borde"]).grid(row=0, column=1, sticky="ns")
         self.texto.grid(row=0, column=2, sticky="nsew")
         self._barra_v.grid(row=0, column=3, sticky="ns")
         self._barra_h.grid(row=1, column=2, sticky="ew")
         marco.rowconfigure(0, weight=1)
         marco.columnconfigure(2, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
         self._configurar_etiquetas()
         self.texto.bind("<<Modified>>", self._al_modificar)
@@ -68,9 +65,29 @@ class EditorCodigo(ttk.Frame):
         self.margen.bind("<MouseWheel>", lambda e: self.texto.event_generate("<MouseWheel>", delta=e.delta))
         self._refrescar_margen()
 
-    def establecer_nombre(self, nombre: str | None) -> None:
-        """Título «Archivo de entrada: nombre», o «(sin archivo)»."""
-        self._titulo.configure(text=f"Archivo de entrada: {nombre or '(sin archivo)'}")
+    def _construir_pestana(self) -> None:
+        """Fila de pestañas (una sola, con borde azul arriba) y migas de pan debajo, como en VS Code."""
+        fila = tk.Frame(self, background=TEMA["panel"], height=35)
+        fila.grid(row=0, column=0, sticky="ew")
+        fila.pack_propagate(False)
+        pestana = tk.Frame(fila, background=TEMA["fondo"])
+        pestana.pack(side="left", fill="y")
+        tk.Frame(pestana, height=2, background=TEMA["acento"]).pack(side="top", fill="x")
+        tk.Frame(fila, height=1, background=TEMA["borde"]).pack(side="bottom", fill="x")
+        tk.Frame(pestana, width=1, background=TEMA["borde"]).pack(side="right", fill="y")
+        self._titulo = tk.Label(pestana, background=TEMA["fondo"], foreground=TEMA["blanco"],
+                                font=fuente_interfaz(13), padx=14)
+        self._titulo.pack(side="left", fill="y")
+        self._ruta_editor = tk.Label(self, background=TEMA["fondo"], foreground=TEMA["texto_secundario"],
+                               font=fuente_interfaz(12), anchor="w", padx=14, pady=3)
+        self._ruta_editor.grid(row=1, column=0, sticky="ew")
+        self.establecer_nombre(None)
+
+    def establecer_nombre(self, nombre: str | None, carpeta: str | None = None) -> None:
+        """Nombre en la pestaña («Sin título» si no hay archivo) y ruta en las migas de pan."""
+        self._titulo.configure(text=nombre or "Sin título")
+        partes = ([carpeta] if carpeta else []) + [nombre or "Sin título"]
+        self._ruta_editor.configure(text="  ›  ".join(partes))
 
     def ir_a_error(self, direccion: int) -> None:
         """Salta a la marca de error siguiente (+1) o anterior (-1), dando la vuelta al llegar al final."""

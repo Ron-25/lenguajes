@@ -13,7 +13,7 @@ from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo, fuente_interfaz
 
 # (identificador, título, ancho)
 COLUMNAS_TOKENS = [("n", "#", 56), ("linea", "Lín", 50), ("col", "Col", 50),
-                   ("categoria", "Categoría", 150), ("lexema", "Lexema", 220)]
+                   ("categoria", "Categoría", 180), ("lexema", "Lexema", 240)]
 COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 76), ("hash", "Hash", 116), ("lexema", "Lexema", 150),
                      ("categoria", "Categoría", 150), ("tipo", "Tipo", 90), ("valor", "Valor", 110),
                      ("decl", "Decl.", 50), ("veces", "Veces", 70), ("apariciones", "Apariciones (lín:col)", 240)]
@@ -94,7 +94,7 @@ class PanelResultados(ttk.Frame):
     """Pestañas de resultados. No calcula nada: muestra lo que le da la ventana y avisa cuando se elige un token."""
 
     def __init__(self, padre, al_seleccionar_token: Callable[[Token], None]) -> None:
-        super().__init__(padre)
+        super().__init__(padre, style="Panel.TFrame")
         self._al_token = al_seleccionar_token
         self._tokens: dict[str, Token] = {}
         self._ultimo_token: str | None = None
@@ -300,13 +300,14 @@ class PanelErrores(ttk.Frame):
     """Manejador de errores: título con el total, tabla y detalle del error elegido."""
 
     def __init__(self, padre, al_seleccionar_error: Callable[[Diagnostico], None]) -> None:
-        super().__init__(padre)
+        super().__init__(padre, style="Panel.TFrame")
         self._al_error = al_seleccionar_error
         self._errores: dict[str, Diagnostico] = {}
-        self.titulo = ttk.Label(self)
-        self.titulo.pack(side="top", anchor="w", pady=(0, 6))
-        caja = ttk.Frame(self, style="Panel.TFrame", height=178, padding=(12, 8))
-        caja.pack(side="bottom", fill="x", pady=(8, 0))
+        self.titulo = ttk.Label(self, padding=(14, 10, 14, 6))
+        self.titulo.pack(side="top", anchor="w")
+        caja = ttk.Frame(self, style="Panel.TFrame", height=178, padding=(14, 10))
+        caja.pack(side="bottom", fill="x")
+        tk.Frame(self, height=1, background=TEMA["borde"]).pack(side="bottom", fill="x")
         caja.pack_propagate(False)
         self.detalle_titulo = ttk.Label(caja, style="PanelError.TLabel")
         self.detalle_titulo.pack(anchor="w")

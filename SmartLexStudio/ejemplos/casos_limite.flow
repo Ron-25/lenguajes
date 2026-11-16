@@ -1,23 +1,23 @@
-// Casos limite: todo este archivo es VALIDO (0 diagnosticos)
+// Algunos casos poco comunes que FlowLang acepta.
 inicio
     /*** comentario de bloque con asteriscos ***/
     /**/
     numero _ = 0;
     numero identificador_de_32_caracteres__ = 007;
-    numero si2 = 1; // 'si2' es identificador, no la palabra reservada 'si'
-    numero Inicio = 2; // FlowLang distingue mayusculas: 'Inicio' es identificador
+    numero si2 = 1; // Aunque empieza por "si", sigue siendo un identificador.
+    numero Inicio = 2; // Las mayúsculas cambian el nombre: Inicio no es inicio.
     texto vacia = "";
     texto escapes = "comilla \" barra \\ salto \n tab \t";
-    texto no_es_comentario = "// esto es una cadena /* y esto tambien */";
+    texto no_es_comentario = "Texto normal: // y /* esto no abre comentarios */";
     decimal d = 0.0;
     booleano b = verdadero;
-    // Coincidencia mas larga (maximal munch) sin espacios:
+    // Los operadores también se reconocen cuando van juntos.
     b = si2>=_&&si2<=Inicio||!b==falso!=verdadero;
     d = d+1.5-2*3/4%5;
     mientras(si2<3){si2=si2+1;}
     si (b) { mostrar(vacia, escapes); } sino { esperar 1; }
-    // Duraciones: un entero pegado a su unidad (ms, s, m, h)
+    // La unidad va pegada al número.
     esperar 500ms; esperar 10s; esperar 5m; esperar 2h; esperar 007s;
-    esperar 3 s; // con espacio son dos tokens: el entero 3 y el identificador s
+    esperar 3 s; // Con espacio, 3 y s se leen por separado.
 fin
-// comentario final sin salto de linea
+// También se acepta un comentario al final del archivo.

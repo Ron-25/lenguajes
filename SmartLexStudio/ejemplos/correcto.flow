@@ -1,7 +1,7 @@
-// Riego automatico de un invernadero (programa FlowLang valido)
+// Control sencillo del riego en un invernadero.
 inicio
-    /* Declaraciones:
-       cada variable tiene un tipo */
+    /* Datos que vamos a usar:
+       temperatura, humedad y bomba */
     numero temperatura = 28;
     decimal humedad = 45.5;
     texto zona = "Invernadero \"Norte\"";

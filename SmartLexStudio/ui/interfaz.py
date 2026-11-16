@@ -11,7 +11,8 @@ from application.analisis_service import SesionAnalisis, explicar_token, tokeniz
 from application.archivos import ErrorArchivo, cargar_fuente, crear_fuente, guardar_fuente
 from config import reglas
 from core.modelos import Diagnostico, Token
-from ui.componentes import PAUSA_MAXIMA_MS, PAUSA_POR_DEFECTO_MS, RAIZ_PROYECTO, BarraEstado, Cabecera
+from ui.componentes import (PAUSA_MAXIMA_MS, PAUSA_POR_DEFECTO_MS, RAIZ_PROYECTO, BarraActividad, BarraEstado,
+                            Cabecera, Explorador)
 from ui.editor import EditorCodigo
 from ui.estilos import aplicar_tema
 from ui.paneles import PanelErrores, PanelResultados
@@ -86,7 +87,8 @@ class VentanaPrincipal(tk.Tk):
         self.title("SmartLex Studio")
 
     def _construir(self) -> None:
-        """Cabecera arriba; editor y manejador de errores en el medio; pestañas de resultados y barra de estado abajo."""
+        """Como VS Code: barra de título arriba, barra de actividad y explorador a la izquierda, editor con el
+        manejador de errores a su derecha, panel de resultados abajo y barra de estado al pie."""
         self.cabecera = Cabecera(self, {
             "nuevo": self.nuevo_archivo, "abrir": self.abrir_archivo, "guardar": self.guardar_archivo,
             "analizar": self.analizar, "paso": self.paso_a_paso, "detener": self.detener,
@@ -94,26 +96,51 @@ class VentanaPrincipal(tk.Tk):
         self.barra_estado = BarraEstado(self)
         self.cabecera.pack(side="top", fill="x")
         self.barra_estado.pack(side="bottom", fill="x")
-        self.cuerpo = ttk.Panedwindow(self, orient="vertical")
-        self.cuerpo.pack(fill="both", expand=True, padx=12, pady=(10, 8))
-        self.superior = ttk.Panedwindow(self.cuerpo, orient="horizontal")
+        tk.Frame(self, height=1, background=self.cabecera.cget("background")).pack(side="bottom", fill="x")
+        self.barra_actividad = BarraActividad(self, {
+            "explorador": self.alternar_explorador, "analizar": self.analizar,
+            "lenguaje": lambda: self.panel_resultados.mostrar("lenguaje"),
+            "consola": lambda: self.panel_resultados.mostrar("consola"), "ayuda": self.mostrar_ayuda})
+        self.barra_actividad.pack(side="left", fill="y")
+        self.cuerpo = ttk.Panedwindow(self, orient="horizontal")
+        self.cuerpo.pack(fill="both", expand=True)
+        self.explorador = Explorador(self.cuerpo, self.abrir_archivo)
+        self.zona = ttk.Panedwindow(self.cuerpo, orient="vertical")
+        self.superior = ttk.Panedwindow(self.zona, orient="horizontal")
         self.editor = EditorCodigo(self.superior, al_cambiar=self._al_editar,
                                    al_mover_cursor=self.barra_estado.establecer_posicion)
         self.panel_errores = PanelErrores(self.superior, self._al_seleccionar_error)
-        self.panel_resultados = PanelResultados(self.cuerpo, self._al_seleccionar_token)
+        self.panel_resultados = PanelResultados(self.zona, self._al_seleccionar_token)
         self.consola = self.panel_resultados.consola
         self.superior.add(self.editor, weight=3)
-        self.superior.add(self.panel_errores, weight=2)
-        self.cuerpo.add(self.superior, weight=3)
-        self.cuerpo.add(self.panel_resultados, weight=2)
+        self.superior.add(self.panel_errores, weight=1)
+        self.zona.add(self.superior, weight=3)
+        self.zona.add(self.panel_resultados, weight=2)
+        self.cuerpo.add(self.explorador, weight=0)
+        self.cuerpo.add(self.zona, weight=1)
+        self.barra_actividad.activar("explorador", True)
         self._colocar_divisores()
 
     def _colocar_divisores(self) -> None:
-        """Tamaños iniciales: errores 38 % del ancho y resultados 40 % del alto; los divisores se pueden arrastrar."""
+        """Tamaños iniciales: explorador 210 px, errores 32 % del ancho y resultados 38 % del alto."""
         self.update_idletasks()
-        ancho, alto = self.superior.winfo_width(), self.cuerpo.winfo_height()
-        self.superior.sashpos(0, ancho - int(ancho * 0.38))
-        self.cuerpo.sashpos(0, alto - int(alto * 0.40))
+        if self.explorador.winfo_manager():
+            self.cuerpo.sashpos(0, 210)
+            self.update_idletasks()
+        ancho, alto = self.superior.winfo_width(), self.zona.winfo_height()
+        self.superior.sashpos(0, ancho - int(ancho * 0.32))
+        self.zona.sashpos(0, alto - int(alto * 0.38))
+
+    def alternar_explorador(self) -> None:
+        """Muestra u oculta el explorador, como el primer botón de la barra de actividad de VS Code."""
+        visible = str(self.explorador) in self.cuerpo.panes()
+        if visible:
+            self.cuerpo.forget(self.explorador)
+        else:
+            self.cuerpo.insert(0, self.explorador, weight=0)
+            self.update_idletasks()
+            self.cuerpo.sashpos(0, 210)
+        self.barra_actividad.activar("explorador", not visible)
 
     def _registrar_atajos(self) -> None:
         atajos = {"<Control-n>": self.nuevo_archivo, "<Control-o>": self.abrir_archivo, "<Control-s>": self.guardar_archivo,
@@ -130,6 +157,7 @@ class VentanaPrincipal(tk.Tk):
     def _actualizar_estado(self, estado: str, mensaje: str | None = None) -> None:
         self.estado = estado
         self.cabecera.habilitar(_BOTONES_POR_ESTADO[estado])
+        self.barra_estado.depurando(estado == ANALIZANDO)
         textos = {SIN_FUENTE: "Sin archivo", LISTO: "Listo para analizar",
                   ANALIZANDO: "Analizando…", TERMINADO: "Análisis terminado"}
         self.barra_estado.establecer_estado(mensaje or textos[estado])
@@ -138,7 +166,10 @@ class VentanaPrincipal(tk.Tk):
         """Título de la ventana y del editor."""
         nombre = f" — {self.ruta_actual.name}" if self.ruta_actual else ""
         self.title(f"SmartLex Studio{nombre}")
-        self.editor.establecer_nombre(self.ruta_actual.name if self.ruta_actual else None)
+        archivo = self.ruta_actual.name if self.ruta_actual else None
+        self.editor.establecer_nombre(archivo, self.ruta_actual.parent.name if self.ruta_actual else None)
+        self.cabecera.establecer_titulo(archivo)
+        self.explorador.refrescar(self.ruta_actual)
 
     def _cancelar_temporizador(self) -> None:
         if self._id_tick is not None:
