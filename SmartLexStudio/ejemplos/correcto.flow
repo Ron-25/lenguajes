@@ -12,7 +12,7 @@ inicio
     leer temperatura;
     si (temperatura >= 30 && humedad < 50.0) {
         activar bomba;
-        esperar 10;
+        esperar 30s;
         mostrar "Regando: " + zona;
     } sino {
         desactivar bomba;

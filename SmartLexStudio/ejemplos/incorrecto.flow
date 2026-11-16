@@ -10,5 +10,6 @@ inicio
         mostrar 'total';
     }
     mostrar total $ #;
+    esperar 5min; esperar 1.5s;
 /* comentario sin cerrar
 fin

@@ -819,3 +819,78 @@ Reglas de la fase (además de las generales):
 ## Criterio de aprobación de la Fase D (arquitecto)
 
 **Aprobada si:** batería con solo las dos fallas de D-72 en Tk 9.0; los `grep` de las reglas 3 y 4 y el de C8 vacíos; `core/`, `application/`, `main.py` sin cambios y `config/reglas.py` / `ejemplos/practica.flow` intactos y fuera de los *commits*; las seis capturas son reales y la tabla de comparación de C7 no tiene defectos abiertos; los requisitos 5a, 5b y 6, paso a paso, detener, nuevo archivo y el modo consola tienen prueba en verde; AUD-29, AUD-31 y AUD-32 cerrados con prueba.
+
+---
+
+# FASE E — Literales de duración y pasada de comentarios
+
+**Leer antes de empezar:** especificación `docs/03_especificacion.md` §2, §3.3, §9, §10.1 y §12 (es el contrato; las tablas y los números ya están verificados con un prototipo desechable), arquitectura `docs/02_arquitectura.md` §18 y decisiones D-74…D-80. Las tareas de la Fase E de FlowLang 2.0 (commit `68c10a1`) se revirtieron en `eecc21d`: no aplican.
+
+Reglas de la fase:
+
+1. Los tres archivos de `ejemplos/` **ya están actualizados por el arquitecto**: no se editan. `ejemplos/practica.flow` es del usuario: no se toca ni entra en ningún *commit* (`git add` con rutas explícitas). La única falla admitida de la batería sigue siendo `test_listar_ejemplos`, por ese archivo.
+2. `core/afd.py`, `core/lexer.py`, `core/validador.py` y `application/` **no cambian de comportamiento** (en T1–T5 no se tocan; en T7 solo comentarios). Si parece necesario tocarlos, parar y anotarlo en `agents/revisiones.md`.
+3. Batería: `/opt/homebrew/bin/python3.14 -m unittest discover -s tests -t . -v`. Arranque: `/opt/homebrew/bin/python3.14 main.py` sin trazas.
+4. Cualquier desviación de la especificación se registra en `agents/decisiones.md` (D-81 en adelante) como «pendiente de revisión del arquitecto».
+
+### T1 — Categoría, AFD y tabla de símbolos (`core/modelos.py`, `config/reglas.py`, `core/simbolos.py`, `core/errores.py`)
+
+- `TipoToken.DURACION = "Duración"` entre `DECIMAL` y `CADENA`.
+- `AFD_NUMERO` exactamente como la tabla de la especificación §3.3: q1 gana `"s": "q7", "h": "q7", "m": "q8"`; filas nuevas `q7` y `q8`; `aceptacion` con `q7` y `q8` → `DURACION`. `errores` no cambia.
+- `UNIDADES_TIEMPO = {"ms": 1, "s": 1_000, "m": 60_000, "h": 3_600_000}`; `TIPO_DATO_LITERAL[DURACION] = "duracion"`; `DURACION` en `CATEGORIAS_EN_TABLA`.
+- `INFO_CATEGORIAS[DURACION]`, colocada tras `DECIMAL`: descripción «Tiempo: un entero pegado a su unidad (ms, s, m, h), como en `esperar 10s;`.», regex `[0-9]+(?:ms|s|m|h)`, ejemplos `("10s", "500ms", "2h")`. `PALABRAS_RESERVADAS["esperar"]` → «Detiene el programa durante un tiempo, por ejemplo 10s.»
+- `valor_literal`: `DURACION` → entero × `UNIDADES_TIEMPO[unidad]` (milisegundos, `int`).
+- `CATALOGO`: sugerencias nuevas de `LEX-003` y `LEX-004`, texto literal de la especificación §10.1. Ningún código nuevo.
+- **Aceptación:** `reconocer_lexema` da para cada fila de la tabla de recorridos de §3.3 el mismo recorrido y resultado; `10 s` → `ENTERO` + `IDENTIFICADOR`; `python main.py --consola ejemplos/correcto.flow` muestra `30s` como Duración con valor 30000; `git diff --stat` no incluye `core/afd.py`, `core/lexer.py`, `core/validador.py` ni `application/`.
+
+### T2 — Pruebas (`tests/`)
+
+- `tests/test_afd.py`: `test_equivalencia_hasta_longitud_5` añade `(AFD_NUMERO, DURACION)` y el alfabeto de prueba de los números incluye `s`, `m`, `h` y una letra que no es unidad (si el tiempo de la prueba se dispara, bajar esa terna a longitud 4 y decirlo en el nombre o en un comentario); `test_recorridos_de_la_especificacion` gana las filas nuevas de §3.3; `test_conteos_de_flowlang_1_0` y `test_info_categorias_completa_y_regex_compilan` con 13 categorías. Prueba nueva de coherencia: cada clave de `UNIDADES_TIEMPO` precedida de `7` se reconoce como `DURACION` y cada regex alternativa de `INFO_CATEGORIAS[DURACION]` son esas mismas claves.
+- `tests/test_lexer.py`: duraciones válidas (`10s`, `500ms`, `5m`, `2h`, `007s`); errores (`10x`, `10sx`, `5mm`, `10S`, `5min` → `LEX-004`; `3.5s`, `1.5s` → `LEX-003`); maximal munch (`10ms` un token, `10 s` dos, `10s;` duración + `;`); conteos de los ejemplos 111 / 63 / 139.
+- `tests/test_simbolos.py`: valores 10000, 500, 300000, 7200000 y 7000; `tipo_dato == "duracion"`; `60s` y `1m` son dos entradas con el mismo valor.
+- `tests/test_integracion.py`, `tests/test_ui_humo.py`, `tests/test_ui_rediseno.py` y auditorías: números de §12 (`correcto`: 8 enteros + 1 duración, 36 entradas, 79, 14, 2 sin cambio; `incorrecto`: 63 tokens, 15 `ERROR`, 19 símbolos, 17 diagnósticos, `LEX-004` 13:13, `LEX-003` 13:27, `LEX-007` 14:1, `SIN-003` 13:31, líneas inválidas con la 14; `casos_limite`: 139 tokens, 0 diagnósticos). `test_errores`: siguen siendo 19 códigos; solo cambia el texto de dos sugerencias si alguna prueba lo fija.
+- **Aceptación:** batería completa con la única falla admitida, tres corridas seguidas.
+
+### T3 — Interfaz (`ui/estilos.py` y verificación de `ui/componentes.py`, `ui/paneles.py`)
+
+- `COLORES_TOKEN[TipoToken.DURACION] = "#00796B"` (D-80). Comprobar el contraste sobre `fondo_editor` y `error_fondo`; si no llega a 4,5:1, elegir otro verde azulado y anotarlo.
+- Panel **Lenguaje**: la categoría «Duración» aparece con su descripción y sus ejemplos (si el panel no la lista porque recorre una selección fija de categorías, añadirla junto a los números). Pestaña **Autómatas**: la tabla de «AFD de números» muestra las columnas `s`, `h`, `m` y las filas q7 y q8 sin recortarse; al pulsar `30s` se ve el recorrido `q0 q1 q1 q7`. Pestaña **Resumen** y leyenda: «Duración» entre Decimal y Cadena.
+- **Aceptación:** prueba de UI que analiza `esperar 500ms;`, comprueba que el lexema lleva la etiqueta de color de `DURACION` y que su fila en Tokens y en la Tabla de símbolos dice «Duración», `duracion`, 500. Ningún `#rrggbb` fuera de `ui/estilos.py`.
+
+### T4 — Pasada de estilo de comentarios (todo el código fuente; **sin cambiar comportamiento**)
+
+Pedido del usuario: que comentarios y *docstrings* no suenen genéricos ni «hechos por IA». Alcance: `core/`, `config/`, `application/`, `ui/`, `main.py`, `tests/` y `docs/capturas/capturar.py`. Hacerla **después** de T1–T3 con la batería en verde y en un cambio separado.
+
+- Un comentario se queda solo si explica **por qué** algo es así o advierte de algo que no se ve en el código (un orden que importa, un caso límite, una limitación de Tk). Los que repiten lo que dice la línea se borran.
+- Fuera las fórmulas de plantilla: «Esta función se encarga de…», «Método que permite…», «Clase responsable de…», «Devuelve el resultado», «Nota:», «Importante:». Fuera las listas formales `Args:` / `Returns:` / `Raises:`.
+- *Docstrings* de **una línea**, en imperativo o como frase nominal, salvo donde haya algo que entender (ahí, dos o tres líneas con el motivo concreto). No hace falta *docstring* en lo trivial (`__len__`, propiedades de una línea) si el nombre ya lo dice.
+- Sin referencias internas del proceso en el código: `AUD-17`, `D-42`, `B5.9`, `C5`, «Fase C», «auditoría», «el arquitecto», «requisito 5b». Si la referencia aportaba un motivo, se escribe el motivo. **Excepción:** no se renombran funciones ni archivos de prueba (`test_aud01…`, `test_auditoria_fase_a.py`): solo cambian sus comentarios y *docstrings*.
+- Ortografía: tildes y `ñ` correctas y consistentes en **todos** los comentarios y *docstrings* (hoy están sin tildes: «lexico», «simbolos», «analisis»). Los identificadores siguen sin tildes ni `ñ` (arquitectura §14).
+- Voz: frases cortas, como las escribiría un estudiante que entiende su código; sin adjetivos de relleno («robusto», «eficiente», «elegante») ni rayas largas.
+- No se tocan cadenas que ve el usuario ni mensajes de pruebas, salvo erratas evidentes.
+- **Aceptación:** (a) el árbol sintáctico no cambia: para cada `.py`, `ast.dump` del archivo antes y después, **quitando los docstrings de ambos**, es idéntico (script desechable contra `git show HEAD:ruta`; no se añade al repositorio); (b) batería igual que antes de la tarea; (c) vacío: `grep -rnE "AUD-[0-9]+|\bD-[0-9]{2}\b|\bB[0-9]+\.[0-9]+|Fase [A-E]\b|se encarga de|Args:|Returns:" --include="*.py" core config application ui main.py tests docs/capturas` (se admiten solo nombres de funciones de prueba, que el patrón no cubre por ir en minúscula); (d) vacío: `grep -rnE "#.*\b(lexic|simbolo|analisis|automata|categoria|posicion|linea|numero|caracter|diagnostico)[a-z]*\b" --include="*.py" core config application ui main.py tests` salvo las líneas donde la palabra es un identificador citado (revisarlas una a una y listarlas en `agents/revisiones.md`).
+
+### T5 — Documentación
+
+- `docs/04_manual_usuario.md`: categoría Duración en la lista de tokens y de colores; filas de `LEX-003` y `LEX-004` con las sugerencias nuevas y los ejemplos `1.5s` y `5min`; números de los ejemplos (63 tokens, 17 errores…).
+- `docs/05_guia_sustentacion.md`:
+  - §1.2/§1.3: una frase sobre la duración como rasgo propio de FlowLang; §1.5: fila de números con la regex de duración y aclarar que el AFD de números tiene 9 estados (mínimo de 6).
+  - **Ejercicio 4** (`.5`): el «antes» y la comprobación siguen valiendo, pero hay que **re-ensayarlo** en una copia temporal y actualizar la lista de pruebas que fallan. **Ejercicio 5** (`LEX-008`): el estado nuevo ya no puede llamarse `q7` (ahora es de duración): usar `q9`, actualizar los bloques «antes/después» con la tabla real y re-ensayarlo. **Ejercicio 9** (patrón `'a'`) y **Ejercicio 10**: actualizar conteos si citan categorías o entradas. El Ejercicio 1 (`repetir`) no cambia.
+  - **Ejercicio nuevo 11 — Agregar la unidad `d` (días):** `"d": "q7"` en q1, `"d": 86_400_000` en `UNIDADES_TIEMPO` y la regex; ensayarlo y anotar qué pruebas cambian; añadirlo a la tabla resumen.
+  - Preguntas: la 4 (mínimo de números: 6 estados, q0–q3, q7, q8) y la 5 (añadir que una letra tras los dígitos da `DURACION` solo si forma exactamente una unidad). **Pregunta nueva:** «¿Por qué `10s` es un token y `10 s` son dos? ¿Y por qué `10seg` es `LEX-004` y no un error propio?» con la respuesta de la especificación §3.3 y D-77 (sin citar el identificador de la decisión). Pregunta 13/14: los números no cambian (36, 14, 7), solo comprobarlos.
+  - Guion de demostración: escribir `esperar 10s;`, pulsarlo y mostrar el recorrido en Autómatas; después `esperar 10 s;` y `esperar 10seg;`.
+  - Cabecera de la guía: commit y número de pruebas reales.
+- `docs/guia_presentacion.html`: 13 categorías, bloque `AFD_NUMERO` con q7/q8, lista de recorridos con `10s` y `10seg`, fila de `LEX-004`, números de los ejemplos y pie de las capturas. `README.md`, `docs/matriz_requisitos.md` y `docs/06_auditoria.md` (fila «Valores de la especificación §12»: 111/63/139): solo los números y la mención de la categoría.
+- `docs/02_arquitectura.md`: §4/§5 donde se enumeren categorías o estados de `AFD_NUMERO`, y §15 con las diferencias entre §18 y lo implementado, si las hay.
+- **Aceptación:** `grep -rnE "12 categor|57 tokens|118 tokens|15 (errores|diagn)" README.md docs/*.md docs/guia_presentacion.html` solo devuelve texto histórico de fases anteriores (revisar cada resultado); los ejercicios 4, 5 y 11 se ensayaron de verdad y la guía dice el resultado obtenido.
+
+### T6 — Capturas y PDF
+
+- Regenerar las seis capturas con `docs/capturas/capturar.py` (método de siempre, por identificador de ventana). En `1_correcto_tokens.png` debe verse `30s` con su color; en `4_automatas.png`, seleccionar el token `30s` para que se vea el recorrido por q7; en `5_incorrecto_errores.png`, los 17 errores con `5min` y `1.5s`.
+- Regenerar el PDF desde el HTML: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="docs/Guia_Presentacion_SmartLex.pdf" "docs/guia_presentacion.html"` (rutas absolutas si Chrome lo exige).
+- **Aceptación:** abrir cada PNG y el PDF con la herramienta de lectura y comprobar que muestran la ventana completa, la duración coloreada y que el PDF no tiene páginas cortadas ni tablas partidas; el número de páginas se anota en el registro.
+
+### T7 — Cierre
+
+- Fila de la Fase E en el registro de ejecución de este archivo (pruebas totales, fallas admitidas, decisiones nuevas).
+- **Aprobada si:** batería con la única falla admitida; T4 con sus cuatro comprobaciones; `git diff --stat` de T1–T3 sin `core/afd.py`, `core/lexer.py`, `core/validador.py` ni `application/`; ejemplos idénticos a los del arquitecto; capturas y PDF reales; ejercicios 4, 5 y 11 ensayados.

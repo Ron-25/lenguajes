@@ -1,5 +1,7 @@
 # 03 · Especificación de FlowLang 1.0
 
+> Revisión con **literales de duración** (`10s`, `500ms`, `5m`, `2h`): categoría `DURACION`, §2, §3.3, §9, §10.1 y §12. El resto del lenguaje no cambia y la versión sigue siendo 1.0.
+
 Autor: architect-fable. Este documento es el **contrato del lenguaje**. Todo lo que aquí se define como dato vive en `config/reglas.py`; los algoritmos que lo interpretan viven en `core/`.
 Todas las tablas de transición y todos los ejemplos con posiciones de este documento fueron comprobados con un prototipo desechable (no forma parte del proyecto) antes de escribirlos.
 
@@ -17,7 +19,7 @@ inicio
     dispositivo bomba;
     si (temperatura >= 30 && humedad < 50.0) {
         activar bomba;
-        esperar 10;
+        esperar 10s;
         mostrar "Regando\n";
     } sino {
         desactivar bomba;
@@ -54,14 +56,17 @@ Ejemplos de lo que **no** es error para esta herramienta: `numero x = "hola";` (
 | 2 | `IDENTIFICADOR` | `temperatura` `_x1` | Sí |
 | 3 | `ENTERO` | `0` `28` `007` | Sí |
 | 4 | `DECIMAL` | `45.5` `0.0` | Sí |
-| 5 | `CADENA` | `"Regando\n"` | Sí |
-| 6 | `OPERADOR_ARITMETICO` | `+ - * / %` | No (configurable) |
-| 7 | `OPERADOR_RELACIONAL` | `== != < <= > >=` | No (configurable) |
-| 8 | `OPERADOR_LOGICO` | `&& \|\| !` | No (configurable) |
-| 9 | `ASIGNACION` | `=` | No (configurable) |
-| 10 | `DELIMITADOR` | `( ) { } , ;` | No (configurable) |
-| 11 | `COMENTARIO` | `// …` `/* … */` | No |
-| 12 | `ERROR` | `3.4.5` `@` `"sin cerrar` | No |
+| 5 | `DURACION` | `10s` `500ms` `5m` `2h` | Sí |
+| 6 | `CADENA` | `"Regando\n"` | Sí |
+| 7 | `OPERADOR_ARITMETICO` | `+ - * / %` | No (configurable) |
+| 8 | `OPERADOR_RELACIONAL` | `== != < <= > >=` | No (configurable) |
+| 9 | `OPERADOR_LOGICO` | `&& \|\| !` | No (configurable) |
+| 10 | `ASIGNACION` | `=` | No (configurable) |
+| 11 | `DELIMITADOR` | `( ) { } , ;` | No (configurable) |
+| 12 | `COMENTARIO` | `// …` `/* … */` | No |
+| 13 | `ERROR` | `3.4.5` `@` `"sin cerrar` | No |
+
+`DURACION` se declara en `TipoToken` justo después de `DECIMAL` (valor para mostrar: «Duración»): los tres literales numéricos quedan juntos en la leyenda, en el resumen por categoría y en el panel Lenguaje.
 
 - Los **espacios en blanco** (` `, `\t`, `\r`, `\n`) se descartan: no producen token.
 - `COMENTARIO` sí produce token (para resaltarlo y explicarlo) pero es **no significativo**: el validador y la tabla de símbolos lo ignoran.
@@ -103,34 +108,60 @@ Notación: `L = [A-Za-z]` (52 letras ASCII), `D = [0-9]`. Las expresiones regula
 
 - Longitud máxima: `LONGITUD_MAXIMA_IDENTIFICADOR = 32`. Un identificador más largo se reconoce completo y se reporta `LEX-005`. *Nota honesta:* el límite de longitud es una propiedad regular, pero codificarlo exigiría 32 estados; se comprueba con `len()` después del AFD.
 
-### 3.3 Números: enteros y decimales
+### 3.3 Números: enteros, decimales y duraciones
 
 - `ENTERO = D⁺` — regex `[0-9]+` (se permiten ceros a la izquierda: `007` vale 7).
 - `DECIMAL = D⁺ . D⁺` — regex `[0-9]+\.[0-9]+` (parte entera y parte decimal obligatorias).
+- `DURACION = D⁺ (ms | s | m | h)` — regex `[0-9]+(?:ms|s|m|h)`. Un **entero pegado a una unidad de tiempo**: milisegundos, segundos, minutos u horas. Es el literal propio de FlowLang (un lenguaje de automatización habla de tiempos): `esperar 10s;`.
+  - Solo enteros: `1.5s` no es una duración (se escribe `1500ms`). Las unidades van en minúscula: `10S` no lo es.
+  - El número y la unidad van **pegados**: `10s` es un token; `10 s` son dos (`ENTERO` e `IDENTIFICADOR`), porque el espacio siempre separa lexemas.
+  - Las unidades y su equivalencia en milisegundos están en `UNIDADES_TIEMPO = {"ms": 1, "s": 1000, "m": 60000, "h": 3600000}`. `s`, `m`, `h` y `ms` **no son palabras reservadas**: sueltas siguen siendo identificadores válidos.
 - No hay signo en el literal: `-5` son dos tokens (`-` y `5`). No hay notación científica.
 
-**AFD mínimo** del lenguaje `ENTERO ∪ DECIMAL` (lo que se pide en teoría):
+**AFD mínimo** del lenguaje `ENTERO ∪ DECIMAL ∪ DURACION` (lo que se pide en teoría; 6 estados):
 
-| Estado | dígito | `.` |
-|---|---|---|
-| → q0 | q1 | — |
-| * q1 `ENTERO` | q1 | q2 |
-| q2 | q3 | — |
-| * q3 `DECIMAL` | q3 | — |
+| Estado | dígito | `.` | `s` | `h` | `m` |
+|---|---|---|---|---|---|
+| → q0 | q1 | — | — | — | — |
+| * q1 `ENTERO` | q1 | q2 | q7 | q7 | q8 |
+| q2 | q3 | — | — | — | — |
+| * q3 `DECIMAL` | q3 | — | — | — | — |
+| * q7 `DURACION` | — | — | — | — | — |
+| * q8 `DURACION` | — | — | q7 | — | — |
 
 **AFD implementado** (`AFD_NUMERO`): el mínimo más tres **estados de error** (q4, q5, q6) y q2 marcado como error. Sirven para que un número mal escrito se consuma **como un solo lexema** y se informe con precisión, en vez de partirse en trozos que producirían errores en cascada.
 
-| Estado | dígito | `.` | letra | `_` | Resultado si el autómata termina aquí |
-|---|---|---|---|---|---|
-| → q0 | q1 | q6 | — | — | (no acepta) |
-| * q1 | q1 | q2 | q5 | q5 | token `ENTERO` |
-| ✗ q2 | q3 | q4 | q4 | q4 | error `LEX-003` (falta la parte decimal: `3.`) |
-| * q3 | q3 | q4 | q4 | q4 | token `DECIMAL` |
-| ✗ q4 | q4 | q4 | q4 | q4 | error `LEX-003` (número mal formado: `3.4.5`, `1.5abc`, `.5`) |
-| ✗ q5 | q5 | q5 | q5 | q5 | error `LEX-004` (identificador que empieza con dígito: `12abc`, `2pi`, `1_000`) |
-| q6 | q4 | — | — | — | (no acepta: un `.` suelto es `LEX-001`) |
+Las columnas `s`, `h` y `m` son **caracteres exactos** y la columna «otra letra» es la clase `LETRA`: por la convención de §4 (primero el carácter exacto, después su clase), en q1 una `s` va a q7 y cualquier otra letra va a q5. En los estados que no distinguen unidades, las cinco columnas de letra valen lo mismo.
 
-**Regla sin ambigüedad entre `LEX-003` y `LEX-004`** (consecuencia directa de la tabla): *decide el primer carácter que no es dígito.* Si es `.` el lexema es un **número mal formado** (`LEX-003`); si es letra o `_` es un **identificador inválido** (`LEX-004`).
+| Estado | dígito | `.` | `s` | `h` | `m` | otra letra | `_` | Resultado si el autómata termina aquí |
+|---|---|---|---|---|---|---|---|---|
+| → q0 | q1 | q6 | — | — | — | — | — | (no acepta) |
+| * q1 | q1 | q2 | q7 | q7 | q8 | q5 | q5 | token `ENTERO` |
+| ✗ q2 | q3 | q4 | q4 | q4 | q4 | q4 | q4 | error `LEX-003` (falta la parte decimal: `3.`) |
+| * q3 | q3 | q4 | q4 | q4 | q4 | q4 | q4 | token `DECIMAL` |
+| ✗ q4 | q4 | q4 | q4 | q4 | q4 | q4 | q4 | error `LEX-003` (número mal formado: `3.4.5`, `1.5abc`, `.5`, `1.5s`) |
+| ✗ q5 | q5 | q5 | q5 | q5 | q5 | q5 | q5 | error `LEX-004` (dígitos seguidos de letras que no son una unidad: `12abc`, `2pi`, `1_000`, `10seg`) |
+| q6 | q4 | — | — | — | — | — | — | (no acepta: un `.` suelto es `LEX-001`) |
+| * q7 (unidad completa: `s`, `h`, `ms`) | q5 | q5 | q5 | q5 | q5 | q5 | q5 | token `DURACION` |
+| * q8 (vio `m`: minutos, o empieza `ms`) | q5 | q5 | q7 | q5 | q5 | q5 | q5 | token `DURACION` |
+
+Como dato en `config/reglas.py` (solo cambian q1, q7, q8 y `aceptacion`):
+
+```python
+"q1": {DIGITO: "q1", ".": "q2", "s": "q7", "h": "q7", "m": "q8", LETRA: "q5", "_": "q5"},
+"q7": {DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+"q8": {"s": "q7", DIGITO: "q5", ".": "q5", LETRA: "q5", "_": "q5"},
+"aceptacion": {"q1": ENTERO, "q3": DECIMAL, "q7": DURACION, "q8": DURACION},
+```
+
+**Regla sin ambigüedad entre `DURACION`, `LEX-003` y `LEX-004`** (consecuencia directa de la tabla): *decide el primer carácter que no es dígito.*
+
+1. Si es `.`, el lexema es un decimal o un **número mal formado** (`LEX-003`). Una vez visto el punto ya no hay unidades: `1.5s` es `LEX-003`.
+2. Si es letra o `_`, se lee la palabra completa (letras, dígitos, `_`, `.`). Si lo que sigue a los dígitos es **exactamente** `ms`, `s`, `m` o `h`, es una `DURACION`; cualquier otra cosa es `LEX-004`.
+
+No existe un código aparte para «unidad desconocida»: `10seg` y `2pi` son el mismo caso para el autómata (dígitos seguidos de letras que no forman una unidad) y distinguirlos obligaría a adivinar la intención. La sugerencia de `LEX-004` menciona las unidades válidas y la de `LEX-003` recuerda que las duraciones son enteras (§10.1).
+
+La coincidencia más larga no necesita nada especial: `10ms` pasa por q8 (que ya es final, `10m`) y sigue hasta q7; el motor devuelve el **último** estado final, así que el token es `10ms` y no `10m` seguido de `s`.
 
 | Lexema | Recorrido | Resultado |
 |---|---|---|
@@ -141,6 +172,17 @@ Notación: `L = [A-Za-z]` (52 letras ASCII), `D = [0-9]`. Las expresiones regula
 | `.5` | q0 q6 q4 | `LEX-003` |
 | `12abc` | q0 q1 q1 q5 q5 q5 | `LEX-004` |
 | `1.5abc` | q0 q1 q2 q3 q4 q4 q4 | `LEX-003` |
+| `10s` | q0 q1 q1 q7 | `DURACION` (10 000 ms) |
+| `2h` | q0 q1 q7 | `DURACION` (7 200 000 ms) |
+| `5m` | q0 q1 q8 | `DURACION` (300 000 ms) |
+| `500ms` | q0 q1 q1 q1 q8 q7 | `DURACION` (500 ms) |
+| `10 s` | q0 q1 q1 | `ENTERO` `10`; después, `s` es un `IDENTIFICADOR` |
+| `10x` | q0 q1 q1 q5 | `LEX-004` |
+| `10sx` | q0 q1 q1 q7 q5 | `LEX-004` |
+| `5mm` | q0 q1 q8 q5 | `LEX-004` |
+| `5min` | q0 q1 q8 q5 q5 | `LEX-004` |
+| `10S` | q0 q1 q1 q5 | `LEX-004` (las unidades van en minúscula) |
+| `3.5s` | q0 q1 q2 q3 q4 | `LEX-003` |
 
 ### 3.4 Cadenas
 
@@ -237,6 +279,8 @@ En cada posición `p` del texto (después de saltar espacios):
 | `a/b` | `a` · `/` · `b` | el AFD de comentario no acepta `/b` |
 | `a // c` | `a` · comentario | `// c` (4) gana a `/` (1) |
 | `si2 sino` | identificador `si2` · reservada `sino` | el identificador se lee completo antes de consultar reservadas |
+| `esperar 10ms;` | reservada · duración `10ms` · `;` | `10ms` (4) gana a `10m` (3) y a `10` (2): el AFD se queda con el último estado final |
+| `esperar 10 s;` | reservada · entero `10` · identificador `s` · `;` | el espacio separa |
 
 ---
 
@@ -258,8 +302,8 @@ Principio: **el analizador nunca se detiene en el primer error.** Por cada error
 |---|---|---|
 | Carácter desconocido (`LEX-001`) | Ese único carácter. Varios seguidos producen **un diagnóstico por carácter** | Carácter siguiente |
 | Cadena sin cerrar (`LEX-002`) | Desde `"` hasta el final de la línea (sin el salto) | Línea siguiente |
-| Número mal formado (`LEX-003`) | La secuencia completa de dígitos, letras, `_` y `.` | Primer carácter fuera de la secuencia |
-| Identificador inválido (`LEX-004`) | Igual que el anterior | Igual |
+| Número mal formado (`LEX-003`) | La secuencia completa de dígitos, letras, `_` y `.` (incluye `1.5s`) | Primer carácter fuera de la secuencia |
+| Identificador inválido (`LEX-004`) | Igual que el anterior (incluye una unidad de tiempo mal escrita: `10seg`, `5mm`) | Igual |
 | Identificador demasiado largo (`LEX-005`) | El identificador completo | Carácter siguiente |
 | Escape inválido (`LEX-006`) | La cadena completa, hasta su comilla de cierre. **Un diagnóstico por cada escape inválido**, situado en su `\`, con lexema de 2 caracteres (`\q`) | Después de la comilla de cierre |
 | Comentario de bloque sin cerrar (`LEX-007`) | Desde `/*` hasta el fin del archivo | Fin del análisis |
@@ -272,7 +316,7 @@ Una barra invertida al final de la línea (`"abc\`⏎) no es un escape: se infor
 
 **Definición.** La *cadena de entrada* es el contenido completo del archivo: un programa FlowLang. Es **válida** si y solo si cumple las dos condiciones:
 
-1. **Validez léxica** (análisis léxico): tiene **cero diagnósticos `LEX-…`**, es decir, el texto se descompone por completo en tokens de las categorías 1–11.
+1. **Validez léxica** (análisis léxico): tiene **cero diagnósticos `LEX-…`**, es decir, el texto se descompone por completo en tokens de las categorías 1–12.
 2. **Buena formación estructural** (comprobación sintáctica ligera): tiene **cero diagnósticos `SIN-…`**.
 
 La interfaz muestra los dos veredictos por separado («Léxico: válido / Estructura: válida») y el global.
@@ -300,14 +344,14 @@ Las realiza `core/validador.py` sobre los tokens **significativos**, siempre, ha
 
 ## 9. Qué se instala en la tabla de símbolos
 
-Se instalan los tokens cuyas categorías están en `CATEGORIAS_EN_TABLA`: **palabras reservadas, identificadores, enteros, decimales y cadenas**. La clave es el **lexema** (para una cadena, incluye las comillas, de modo que `"x"` y `x` son entradas distintas). Un lexema repetido **no** crea otra entrada: se añade una aparición.
+Se instalan los tokens cuyas categorías están en `CATEGORIAS_EN_TABLA`: **palabras reservadas, identificadores, enteros, decimales, duraciones y cadenas**. La clave es el **lexema** (para una cadena, incluye las comillas, de modo que `"x"` y `x` son entradas distintas). Un lexema repetido **no** crea otra entrada: se añade una aparición.
 
 | Atributo | Contenido |
 |---|---|
 | `lexema` | Clave |
 | `categoria` | `TipoToken` |
-| `tipo_dato` | Identificador: tipo con el que se declara (ver regla abajo) o vacío. `ENTERO` → `numero`; `DECIMAL` → `decimal`; `CADENA` → `texto`; `verdadero`/`falso` → `booleano` (constante `TIPO_DATO_BOOLEANO`); resto vacío |
-| `valor` | `ENTERO` → `int`; `DECIMAL` → `float`; `CADENA` → texto sin comillas y con los escapes interpretados; `verdadero`/`falso` → `True`/`False`; resto vacío |
+| `tipo_dato` | Identificador: tipo con el que se declara (ver regla abajo) o vacío. `ENTERO` → `numero`; `DECIMAL` → `decimal`; `DURACION` → `duracion`; `CADENA` → `texto`; `verdadero`/`falso` → `booleano` (constante `TIPO_DATO_BOOLEANO`); resto vacío |
+| `valor` | `ENTERO` → `int`; `DECIMAL` → `float`; `DURACION` → `int` con la duración **en milisegundos** (`10s` → 10000, `5m` → 300000; así `60s` y `1m` tienen el mismo valor aunque sean entradas distintas); `CADENA` → texto sin comillas y con los escapes interpretados; `verdadero`/`falso` → `True`/`False`; resto vacío |
 | `linea_declaracion` | Línea de la declaración (solo identificadores declarados) |
 | `apariciones` | Lista de (línea, columna) de cada uso, en orden |
 | `valor_hash` | Resultado de la función hash sobre el lexema |
@@ -316,6 +360,8 @@ Se instalan los tokens cuyas categorías están en `CATEGORIAS_EN_TABLA`: **pala
 **Regla de declaración** (única regla contextual): un `IDENTIFICADOR` cuyo token significativo anterior es una palabra reservada de `TIPOS_DE_DATO` (`numero`, `decimal`, `texto`, `booleano`, `dispositivo`) queda anotado con ese `tipo_dato` y esa `linea_declaracion`. Si el identificador ya tenía declaración, se conserva la primera (detectar la redeclaración sería análisis semántico).
 
 Precisión (D-27): la declaración se anota la primera vez que el identificador aparece **declarado**, aunque ya se hubiera usado antes: en `x = 1; numero x;` la entrada `x` queda con tipo `numero` y la línea de la declaración.
+
+`duracion` es solo la etiqueta de `tipo_dato` de estos literales (`TIPO_DATO_LITERAL`): **no** es una palabra reservada ni un tipo declarable; `TIPOS_DE_DATO` no cambia.
 
 Operadores y delimitadores no se instalan por defecto porque no tienen atributos que otra fase necesite; basta añadir sus categorías a `CATEGORIAS_EN_TABLA` para instalarlos.
 
@@ -331,8 +377,8 @@ Todos tienen: **código**, **tipo**, **título**, **mensaje** (con `{lexema}` su
 |---|---|---|---|
 | `LEX-001` | Carácter no reconocido | El carácter '{lexema}' no pertenece al alfabeto de FlowLang. | Elimínelo o reemplácelo por un símbolo válido. *(Se sustituye por una sugerencia específica si el carácter está en `SUGERENCIAS_CARACTER`: `&`, `\|`, `'`, `.`, `#`, `[`, `]`, `:`.)* |
 | `LEX-002` | Cadena sin cerrar | La cadena {lexema} no tiene comilla de cierre en la misma línea. | Agregue `"` al final de la cadena; las cadenas no pueden ocupar varias líneas. |
-| `LEX-003` | Número mal formado | '{lexema}' no es un número válido. | Un decimal necesita dígitos a ambos lados de un único punto, por ejemplo 3.14 o 0.5. |
-| `LEX-004` | Identificador inválido | '{lexema}' no es válido: un identificador no puede comenzar con un dígito. | Comience el nombre con una letra o `_`; si quería un número, quite las letras. |
+| `LEX-003` | Número mal formado | '{lexema}' no es un número válido. | Un decimal necesita dígitos a ambos lados de un único punto, por ejemplo 3.14 o 0.5. Las duraciones se escriben con enteros: 1500ms, no 1.5s. |
+| `LEX-004` | Identificador inválido | '{lexema}' no es válido: un identificador no puede comenzar con un dígito. | Comience el nombre con una letra o `_`; si quería un número, quite las letras; si quería una duración, las unidades son ms, s, m y h (por ejemplo 10s). |
 | `LEX-005` | Identificador demasiado largo | El identificador '{lexema}' supera el máximo de 32 caracteres. | Use un nombre más corto. |
 | `LEX-006` | Secuencia de escape inválida | La secuencia '{lexema}' no es un escape válido dentro de una cadena. | Escapes permitidos: `\n`, `\t`, `\"` y `\\`. |
 | `LEX-007` | Comentario de bloque sin cerrar | El comentario que comienza con /* nunca se cierra. | Agregue `*/` al final del comentario. |
@@ -367,7 +413,7 @@ Orden de comprobación al cargar: `ARC-001` → `ARC-005` (si es carpeta) → `A
 
 ## 11. Gramática informativa (no implementada)
 
-Solo para dar contexto al lenguaje. **SmartLex Studio no la comprueba** (salvo §8.2).
+Solo para dar contexto al lenguaje. **SmartLex Studio no la comprueba** (salvo §8.2). Una `DURACION` es un literal más dentro de `expresion`; su uso natural es `esperar 10s;`.
 
 ```ebnf
 programa     = "inicio" { instruccion } "fin" ;
@@ -390,15 +436,18 @@ Los tres archivos de `ejemplos/` ya están creados y son **parte del contrato**:
 
 ### 12.1 `ejemplos/correcto.flow` — válido
 - 111 tokens; 0 diagnósticos; `es_valida = True`.
-- Por categoría: 21 reservadas, 21 identificadores, 9 enteros, 3 decimales, 4 cadenas, 6 aritméticos, 5 relacionales, 4 lógicos, 7 asignaciones, 29 delimitadores, 2 comentarios.
+- Línea 15: `esperar 30s;` → `DURACION` `30s` en 15:17 (antes `esperar 10;`).
+- Por categoría: 21 reservadas, 21 identificadores, 8 enteros, 3 decimales, 1 duración, 4 cadenas, 6 aritméticos, 5 relacionales, 4 lógicos, 7 asignaciones, 29 delimitadores, 2 comentarios.
 - Primer token significativo: `inicio` en 2:1. Último: `fin` en 29:1.
-- Tabla de símbolos (capacidad inicial 17): **36 entradas**, 2 redimensionados, capacidad final 79.
+- Tabla de símbolos (capacidad inicial 17): **36 entradas**, 2 redimensionados, capacidad final 79. La entrada `30s` tiene categoría `DURACION`, tipo de dato `duracion`, valor 30000, `h` = 50614; convive con la entrada `30` (`ENTERO`, línea 13): son lexemas distintos.
 - Colisiones — son dos medidas distintas y se muestran las dos:
   - **Colisiones al insertar: 14.** Contador histórico: cuántas veces un lexema nuevo llegó a una cubeta que ya estaba ocupada *en el momento de insertarlo* (con la capacidad que la tabla tenía entonces: 17, luego 37, luego 79).
   - **Colisiones en la tabla final: 7.** Entradas que hoy comparten cubeta con otra anterior = entradas − cubetas ocupadas = 36 − 29. Es menor porque cada redimensionado reparte de nuevo las entradas y deshace colisiones antiguas.
 
 ### 12.2 `ejemplos/incorrecto.flow` — inválido
-57 tokens (13 de tipo `ERROR`), 18 entradas en la tabla, 15 diagnósticos:
+Línea 13 nueva: `    esperar 5min; esperar 1.5s;` (el comentario sin cerrar pasa a la línea 14).
+
+63 tokens (15 de tipo `ERROR`), 19 entradas en la tabla (capacidad final 37, 1 redimensionado, 8 colisiones al insertar, 6 en la tabla final), 17 diagnósticos:
 
 | # | Código | Línea | Col | Lexema |
 |---|---|---|---|---|
@@ -414,14 +463,21 @@ Los tres archivos de `ejemplos/` ya están creados y son **parte del contrato**:
 | 10 | `LEX-001` | 10 | 23 | `'` |
 | 11 | `LEX-001` | 12 | 19 | `$` |
 | 12 | `LEX-001` | 12 | 21 | `#` |
-| 13 | `LEX-007` | 13 | 1 | desde `/* comentario sin cerrar` hasta el fin del archivo |
-| 14 | `SIN-005` | 9 | 8 | `(` |
-| 15 | `SIN-003` | 12 | 22 | `;` |
+| 13 | `LEX-004` | 13 | 13 | `5min` |
+| 14 | `LEX-003` | 13 | 27 | `1.5s` |
+| 15 | `LEX-007` | 14 | 1 | desde `/* comentario sin cerrar` hasta el fin del archivo |
+| 16 | `SIN-005` | 9 | 8 | `(` |
+| 17 | `SIN-003` | 13 | 31 | `;` |
 
-Líneas léxicamente inválidas: 2, 3, 4, 5, 6, 7, 8, 10, 12, 13.
+Líneas léxicamente inválidas: 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14.
 
 ### 12.3 `ejemplos/casos_limite.flow` — válido
-118 tokens, 0 diagnósticos. Cubre: identificador de exactamente 32 caracteres, `_` solo, `Inicio` como identificador, `si2`, cadena vacía, los cuatro escapes, `//` y `/* */` dentro de una cadena, `/**/`, operadores pegados sin espacios (línea 15: `b = si2 >= _ && si2 <= Inicio || ! b == falso != verdadero ;` → 17 tokens) y comentario final sin salto de línea.
+139 tokens (5 duraciones), 0 diagnósticos, 22 líneas (`fin` en 22:1); tabla: 40 entradas, capacidad final 79, 11 colisiones al insertar, 5 en la tabla final. Líneas nuevas 19–21:
+
+- Línea 20: `esperar 500ms; esperar 10s; esperar 5m; esperar 2h; esperar 007s;` → `DURACION` en las columnas 13, 28, 41, 53 y 65, con valores 500, 10000, 300000, 7200000 y 7000 ms.
+- Línea 21: `esperar 3 s;` → `ENTERO` `3` (21:13) e `IDENTIFICADOR` `s` (21:15): con espacio no hay duración.
+
+Cubre: identificador de exactamente 32 caracteres, `_` solo, `Inicio` como identificador, `si2`, cadena vacía, los cuatro escapes, `//` y `/* */` dentro de una cadena, `/**/`, operadores pegados sin espacios (línea 15: `b = si2 >= _ && si2 <= Inicio || ! b == falso != verdadero ;` → 17 tokens) y comentario final sin salto de línea.
 
 ---
 
@@ -434,6 +490,7 @@ Líneas léxicamente inválidas: 2, 3, 4, 5, 6, 7, 8, 10, 12, 13.
 | `x` | 120 | 1 |
 | `si` | 115·31 + 105 = 3670 | 15 |
 | `10` | 49·31 + 48 = 1567 | 3 |
+| `10s` | 1567·31 + 115 = 48692 | 4 |
 | `temperatura` | 321701232 | 15 (colisiona con `si`) |
 | `riego` | 108509814 | 4 |
 | `activo` | 2872016656 | 4 (colisiona con `riego`) |

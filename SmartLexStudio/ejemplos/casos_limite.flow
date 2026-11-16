@@ -16,5 +16,8 @@ inicio
     d = d+1.5-2*3/4%5;
     mientras(si2<3){si2=si2+1;}
     si (b) { mostrar(vacia, escapes); } sino { esperar 1; }
+    // Duraciones: un entero pegado a su unidad (ms, s, m, h)
+    esperar 500ms; esperar 10s; esperar 5m; esperar 2h; esperar 007s;
+    esperar 3 s; // con espacio son dos tokens: el entero 3 y el identificador s
 fin
 // comentario final sin salto de linea

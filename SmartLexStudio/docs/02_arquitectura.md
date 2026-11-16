@@ -950,3 +950,32 @@ Fallas esperadas ajenas a esta fase (no «arreglar»): `test_conteos_de_flowlang
 | Refrescar el margen en cada línea con archivos grandes | Un refresco por latido, no por token; `test_aud17` (1 000 líneas) mantiene su cota de 30 s |
 | Animación muy larga con archivos grandes | `_pausa_efectiva` (tope de 10 s) y deslizador a 0 |
 | Cabecera que no cabe en pantallas estrechas | Dos filas; prueba de `winfo_reqwidth() <= 1100` |
+
+---
+
+## 18. Literales de duración (`DURACION`)
+
+Cambio pequeño sobre FlowLang 1.0 pedido por el usuario para darle al lenguaje un rasgo propio: `esperar 10s;`. La definición formal (regex, AFD, regla de errores, ejemplos) está en la especificación §2, §3.3, §9, §10.1 y §12; aquí solo el impacto por capa. Decisiones D-74…D-80.
+
+**Idea de diseño:** la duración no es un autómata nuevo ni un caso especial del lexer. Son **dos estados más en `AFD_NUMERO`** (q7, q8) y una categoría más en `TipoToken`. El motor (`core/afd.py`) y el lexer (`core/lexer.py`) no se tocan: ya saben devolver el último estado final y el tipo que la tabla diga.
+
+| Capa | Archivo | Cambio | Tipo |
+|---|---|---|---|
+| Dominio | `core/modelos.py` | `TipoToken.DURACION = "Duración"`, entre `DECIMAL` y `CADENA` | 1 línea |
+| Datos | `config/reglas.py` | `AFD_NUMERO`: fila q1 con `s`, `h`, `m`; filas q7 y q8; `aceptacion` con q7 y q8. `UNIDADES_TIEMPO` (unidad → milisegundos). `TIPO_DATO_LITERAL[DURACION] = "duracion"`. `CATEGORIAS_EN_TABLA` + `DURACION`. `INFO_CATEGORIAS[DURACION]` (descripción, regex, ejemplos). `PALABRAS_RESERVADAS["esperar"]` menciona la duración | Solo datos |
+| Dominio | `core/simbolos.py` | `valor_literal`: una rama para `DURACION` (entero × `UNIDADES_TIEMPO[unidad]`) | ~3 líneas |
+| Dominio | `core/errores.py` | Sugerencias de `LEX-003` y `LEX-004` (texto). **No hay código nuevo** | Solo texto |
+| Dominio | `core/afd.py`, `core/lexer.py`, `core/validador.py` | **Nada** | — |
+| Aplicación | `application/` | **Nada**: `explicar_token` lee `INFO_CATEGORIAS[token.tipo]` y el recorrido del AFD | — |
+| Interfaz | `ui/estilos.py` | `COLORES_TOKEN[TipoToken.DURACION]` (propuesta `#00796B`, verde azulado: se distingue del azul de los números y del naranja de las cadenas; contraste ≥ 4,5:1 sobre `fondo_editor` y sobre `error_fondo`) | 1 línea |
+| Interfaz | `ui/componentes.py`, `ui/paneles.py` | El panel Lenguaje y la pestaña Autómatas se generan de `INFO_CATEGORIAS` y `reglas.AUTOMATAS`; solo hay que comprobar que la categoría nueva aparece y que la tabla de `AFD_NUMERO` (ahora con columnas `s`, `h`, `m`) no se recorta | Verificar |
+
+**Por qué la tabla de `AFD_NUMERO` sigue siendo determinista:** en q1 conviven las columnas `s`, `h`, `m` (carácter exacto) y `LETRA` (clase). La convención de §4 de la especificación ya fija el orden (exacto, clase, `OTRO`), el mismo mecanismo que usa `AFD_CADENA` con `n` y `t`. No se añade ninguna regla al motor.
+
+**Por qué no hay `LEX-008`:** tras los dígitos, cualquier palabra que no sea exactamente una unidad cae en q5 (`LEX-004`). Separar «unidad desconocida» de «identificador que empieza con dígito» exigiría decidir si `2pi` era un nombre o una unidad mal escrita; el autómata no puede saberlo y el estudiante tampoco podría justificar el criterio. Un solo código, con la sugerencia ampliada, se explica en una frase: *o es exactamente una unidad, o es `LEX-004`*.
+
+**Valor normalizado:** la tabla de símbolos guarda la duración en milisegundos (`int`), la unidad más pequeña, así nunca hay fracciones. `60s` y `1m` son dos entradas (la clave es el lexema) con el mismo valor.
+
+**Ejercicio de sustentación que habilita:** añadir la unidad `d` (días) = una transición en q1 (`"d": "q7"`), una entrada en `UNIDADES_TIEMPO` y la regex. Ningún algoritmo cambia.
+
+**Pruebas que fijan el contrato:** equivalencia regex ↔ AFD ampliada a `DURACION` con las letras `s`, `m`, `h` en el alfabeto de prueba; recorridos de la tabla de §3.3; valores en milisegundos; `10 s` como dos tokens; los números de §12.
