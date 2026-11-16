@@ -35,7 +35,8 @@ SmartLexStudio/
 ├── ejemplos/                  # correcto.flow, incorrecto.flow, casos_limite.flow (ya creados)
 ├── tests/                     # unittest (biblioteca estándar)
 │   ├── test_afd.py  test_lexer.py  test_validador.py  test_simbolos.py
-│   ├── test_errores.py  test_archivos.py  test_integracion.py  test_auditoria_fase_a.py  test_ui_humo.py
+│   ├── test_errores.py  test_archivos.py  test_integracion.py  test_ui_humo.py
+│   ├── test_auditoria_fase_a.py  test_auditoria_fase_b.py   # regresiones de las dos auditorías
 ├── docs/                      # 01_investigacion, 02_arquitectura, 03_especificacion, 04_manual_usuario, 05_guia_sustentacion, 06_auditoria, matriz_requisitos
 └── agents/                    # tareas.md, decisiones.md, revisiones.md
 ```
@@ -50,7 +51,7 @@ Cambios respecto a la estructura propuesta inicialmente, y por qué:
 | `config/reglas.py` **sin mensajes de error** | El catálogo de diagnósticos vive en `core/errores.py`: así «el manejador de errores» (25 pts) es un módulo completo y autocontenido. |
 | Cada paquete lleva un `__init__.py` vacío | Necesario para `python -m unittest discover`. |
 
-Total: 14 archivos de código + pruebas. No hay carpetas ni archivos vacíos «por si acaso».
+Total: 15 archivos de código (`main.py`, 1 de configuración, 6 de dominio, 2 de aplicación y 5 de interfaz) + 10 de pruebas. `docs/capturas/` contiene 5 capturas reales de la aplicación y el script que las tomó. No hay carpetas ni archivos vacíos «por si acaso».
 
 ---
 
@@ -271,7 +272,7 @@ Cómo la consume la UI (sin hilos, con el temporizador de Tk):
 
 | Modo | Mecanismo |
 |---|---|
-| **Analizar** (F5) | `root.after(RETARDO_ANIMACION_MS, tick)`; cada *tick* consume `n` pasos y actualiza paneles. `n` se calcula para que la animación completa dure como máximo ~3 s aunque el archivo sea grande |
+| **Analizar** (F5) | `root.after(RETARDO_ANIMACION_MS, tick)`; cada *tick* consume `n` pasos y actualiza paneles. `n` = `max(1, ceil((len(fuente) // 4) / (DURACION_MAXIMA_ANIMACION_MS / RETARDO_ANIMACION_MS)))`: apunta a ~3 s de animación. Es una estimación: el dibujo de Tk añade tiempo (medido en la auditoría: 5 000 líneas ≈ 5,7 s, con la ventana respondiendo entre *ticks*) |
 | **Paso a paso** (F10) | Cada pulsación consume **un** paso; resalta el lexema actual en el editor y muestra su explicación |
 | **Detener** (Esc) | Cancela el temporizador; la sesión queda donde está y puede continuarse |
 | Sin interfaz | `analizar_texto(fuente)` consume todos los pasos y devuelve el `ResultadoAnalisis` (lo usan las pruebas y el modo consola) |
@@ -299,7 +300,7 @@ Al seleccionar un token (clic en la tabla de Tokens, o automáticamente en cada 
 | Código y sugerencia, si es un token `ERROR` | `core.errores.CATALOGO[codigo]` |
 | Hash y cubeta, si está en la tabla | `resultado.tabla.buscar(lexema)` |
 
-Todo lo arma `explicar_token(token, tabla=None)` en `application/analisis_service.py`; la UI solo lo pinta. Ejemplo de salida para `45.5`:
+`explicar_token(token, tabla=None)` en `application/analisis_service.py` arma el texto `detalle` (una línea por dato, con la forma `Campo: valor`). La **tabla de transiciones** la añade `PanelResultados.mostrar_explicacion` leyéndola de `reglas.AUTOMATAS` por el nombre del reconocedor (D-39), sin pasar por el servicio. Ejemplo del contenido para `45.5` (formato ilustrativo; el recorrido real se muestra como `q0 → q1 → q1 → q2 → q3`):
 
 ```
 Lexema: 45.5        Categoría: Decimal        Posición: línea 6, columna 23
@@ -372,10 +373,10 @@ Pestañas del panel derecho:
 
 | Estado | Entra cuando | Botones activos |
 |---|---|---|
-| `SIN_FUENTE` | Arranque sin archivo, o tras Limpiar | Abrir, Ayuda |
+| `SIN_FUENTE` | Arranque sin archivo, o tras Limpiar | Abrir, **Analizar** (vuelve a pedir el archivo, D-36), Ayuda |
 | `LISTO` | Hay texto en el editor | Abrir, Guardar, Analizar, Paso a paso, Limpiar |
-| `ANALIZANDO` | Analizar / Paso a paso en curso (editor en solo lectura) | Paso a paso, Analizar (= continuar), Detener |
-| `TERMINADO` | La sesión devolvió `None` | Todos + «Ver tabla de símbolos» |
+| `ANALIZANDO` | Analizar / Paso a paso en curso (editor en solo lectura) | Paso a paso, Analizar (= continuar), Detener, y también Abrir y Limpiar (cancelan el análisis en curso, D-36) |
+| `TERMINADO` | La sesión devolvió `None` | Todos menos Detener + «Ver tabla de símbolos» |
 
 Editar el texto en `TERMINADO` vuelve a `LISTO` y marca los resultados como desactualizados.
 
@@ -457,6 +458,32 @@ No se usan contenedores de inyección, interfaces abstractas ni fábricas: los p
 - **Pruebas** con `unittest`. Desde `SmartLexStudio/`: `python -m unittest discover -s tests -t . -v`. En este equipo usar `/opt/homebrew/bin/python3.14` (el `python3` por defecto no tiene tkinter).
 - `tests/test_ui_humo.py` se **omite solo** (`skipUnless`) si no hay tkinter o pantalla.
 - **Idioma**: identificadores, comentarios y mensajes en español; sin tildes ni `ñ` en nombres de código.
-- **Tamaño orientativo**: ningún archivo de `core/` o `application/` supera ~200 líneas; ninguno de `ui/` supera ~350.
-- **Rendimiento**: lineal en la longitud del texto (cada AFD se detiene en el primer carácter que no le corresponde). Objetivo verificable: 5 000 líneas (~150 000 caracteres) en menos de 3 s.
+- **Tamaño real**: en `core/` el mayor es `simbolos.py` (193 líneas); `application/analisis_service.py` tiene 239 (aceptado en D-26/D-29); en `ui/` el mayor es `interfaz.py` (335). Total del proyecto sin pruebas: ~2 400 líneas.
+- **Rendimiento**: lineal en la longitud del texto (cada AFD se detiene en el primer carácter que no le corresponde). Verificado por prueba: 5 000 líneas (40 000 tokens) en menos de 5 s para el lexer solo (`tests/test_lexer.py`), y sesión lineal en el número de diagnósticos (`test_aud01…`). Limitación conocida: al editar, el resaltado vuelve a tokenizar todo el texto (≈0,5 s con 5 000 líneas).
 - **Modo consola** (opcional, tarea B7): `python main.py --consola archivo.flow` imprime tokens, errores y tabla. Sirve de respaldo si el laboratorio no tiene Tk y de prueba de extremo a extremo sin pantalla.
+
+---
+
+## 15. Estado final: diferencias entre el diseño y lo implementado
+
+Revisión final del arquitecto sobre el commit `3a8f372` (115 pruebas en verde). El código cumple las capas y reglas de este documento; estas son las diferencias y añadidos respecto al diseño inicial, todos registrados en `agents/decisiones.md`:
+
+| Tema | Lo implementado | Decisión |
+|---|---|---|
+| Constante del tipo booleano | `reglas.TIPO_DATO_BOOLEANO`; `core/` no contiene ningún nombre de tipo literal | D-30 |
+| Colisiones | Resumen con «Colisiones al insertar» y «En la tabla actual» (`cantidad − cubetas_ocupadas`, calculado en `ui/paneles.py`) | D-33 |
+| Regex de palabras reservadas | `"\|".join(PALABRAS_RESERVADAS)`: se deriva del diccionario, sigue siendo un dato | AUD-03 |
+| Declaración tardía | La declaración se anota en la primera aparición declarada del identificador, aunque no sea la primera aparición | D-27 |
+| Sesión y manejador | `SesionAnalisis` da al lexer un `ManejadorErrores` propio por paso y vuelca sus diagnósticos al del resultado (coste lineal) | AUD-01 |
+| Editor | Normaliza `\r\n`/`\r`; `marcar_errores` acumula; método añadido `descartar_cambio_pendiente()`; cursor en 1:1 al cargar | D-34, D-37, AUD-16, AUD-19 |
+| Pestaña Errores | Bajo la tabla, detalle completo (código, título, mensaje, sugerencia) del error seleccionado; doble clic navega | AUD-20 |
+| Desplazamiento | Tokens, consola y editor se desplazan una vez por ciclo de eventos (`after_idle`), no una vez por token | AUD-17 |
+| Estados y botones | Tabla de §10.4 actualizada | D-36 |
+| Modo educativo | Tabla de transiciones añadida por la UI desde `reglas.AUTOMATAS` | D-39 |
+| Modo consola | `python main.py --consola [ruta]`, en `main.py`, sin tkinter; tolera entrada cerrada | B7, AUD-21 |
+| Fuentes | `ui/estilos.py` añade `fuente_interfaz()` además de `fuente_codigo()` | — |
+| Pruebas de UI | Detectan Tk en un subproceso; se omiten (17) si no hay Tk | D-38 |
+
+Pendiente menor tras esta revisión (tareas B9 y B10): un único error de archivo visible a la vez en la pestaña Errores, y una línea por dato en el `detalle` del Modo educativo.
+
+Limitaciones conocidas y aceptadas: textos de cuatro diagnósticos que repiten un dato de `reglas.py` (D-31); el veredicto «válida/inválida» se redacta en tres lugares (`ui/interfaz.py`, `ui/paneles.py`, `main.py`); con Tcl/Tk 8.6 el resaltado posterior a un emoji puede desplazarse (D-34); `test_conteos_de_flowlang_1_0` falla a propósito cuando se modifica el lenguaje (D-32).

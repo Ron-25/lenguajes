@@ -12,6 +12,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Aprobación Fase A y resolución de escalados E-1…E-6 | architect-fable | claude-fable-5-2 | completado | **Fase A APROBADA.** D-26/D-27/D-28 ratificadas (D-29); E-1…E-6 resueltos (D-30…D-35); tarea B0 añadida; B2, B4, B5, B6 y B8 ajustadas. **Fase B AUTORIZADA** |
 | Fase B (B0–B7) | developer-sonnet | claude-sonnet-5-5 | completado (B8 pendiente, paso 11) | B0–B7 hechas; 109 pruebas OK con python3.14 (incl. 12 de humo de UI y 3 del modo consola); la app arrancó y analizó sin excepciones; capturas NO posibles (D-40); D-36…D-40 pendientes de revisión |
 | Auditoría Fase B y final (paso 9) | reviewer-opus | claude-opus-5-5 | completado | APROBADO CON OBSERVACIONES: 13 hallazgos (0 críticos, 1 alto, 1 medio, 5 bajos, 6 sugerencias); 7 corregidos con prueba (`tests/test_auditoria_fase_b.py`, las 6 fallan en `dc4e725`), 2 escalados (E-7, E-8); 115 pruebas OK; requisitos 1–6 del PDF cumplen; D-36…D-39 aprobadas, D-40 superada; capturas rehechas. Ver `docs/06_auditoria.md` |
+| Revisión final (paso 10) y guía de sustentación (paso 11) | architect-fable | claude-fable-5-2 | completado | **APROBADO.** Código real conforme a la arquitectura; D-36…D-40 ratificadas (D-41); E-7 → tarea B9 (D-42); E-8 → tarea B10 (D-43); `docs/02_arquitectura.md` (§15 nuevo) y `docs/03_especificacion.md` sincronizados; `docs/05_guia_sustentacion.md` escrito con 10 ejercicios verificados en copias temporales. Pendiente de Sonnet: B9, B10, manual de usuario y README |
 
 ## Reglas generales para el desarrollador
 
@@ -623,6 +624,18 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 - `python main.py --consola [ruta]`: si falta la ruta la pide con `input("Archivo de entrada: ")`; imprime tokens, diagnósticos (código, posición, mensaje, sugerencia), veredicto, y pregunta `¿Desea ver la tabla de símbolos? (s/n)`. Máximo ~60 líneas, dentro de `main.py`. Sin tkinter.
 - **Prueba:** en `tests/test_integracion.py`, subproceso con `--consola ejemplos/correcto.flow` y entrada `n` → código de salida 0 y la salida contiene `VÁLIDA`.
 
+### B9 — Un solo error de archivo visible (E-7, D-42)
+- **Archivos:** `ui/paneles.py`, `ui/interfaz.py`, `tests/test_ui_humo.py`.
+- Añadir `PanelResultados.quitar_errores_de_archivo() -> None`: elimina de la tabla de Errores las filas cuyo tipo es `TipoDiagnostico.ARCHIVO` (y borra el detalle si mostraba una de ellas).
+- `VentanaPrincipal._mostrar_error_archivo` la llama **antes** de `agregar_error`. No se tocan los contadores de la barra de estado (cuentan los errores del análisis).
+- **Prueba:** dos `abrir_archivo("no_existe.flow")` seguidos → 1 fila en Errores; tras analizar `incorrecto.flow` (15 filas) y dos aperturas fallidas → 16 filas, las 15 del análisis intactas.
+
+### B10 — Una línea por dato en el detalle del Modo educativo (E-8, D-43)
+- **Archivos:** `application/analisis_service.py` (solo el texto de `explicar_token`), `tests/test_integracion.py`.
+- La primera línea de `detalle` (`Lexema: …   Categoría: …   Posición: …`) se parte en tres líneas: `Lexema: …`, `Categoría: …`, `Posición: línea L, columna C`. Todas las líneas de `detalle` quedan con la forma `Campo: valor`. No se añaden campos a `ExplicacionToken` ni cambia ninguna firma; `ui/paneles.py` no se toca.
+- **Prueba:** para el token `45.5` en 6:23, `detalle.split("\n")[:3] == ["Lexema: 45.5", "Categoría: Decimal", "Posición: línea 6, columna 23"]`; las pruebas existentes de `detalle` siguen en verde.
+- Tras B9 y B10: rehacer la captura `docs/capturas/4_modo_educativo.png` con `docs/capturas/capturar.py`.
+
 ### B8 — Cierre: ensayo de modificaciones y documentación
 - Ensayar **en una copia** las modificaciones de la arquitectura §11 «agregar `repetir`», «agregar operador `**`», «permitir `ñ` en identificadores» y «aceptar `5.` como decimal»; anotar en `docs/05_guia_sustentacion.md` los pasos exactos (incluido «actualizar `test_conteos_de_flowlang_1_0`» cuando corresponda) y el resultado (cada una debe requerir tocar solo los lugares indicados).
 - **Nombres definitivos (D-35, los que pide el encargo):** `docs/04_manual_usuario.md` (uso con capturas o descripciones), `docs/05_guia_sustentacion.md` (cómo explicar cada módulo, preguntas probables y respuestas, tabla de modificaciones, las dos medidas de colisiones, la limitación D-31 y la prueba de conteos D-32). `docs/06_auditoria.md` ya existe y lo mantiene el auditor: la evidencia de pruebas (salida de la batería, cobertura por requisito) va **ahí**, en una sección «Auditoría Fase B y final»; no se crea `05_pruebas.md`.
@@ -630,6 +643,8 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 - Ampliar `README.md`; completar `docs/matriz_requisitos.md` con evidencia; registrar verificaciones manuales M1–M3.
 
 ---
+
+> **Estado de B8 tras la revisión final:** `docs/05_guia_sustentacion.md` ya está escrito por el arquitecto, con los 10 ejercicios ensayados en copias. A developer-sonnet le quedan `docs/04_manual_usuario.md`, ampliar `README.md`, y B9–B10.
 
 ## Criterios de aprobación por fase (arquitecto)
 

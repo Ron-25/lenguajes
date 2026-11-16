@@ -306,7 +306,7 @@ Se instalan los tokens cuyas categorías están en `CATEGORIAS_EN_TABLA`: **pala
 |---|---|
 | `lexema` | Clave |
 | `categoria` | `TipoToken` |
-| `tipo_dato` | Identificador: tipo con el que se declara (ver regla abajo) o vacío. `ENTERO` → `numero`; `DECIMAL` → `decimal`; `CADENA` → `texto`; `verdadero`/`falso` → `booleano`; resto vacío |
+| `tipo_dato` | Identificador: tipo con el que se declara (ver regla abajo) o vacío. `ENTERO` → `numero`; `DECIMAL` → `decimal`; `CADENA` → `texto`; `verdadero`/`falso` → `booleano` (constante `TIPO_DATO_BOOLEANO`); resto vacío |
 | `valor` | `ENTERO` → `int`; `DECIMAL` → `float`; `CADENA` → texto sin comillas y con los escapes interpretados; `verdadero`/`falso` → `True`/`False`; resto vacío |
 | `linea_declaracion` | Línea de la declaración (solo identificadores declarados) |
 | `apariciones` | Lista de (línea, columna) de cada uso, en orden |
@@ -314,6 +314,8 @@ Se instalan los tokens cuyas categorías están en `CATEGORIAS_EN_TABLA`: **pala
 | cubeta | `valor_hash mod capacidad` (se calcula; cambia al redimensionar) |
 
 **Regla de declaración** (única regla contextual): un `IDENTIFICADOR` cuyo token significativo anterior es una palabra reservada de `TIPOS_DE_DATO` (`numero`, `decimal`, `texto`, `booleano`, `dispositivo`) queda anotado con ese `tipo_dato` y esa `linea_declaracion`. Si el identificador ya tenía declaración, se conserva la primera (detectar la redeclaración sería análisis semántico).
+
+Precisión (D-27): la declaración se anota la primera vez que el identificador aparece **declarado**, aunque ya se hubiera usado antes: en `x = 1; numero x;` la entrada `x` queda con tipo `numero` y la línea de la declaración.
 
 Operadores y delimitadores no se instalan por defecto porque no tienen atributos que otra fase necesite; basta añadir sus categorías a `CATEGORIAS_EN_TABLA` para instalarlos.
 
