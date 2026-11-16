@@ -157,6 +157,7 @@ class VentanaPrincipal(tk.Tk):
 
     def _mostrar_error_archivo(self, diagnostico: Diagnostico) -> None:
         self.consola.escribir(f"✗ {diagnostico.codigo} {diagnostico.mensaje} {diagnostico.sugerencia}", "error")
+        self.panel_resultados.quitar_errores_de_archivo()
         self.panel_resultados.agregar_error(diagnostico)
         self.panel_resultados.seleccionar_pestana("errores")
         messagebox.showerror(diagnostico.titulo, f"{diagnostico.mensaje}\n\n{diagnostico.sugerencia}")

@@ -112,6 +112,19 @@ class TestUIHumo(unittest.TestCase):
         self.assertEqual(rangos, ["2.11", "2.14"])
         self.assertFalse(v.sesion.terminada)
 
+    def test_un_solo_error_de_archivo(self):
+        v = self.crear(solicitar_archivo=False)
+        for _ in range(2):
+            v.abrir_archivo(str(RAIZ / "no_existe.flow"))
+        self.assertEqual(self.filas(v.panel_resultados.arbol_errores), 1)
+        v = self.terminar(INCORRECTO)
+        for _ in range(2):
+            v.abrir_archivo(str(RAIZ / "no_existe.flow"))
+        self.assertEqual(self.filas(v.panel_resultados.arbol_errores), 16)
+        codigos = [v.panel_resultados.arbol_errores.item(i, "values")[0]
+                   for i in v.panel_resultados.arbol_errores.get_children()]
+        self.assertEqual(sum(c.startswith("ARC") for c in codigos), 1)
+
     def test_navegacion_a_un_error(self):
         v = self.terminar(INCORRECTO)
         diag = next(d for d in v.sesion.resultado.diagnosticos if (d.linea, d.columna) == (6, 24))

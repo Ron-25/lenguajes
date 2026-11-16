@@ -158,6 +158,14 @@ class PanelResultados(ttk.Frame):
         self._errores[iid] = diagnostico
         self.arbol_errores.see(iid)
 
+    def quitar_errores_de_archivo(self) -> None:
+        """Elimina las filas de errores de archivo (ARC-...), para que quede como maximo una (D-42)."""
+        for iid, diagnostico in list(self._errores.items()):
+            if diagnostico.tipo == TipoDiagnostico.ARCHIVO:
+                self.arbol_errores.delete(iid)
+                del self._errores[iid]
+        self._mostrar_detalle_error()
+
     def mostrar_tabla_simbolos(self, tabla) -> None:
         """Llena la pestana de simbolos en orden de cubeta y resume sus estadisticas."""
         self.arbol_simbolos.delete(*self.arbol_simbolos.get_children())

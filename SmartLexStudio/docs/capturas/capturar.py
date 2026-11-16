@@ -20,7 +20,7 @@ pasos = [
  (800, lambda: shot("2_tabla_simbolos")),
  (300, lambda: (pr.seleccionar_pestana("estadisticas"))),
  (800, lambda: shot("3_estadisticas")),
- (300, lambda: (pr.arbol_tokens.selection_set(pr.arbol_tokens.get_children()[12]), pr.seleccionar_pestana("educativo"))),
+ (300, lambda: (pr.arbol_tokens.selection_set(pr.arbol_tokens.get_children()[11]), pr.seleccionar_pestana("educativo"))),
  (800, lambda: shot("4_modo_educativo")),
  (300, lambda: (v.abrir_archivo("ejemplos/incorrecto.flow"), v.analizar())),
  (6000, lambda: (pr.seleccionar_pestana("errores"), pr.arbol_errores.selection_set(pr.arbol_errores.get_children()[3]))),

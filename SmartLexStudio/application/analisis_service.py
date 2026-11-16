@@ -212,7 +212,8 @@ def explicar_token(token: Token, tabla: TablaSimbolos | None = None) -> Explicac
     if token.tipo == TipoToken.PALABRA_RESERVADA:
         descripcion += " " + reglas.PALABRAS_RESERVADAS[token.lexema]
     lineas = [
-        f"Lexema: {_visible(token.lexema)}   Categoría: {token.tipo.value}   "
+        f"Lexema: {_visible(token.lexema)}",
+        f"Categoría: {token.tipo.value}",
         f"Posición: línea {token.linea}, columna {token.columna}",
         f"Descripción: {descripcion}",
         f"Regla: {info['regex'] or '(ninguna)'}",

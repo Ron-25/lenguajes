@@ -156,6 +156,13 @@ class TestExplicarToken(unittest.TestCase):
         self.assertEqual(e.recorrido, ("q0", "q1", "q1", "q2", "q3"))
         self.assertEqual(e.regex, reglas.INFO_CATEGORIAS[T.DECIMAL]["regex"])
 
+    def test_detalle_una_linea_por_dato(self):
+        e = explicar_token(Token(T.DECIMAL, "45.5", 6, 23))
+        self.assertEqual(e.detalle.split("\n")[:3],
+                         ["Lexema: 45.5", "Categoría: Decimal", "Posición: línea 6, columna 23"])
+        for linea in e.detalle.split("\n"):
+            self.assertIn(": ", linea)
+
     def test_reservada_operador_y_error(self):
         e = explicar_token(Token(T.PALABRA_RESERVADA, "si", 1, 1))
         self.assertIn(reglas.PALABRAS_RESERVADAS["si"], e.detalle)

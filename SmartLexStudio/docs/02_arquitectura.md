@@ -303,7 +303,9 @@ Al seleccionar un token (clic en la tabla de Tokens, o automáticamente en cada 
 `explicar_token(token, tabla=None)` en `application/analisis_service.py` arma el texto `detalle` (una línea por dato, con la forma `Campo: valor`). La **tabla de transiciones** la añade `PanelResultados.mostrar_explicacion` leyéndola de `reglas.AUTOMATAS` por el nombre del reconocedor (D-39), sin pasar por el servicio. Ejemplo del contenido para `45.5` (formato ilustrativo; el recorrido real se muestra como `q0 → q1 → q1 → q2 → q3`):
 
 ```
-Lexema: 45.5        Categoría: Decimal        Posición: línea 6, columna 23
+Lexema: 45.5
+Categoría: Decimal
+Posición: línea 6, columna 23
 Regla:  [0-9]+\.[0-9]+
 Reconocedor: AFD de números
 Recorrido:  q0 ─4→ q1 ─5→ q1 ─.→ q2 ─5→ q3   (q3: estado final de DECIMAL)
