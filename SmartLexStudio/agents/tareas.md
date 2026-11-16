@@ -9,7 +9,8 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Pasos 1–5: requisitos, investigación, especificación, arquitectura, tareas | architect-fable | claude-fable-5-2 | completado | `docs/matriz_requisitos.md`, `docs/01_investigacion.md`, `docs/02_arquitectura.md`, `docs/03_especificacion.md`, `agents/tareas.md`, `agents/decisiones.md`, `agents/revisiones.md`, `ejemplos/*.flow` (3 archivos validados con prototipo) |
 | Fase A (A1–A10) | developer-sonnet | claude-sonnet-5-5 | completado | 87 pruebas en verde con python3.11/3.12/3.14/3.15; `grep` de A10 vacíos; reproduce los valores de la especificación §12. Decisiones D-26 a D-28 pendientes de revisión |
 | Auditoría Fase A | reviewer-opus | claude-opus-5-5 | completado | APROBADO CON OBSERVACIONES: 14 hallazgos (0 críticos/altos, 4 medios, 10 bajos); 7 corregidos con prueba (`tests/test_auditoria_fase_a.py`), 6 escalados (E-1…E-6); 93 pruebas OK; D-26/D-27/D-28 aprobadas. Ver `docs/06_auditoria.md` |
-| Fase B (B1–B8) | developer-sonnet | — | pendiente | — |
+| Aprobación Fase A y resolución de escalados E-1…E-6 | architect-fable | claude-fable-5-2 | completado | **Fase A APROBADA.** D-26/D-27/D-28 ratificadas (D-29); E-1…E-6 resueltos (D-30…D-35); tarea B0 añadida; B2, B4, B5, B6 y B8 ajustadas. **Fase B AUTORIZADA** |
+| Fase B (B0–B8) | developer-sonnet | — | pendiente | — |
 | Auditoría Fase B y final | reviewer-opus | — | pendiente | — |
 
 ## Reglas generales para el desarrollador
@@ -99,6 +100,7 @@ class EntradaSimbolo:
 | `PALABRAS_RESERVADAS` | `dict[str, str]` | las 17 palabras → descripción de una línea (especificación §3.1) |
 | `TIPOS_DE_DATO` | `tuple[str, ...]` | `("numero", "decimal", "texto", "booleano", "dispositivo")` |
 | `VALORES_BOOLEANOS` | `dict[str, bool]` | `{"verdadero": True, "falso": False}` |
+| `TIPO_DATO_BOOLEANO` | `str` | `"booleano"` — tipo de dato de las palabras de `VALORES_BOOLEANOS` *(añadida tras la auditoría, D-30; tarea B0)* |
 | `TIPO_DATO_LITERAL` | `dict[TipoToken, str]` | `ENTERO→"numero"`, `DECIMAL→"decimal"`, `CADENA→"texto"` |
 | `PALABRA_INICIO` / `PALABRA_FIN` | `str` | `"inicio"` / `"fin"` |
 | `OPERADORES` | `dict[str, TipoToken]` | los 15 operadores (especificación §3.6) |
@@ -547,6 +549,14 @@ Responsable de todas: **developer-sonnet**. Estado: **A1–A10 completadas** (ve
 
 El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§10. Aquí el contrato es menos estricto en firmas internas, pero los **nombres de clase, los métodos listados y los comportamientos** son obligatorios. Responsable: **developer-sonnet**. Estado inicial: **Pendiente**.
 
+### B0 — Ajustes posteriores a la auditoría de la Fase A (hacer primero)
+- **Archivos:** `config/reglas.py`, `core/simbolos.py`, `tests/test_afd.py`, `tests/test_simbolos.py`.
+- **B0.1 (E-2, D-30):** añadir `TIPO_DATO_BOOLEANO = "booleano"` a `reglas.py` y usarla en `registrar_token` en lugar del literal. Prueba nueva en `TestReglas`: `TIPO_DATO_BOOLEANO in TIPOS_DE_DATO`. Criterio: `grep -n '"booleano"' core/ application/ -r` vacío.
+- **B0.2 (E-4, D-32):** renombrar `test_conteos` a `test_conteos_de_flowlang_1_0` y dar a cada `assertEqual` el mensaje `"FlowLang 1.0 define N …; si modificó el lenguaje a propósito, actualice este número"`. No relajar a `>=`.
+- **B0.3 (AUD-12):** el docstring de `Lexer.tokens()` debe decir que es de un solo uso.
+- **Criterios:** las 93 pruebas siguen en verde (94 con la nueva); ninguna firma pública cambia; los valores de la especificación §12 no cambian.
+- No se toca `core/errores.py` (E-3 queda como limitación documentada, D-31) ni `EstadisticasTabla` (E-1 se resuelve en la UI, D-33).
+
 ### B1 — Tema (`ui/estilos.py`)
 - `TEMA: dict[str, str]` con al menos: `fondo` `#1e1e1e`, `panel` `#252526`, `barra` `#333333`, `borde` `#3c3c3c`, `texto` `#d4d4d4`, `texto_tenue` `#858585`, `acento` `#007acc`, `seleccion` `#264f78`, `error` `#f44747`, `exito` `#4ec9b0`, `advertencia` `#cca700`, `linea_actual` `#2a2d2e`, `colision` `#3a2f1b`.
 - `COLORES_TOKEN: dict[TipoToken, str]` con una entrada por cada `TipoToken` (reservada `#569cd6`, identificador `#9cdcfe`, entero y decimal `#b5cea8`, cadena `#ce9178`, comentario `#6a9955`, operadores `#d4d4d4`, asignación `#d4d4d4`, delimitador `#ffd700`, error `#f44747`).
@@ -556,9 +566,10 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 
 ### B2 — Editor (`ui/editor.py`)
 - `class EditorCodigo(ttk.Frame)`: `__init__(self, padre, al_cambiar=None, al_mover_cursor=None)`.
-- Métodos: `obtener_texto() -> str` (sin el salto final que añade Tk), `establecer_texto(texto)`, `limpiar()`, `resaltar(tokens)`, `marcar_errores(diagnosticos)`, `limpiar_marcas()`, `resaltar_token_actual(token | None)`, `ir_a(linea, columna)`, `solo_lectura(activo: bool)`, `posicion_cursor() -> tuple[int, int]` (línea y columna desde 1).
+- Métodos: `obtener_texto() -> str` (sin el salto final que añade Tk y **con `\r\n` y `\r` convertidos a `\n`**, E-5), `establecer_texto(texto)` (aplica la misma normalización antes de insertar), `limpiar()`, `resaltar(tokens)`, `marcar_errores(diagnosticos)`, `limpiar_marcas()`, `resaltar_token_actual(token | None)`, `ir_a(linea, columna)`, `solo_lectura(activo: bool)`, `posicion_cursor() -> tuple[int, int]` (línea y columna desde 1).
 - Margen de números sincronizado con el desplazamiento; `✗` en las líneas con diagnóstico léxico; línea del cursor resaltada; subrayado rojo en el rango de cada token `ERROR`; *debounce* de 300 ms para `al_cambiar`.
-- **Criterios:** tras `establecer_texto(t)`, `obtener_texto() == t`; un token en (línea 2, columna 7) de longitud 5 se etiqueta en `2.6`–`2.11`; un comentario de bloque multilínea se colorea completo.
+- El texto que se analiza y el que se resalta salen **siempre** de `obtener_texto()`: así las columnas del lexer coinciden con los índices de Tk aunque se pegue texto con `\r`.
+- **Criterios:** tras `establecer_texto(t)`, `obtener_texto() == t` (para `t` sin `\r`); tras `establecer_texto("a\r\nb\rc")`, `obtener_texto() == "a\nb\nc"`; un token en (línea 2, columna 7) de longitud 5 se etiqueta en `2.6`–`2.11`; un comentario de bloque multilínea se colorea completo.
 
 ### B3 — Componentes (`ui/componentes.py`)
 - `BarraHerramientas(padre, acciones: dict[str, Callable])` con botones `abrir`, `guardar`, `analizar`, `paso`, `detener`, `limpiar`, `ayuda`; método `habilitar(nombres: Iterable[str])` (deshabilita el resto).
@@ -570,7 +581,7 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 - `PanelResultados(padre, al_seleccionar_token: Callable[[Token], None], al_seleccionar_error: Callable[[Diagnostico], None])` con `ttk.Notebook` de 5 pestañas.
 - Constantes de columnas a nivel de módulo: `COLUMNAS_TOKENS`, `COLUMNAS_SIMBOLOS`, `COLUMNAS_ERRORES` (listas de `(identificador, título, ancho)`).
 - Métodos: `agregar_token(numero, token)`, `agregar_error(diagnostico)`, `mostrar_tabla_simbolos(tabla)`, `mostrar_estadisticas(resultado)`, `mostrar_explicacion(explicacion)`, `limpiar()`, `habilitar_tabla_simbolos(activo)`, `seleccionar_pestana(nombre)` con nombres `"tokens"`, `"simbolos"`, `"errores"`, `"estadisticas"`, `"educativo"`.
-- Tabla de símbolos: filas en orden de cubeta; fondo `TEMA["colision"]` en las entradas de cubetas con más de un elemento; línea de resumen con los 6 datos de `EstadisticasTabla`; `valor` y lexemas largos recortados a 40 caracteres.
+- Tabla de símbolos: filas en orden de cubeta; fondo `TEMA["colision"]` en las entradas de cubetas con más de un elemento; línea de resumen con capacidad, entradas, factor de carga, **«Colisiones al insertar»** (`colisiones`), **«En la tabla actual»** (`cantidad - cubetas_ocupadas`, calculado aquí; E-1), cadena más larga y redimensionados; `valor` y lexemas largos recortados a 40 caracteres.
 - Estadísticas: veredictos léxico / estructura / global, tokens por categoría con barra proporcional (`Canvas`), líneas, caracteres, errores por tipo.
 
 ### B5 — Ventana principal y flujo progresivo (`ui/interfaz.py`)
@@ -585,6 +596,10 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
   5. **Requisito 5b**: al devolver `None` la sesión: veredictos en consola (léxico, estructura, global, líneas inválidas), `mostrar_estadisticas`, `mostrar_tabla_simbolos`, `habilitar_tabla_simbolos(True)`, `habilitar_ver_tabla(True)` y `messagebox.askyesno("Análisis terminado", "… ¿Desea ver la tabla de símbolos?")`; «Sí» → `ver_tabla_simbolos()`.
   6. Durante `ANALIZANDO` el editor está en solo lectura; editar en `TERMINADO` vuelve a `LISTO` y avisa en la barra de estado.
   7. Atajos: Ctrl+O, Ctrl+S, F5, F10, Esc, F1 (en macOS también Cmd+O / Cmd+S).
+  9. **Navegación**: doble clic en una fila de Errores → `editor.ir_a(linea, columna)` y foco en el editor (los diagnósticos de archivo, con línea 0, no navegan). Clic en una fila de Tokens → selecciona el lexema en el editor y muestra `explicar_token(token, tabla)` en Modo educativo (sin cambiar de pestaña).
+  10. En un paso de fase estructural (`paso.token is None`) no se llama a `explicar_token`; se muestra el diagnóstico en consola y Errores, y `ir_a` su posición.
+  11. `sesion.resultado.tabla` solo se entrega a `mostrar_tabla_simbolos` al terminar; durante la evaluación la UI no lee la tabla salvo para `explicar_token`.
+  12. No añadir lógica a `application/analisis_service.py` (ya está en 239 líneas, D-26); si la Fase B necesitara algo nuevo del servicio, registrarlo antes en `revisiones.md`.
   8. Tamaño inicial 1280×800, mínimo 1000×650; título `SmartLex Studio — <archivo>`.
 - **Criterio de arquitectura:** `ui/` no importa `core.lexer`, `core.validador`, `core.simbolos` ni `core.afd` (`grep -rn "core.lexer\|core.validador\|core.simbolos\|core.afd" ui/` vacío).
 
@@ -595,6 +610,13 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
   - comprobar: 57 filas en Tokens, 15 en Errores, `askyesno` llamado **una** vez con un texto que contiene «tabla de símbolos», pestaña de símbolos habilitada, 18 filas tras `ver_tabla_simbolos()`;
   - **progresividad**: tras `abrir_archivo` + un único `paso_a_paso()`, hay 1 fila en Tokens, `estado == "ANALIZANDO"` y la pestaña de símbolos sigue deshabilitada;
   - `abrir_archivo("no_existe.flow")` llama a `showerror` y no lanza excepción;
+  - **requisito 6**: con `VentanaPrincipal(solicitar_archivo=True)` y `askopenfilename` simulado devolviendo `ejemplos/correcto.flow`, tras bombear `update()` el editor contiene el archivo y `askopenfilename` se llamó una vez; devolviendo `""` el estado es `"SIN_FUENTE"`;
+  - **errores durante la evaluación**: sobre `incorrecto.flow`, avanzar con `paso_a_paso()` hasta el primer token `ERROR`: en ese momento hay 1 fila en Errores, el editor tiene la marca de error en `2.11`–`2.14` y la sesión no ha terminado;
+  - **navegación**: invocar el callback de selección de error con el diagnóstico de 6:24 deja `posicion_cursor() == (6, 24)`;
+  - **modo educativo**: tras `paso_a_paso()` el panel educativo no está vacío;
+  - **colisiones (E-1)**: tras analizar `correcto.flow`, el resumen de la tabla contiene `14` y `7`;
+  - **`\r` (E-5)**: `establecer_texto("x\r\ny")` + `analizar()` completo → el token `y` está en 2:1;
+  - **fuera del BMP (E-5)**: solo si `tk.TkVersion >= 9` (si no, `skipTest`): con el texto `inicio "😀" x fin`, el rango etiquetado del token `x` (línea 1, columna 12) es `1.11`–`1.12`;
   - `destroy()` al final de cada prueba.
 
 ### B7 — Modo consola (recomendada, prioridad baja)
@@ -602,8 +624,9 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 - **Prueba:** en `tests/test_integracion.py`, subproceso con `--consola ejemplos/correcto.flow` y entrada `n` → código de salida 0 y la salida contiene `VÁLIDA`.
 
 ### B8 — Cierre: ensayo de modificaciones y documentación
-- Ensayar **en una copia** las modificaciones de la arquitectura §11 «agregar `repetir`», «agregar operador `**`», «permitir `ñ` en identificadores» y «aceptar `5.` como decimal»; anotar en `docs/06_guia_sustentacion.md` los pasos exactos y el resultado (cada una debe requerir tocar solo los lugares indicados).
-- `docs/04_manual_usuario.md` (uso con capturas o descripciones), `docs/05_pruebas.md` (salida de la batería, cobertura por requisito), `docs/06_guia_sustentacion.md` (cómo explicar cada módulo, preguntas probables y respuestas, tabla de modificaciones).
+- Ensayar **en una copia** las modificaciones de la arquitectura §11 «agregar `repetir`», «agregar operador `**`», «permitir `ñ` en identificadores» y «aceptar `5.` como decimal»; anotar en `docs/05_guia_sustentacion.md` los pasos exactos (incluido «actualizar `test_conteos_de_flowlang_1_0`» cuando corresponda) y el resultado (cada una debe requerir tocar solo los lugares indicados).
+- **Nombres definitivos (D-35, los que pide el encargo):** `docs/04_manual_usuario.md` (uso con capturas o descripciones), `docs/05_guia_sustentacion.md` (cómo explicar cada módulo, preguntas probables y respuestas, tabla de modificaciones, las dos medidas de colisiones, la limitación D-31 y la prueba de conteos D-32). `docs/06_auditoria.md` ya existe y lo mantiene el auditor: la evidencia de pruebas (salida de la batería, cobertura por requisito) va **ahí**, en una sección «Auditoría Fase B y final»; no se crea `05_pruebas.md`.
+- Verificación manual adicional **M4** (registrar en `06_auditoria.md`): pegar en el editor un texto con emoji dentro de una cadena y comprobar que el resaltado de los tokens posteriores no se desplaza; si el laboratorio usa Tcl/Tk 8.6 y se desplaza, queda documentado como limitación visual (los tokens y posiciones del análisis son correctos en cualquier caso).
 - Ampliar `README.md`; completar `docs/matriz_requisitos.md` con evidencia; registrar verificaciones manuales M1–M3.
 
 ---

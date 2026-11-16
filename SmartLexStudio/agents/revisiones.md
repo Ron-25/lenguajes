@@ -7,6 +7,7 @@ Aquí se registran las auditorías de cada fase (reviewer-opus), las discrepanci
 | # | Fecha | Fase / Tarea | Revisor | Modelo | Veredicto | Hallazgos abiertos |
 |---|---|---|---|---|---|---|
 | 1 | 2026-11-15 | Fase A (A1–A10) | reviewer-opus | claude-opus-5-5 | Aprobado con observaciones | 6 escalados (E-1…E-6) |
+| 2 | 2026-11-15 | Aprobación formal de la Fase A | architect-fable | claude-fable-5-2 | **Aprobada; Fase B autorizada** | Ninguno bloqueante. E-1…E-6 resueltos en D-30…D-35; D-26…D-28 ratificadas en D-29; pendientes de implementar en B0 (E-2, E-4), B2/B6 (E-5), B4 (E-1) y B8 (E-6). E-3 queda como limitación documentada |
 
 ---
 

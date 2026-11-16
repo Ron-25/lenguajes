@@ -35,8 +35,8 @@ SmartLexStudio/
 ├── ejemplos/                  # correcto.flow, incorrecto.flow, casos_limite.flow (ya creados)
 ├── tests/                     # unittest (biblioteca estándar)
 │   ├── test_afd.py  test_lexer.py  test_validador.py  test_simbolos.py
-│   ├── test_errores.py  test_archivos.py  test_integracion.py  test_ui_humo.py
-├── docs/                      # 01_investigacion, 02_arquitectura, 03_especificacion, matriz_requisitos (+04–06 en fases posteriores)
+│   ├── test_errores.py  test_archivos.py  test_integracion.py  test_auditoria_fase_a.py  test_ui_humo.py
+├── docs/                      # 01_investigacion, 02_arquitectura, 03_especificacion, 04_manual_usuario, 05_guia_sustentacion, 06_auditoria, matriz_requisitos
 └── agents/                    # tareas.md, decisiones.md, revisiones.md
 ```
 
@@ -223,14 +223,14 @@ para cada carácter c del lexema:  h ← (h · BASE_HASH + código(c)) mod MODUL
   2. Si no existe: si la cubeta ya tenía entradas → **colisión** (`colisiones += 1`); se añade la entrada al final de la cubeta.
   3. Si `cantidad / capacidad > FACTOR_CARGA_MAXIMO` (0.75) → **redimensionar**: nueva capacidad = primer primo ≥ 2·capacidad (17 → 37 → 79 → 163…); se reubican todas las entradas con su `valor_hash` guardado.
   4. Devuelve `ResultadoInstalacion` (entrada, si es nueva, si hubo colisión, índice, si redimensionó) para que la UI lo narre.
-- `colisiones` es un **contador histórico** de inserciones en cubeta ocupada; no cambia al redimensionar. `estadisticas()` da además el estado actual (cubetas ocupadas, cadena más larga, factor de carga).
+- `colisiones` es un **contador histórico** de inserciones en cubeta ocupada; no cambia al redimensionar. `estadisticas()` da además el estado actual (cubetas ocupadas, cadena más larga, factor de carga). Las **colisiones visibles en la tabla actual** se calculan como `cantidad − cubetas_ocupadas`; suelen ser menos que las históricas porque redimensionar deshace colisiones (en `correcto.flow`: 14 al insertar, 7 en la tabla final).
 - La función hash se **inyecta** por el constructor (`funcion_hash=hash_polinomial`): las pruebas pasan `lambda s: 0` para forzar que todo colisione.
 
 ### 6.3 Qué se instala
 Definido en la especificación §9. La regla contextual de declaración y el cálculo de `tipo_dato`/`valor` están en la función `registrar_token(tabla, token, anterior)`; la clase `TablaSimbolos` no sabe nada de FlowLang (es una tabla hash genérica de lexemas).
 
 ### 6.4 Visibilidad en la UI
-Pestaña «Tabla de símbolos»: filas ordenadas por cubeta; las entradas que comparten cubeta se muestran contiguas y con fondo distinto (colisión). Encabezado: `Capacidad 79 · Entradas 36 · Factor de carga 0.46 · Colisiones 14 · Cadena más larga 3 · Redimensionados 2`.
+Pestaña «Tabla de símbolos»: filas ordenadas por cubeta; las entradas que comparten cubeta se muestran contiguas y con fondo distinto (colisión). Encabezado: `Capacidad 79 · Entradas 36 · Factor de carga 0.46 · Colisiones al insertar 14 · En la tabla actual 7 · Cadena más larga 3 · Redimensionados 2`.
 
 ---
 
@@ -412,6 +412,12 @@ Editar el texto en `TERMINADO` vuelve a `LISTO` y marca los resultados como desa
 | Cambiar el tema o un color | `ui/estilos.py` | Diccionarios `TEMA` y `COLORES_TOKEN` | No |
 | Cambiar la velocidad de la animación | `ui/interfaz.py` | `RETARDO_ANIMACION_MS`, `DURACION_MAXIMA_ANIMACION_MS` | No |
 | Quitar la exigencia de `inicio`/`fin` | `core/validador.py` | Reglas E2/E3 de `validar_estructura` | Pruebas de `test_validador.py` |
+| Cambiar el tamaño máximo de archivo | `config/reglas.py` | `TAMANO_MAXIMO_BYTES` | Texto de `ARC-006` |
+| Renombrar el tipo `booleano` | `config/reglas.py` | `PALABRAS_RESERVADAS`, `TIPOS_DE_DATO`, `TIPO_DATO_BOOLEANO` | No |
+
+**Limitación aceptada (D-31):** los textos de cuatro diagnósticos repiten un dato de `reglas.py` — `LEX-005` (32), `LEX-006` (los escapes), `ARC-002` (`.flow`/`.txt`) y `ARC-006` (1 MB). Al cambiar ese dato hay que actualizar también el texto en `CATALOGO`. Se prefiere esto a plantillas con más parámetros, que harían depender `errores.py` de `reglas.py`.
+
+**Pruebas que fijan la versión del lenguaje (D-32):** `test_conteos_de_flowlang_1_0` fija 17 reservadas, 15 operadores, etc. Tras una modificación intencional del lenguaje esa prueba falla **a propósito**: se actualiza el número y vuelve a verde. Es la demostración de que las pruebas vigilan la especificación.
 
 ---
 

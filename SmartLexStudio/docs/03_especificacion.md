@@ -390,7 +390,10 @@ Los tres archivos de `ejemplos/` ya están creados y son **parte del contrato**:
 - 111 tokens; 0 diagnósticos; `es_valida = True`.
 - Por categoría: 21 reservadas, 21 identificadores, 9 enteros, 3 decimales, 4 cadenas, 6 aritméticos, 5 relacionales, 4 lógicos, 7 asignaciones, 29 delimitadores, 2 comentarios.
 - Primer token significativo: `inicio` en 2:1. Último: `fin` en 29:1.
-- Tabla de símbolos (capacidad inicial 17): **36 entradas**, 2 redimensionados, capacidad final 79, 14 colisiones.
+- Tabla de símbolos (capacidad inicial 17): **36 entradas**, 2 redimensionados, capacidad final 79.
+- Colisiones — son dos medidas distintas y se muestran las dos:
+  - **Colisiones al insertar: 14.** Contador histórico: cuántas veces un lexema nuevo llegó a una cubeta que ya estaba ocupada *en el momento de insertarlo* (con la capacidad que la tabla tenía entonces: 17, luego 37, luego 79).
+  - **Colisiones en la tabla final: 7.** Entradas que hoy comparten cubeta con otra anterior = entradas − cubetas ocupadas = 36 − 29. Es menor porque cada redimensionado reparte de nuevo las entradas y deshace colisiones antiguas.
 
 ### 12.2 `ejemplos/incorrecto.flow` — inválido
 57 tokens (13 de tipo `ERROR`), 18 entradas en la tabla, 15 diagnósticos:
