@@ -54,6 +54,21 @@ def guardar_fuente(ruta: str | Path, contenido: str) -> None:
         raise _error("ARC-005", ruta) from None
 
 
+def plantilla_nueva() -> str:
+    """Programa minimo valido: `inicio`, una linea sangrada vacia y `fin` (sin literales repetidos)."""
+    return f"{reglas.PALABRA_INICIO}\n    \n{reglas.PALABRA_FIN}\n"
+
+
+def crear_fuente(ruta: str | Path) -> str:
+    """Crea un archivo nuevo con la plantilla y la devuelve; ARC-002 si la extension no es permitida."""
+    ruta = Path(ruta)
+    if ruta.suffix.lower() not in reglas.EXTENSIONES_PERMITIDAS:
+        raise _error("ARC-002", ruta)
+    texto = plantilla_nueva()
+    guardar_fuente(ruta, texto)
+    return texto
+
+
 def listar_ejemplos(directorio: str | Path | None = None) -> list[Path]:
     """Archivos de ejemplo con extension permitida, ordenados por nombre."""
     if directorio is None:

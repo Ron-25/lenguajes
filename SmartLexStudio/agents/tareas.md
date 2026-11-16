@@ -17,6 +17,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Revisión de cierre (B9, B10, manual, README) | reviewer-opus | claude-opus-5-5 | completado | **APROBADO.** B9/B10 correctos; AUD-28 (`after` huérfanos al destruir la ventana) corregido con prueba; errata del manual (Detener) corregida; 3 corridas `Ran 118 tests` · `OK` sin trazas |
 | Diseño del rediseño visual estilo PyCharm | architect-fable | claude-fable-5-2 | completado | `docs/02_arquitectura.md` §16 (zonas, paleta, tipografías, iconos, *tool windows*, riesgos); tareas B11–B16 (Fase C); decisiones D-44…D-53. **Fase C AUTORIZADA** |
 | Fase C (B11–B16) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | B11–B16 implementadas; 141 pruebas con python3.14 (Tk 9.0), la única falla es `test_conteos_de_flowlang_1_0` por un cambio local ajeno en `config/reglas.py`; capturas reales 1..6 y tabla de 10 puntos en `docs/06_auditoria.md`; decisiones D-54…D-59 pendientes de revisión; Tk 8.6 y M5 pendientes |
+| B17 Nuevo archivo (Ctrl+N) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | `crear_fuente`/`plantilla_nueva`, icono y menú, atajos, árbol Proyecto actualizado; 151 pruebas, única falla `test_conteos_de_flowlang_1_0` (cambio local ajeno); D-60 |
 
 ## Reglas generales para el desarrollador
 

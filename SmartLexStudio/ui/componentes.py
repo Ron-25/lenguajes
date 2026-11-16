@@ -18,7 +18,8 @@ RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 # (nombre, texto, atajo, grupo del menu): de aqui salen botones, menus y globos de la barra
 _ACCIONES = (
     ("analizar", "Analizar", "F5", "ejecucion"), ("paso", "Paso a paso", "F10", "ejecucion"),
-    ("detener", "Detener", "Esc", "ejecucion"), ("abrir", "Abrir", "Ctrl+O", "archivo"),
+    ("detener", "Detener", "Esc", "ejecucion"), ("nuevo", "Nuevo archivo", "Ctrl+N", "archivo"),
+    ("abrir", "Abrir", "Ctrl+O", "archivo"),
     ("guardar", "Guardar", "Ctrl+S", "archivo"), ("limpiar", "Limpiar", "", "archivo"),
     ("ayuda", "Ayuda", "F1", "archivo"),
 )
@@ -223,7 +224,7 @@ class BarraHerramientas(ttk.Frame):
         _Desplegable(self, f"{reglas.NOMBRE_LENGUAJE} · Análisis léxico", self.menu_ejecucion).pack(side="left", padx=(16, 8))
         for nombre, relleno, color in (("analizar", "exito", "exito"), ("paso", None, "exito"), ("detener", "detener", "detener")):
             self._boton(nombre, relleno, color).pack(side="left", padx=3)
-        for nombre in ("ayuda", "limpiar", "guardar", "abrir"):
+        for nombre in ("ayuda", "limpiar", "guardar", "abrir", "nuevo"):
             self._boton(nombre, None, "texto_secundario").pack(side="right", padx=3)
 
     def _boton(self, nombre: str, relleno: str | None, color: str) -> BotonIcono:
@@ -278,9 +279,16 @@ class PanelLateral(PanelHerramientas):
         self.lista.bind("<Double-1>", self._doble_clic)
         raiz = self.lista.insert("", "end", text=" " + RAIZ_PROYECTO.name, image=self._imagenes["carpeta"], open=True)
         self._raiz = raiz
-        carpeta = self.lista.insert(raiz, "end", text=" ejemplos", image=self._imagenes["carpeta"], open=True)
+        self._carpeta = self.lista.insert(raiz, "end", text=" ejemplos", image=self._imagenes["carpeta"], open=True)
+        self._listar_ejemplos()
+
+    def _listar_ejemplos(self) -> None:
+        """(Re)crea las filas de `ejemplos/`: un archivo nuevo creado alli aparece sin reiniciar."""
+        for iid in self.lista.get_children(self._carpeta):
+            self.lista.delete(iid)
+            self._rutas.pop(iid, None)
         for ruta in listar_ejemplos():
-            iid = self.lista.insert(carpeta, "end", text=" " + ruta.name, image=self._imagenes["archivo"])
+            iid = self.lista.insert(self._carpeta, "end", text=" " + ruta.name, image=self._imagenes["archivo"])
             self._rutas[iid] = ruta.resolve()
 
     def _construir_lenguaje(self) -> None:
@@ -313,6 +321,7 @@ class PanelLateral(PanelHerramientas):
             self.lista.selection_set(())
             return
         ruta = Path(ruta).resolve()
+        self._listar_ejemplos()
         iid = next((i for i, r in self._rutas.items() if r == ruta), None)
         if iid is None:
             iid = self._extra = self.lista.insert(self._raiz, "end", text=" " + ruta.name, image=self._imagenes["archivo"])

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from application.archivos import ErrorArchivo, cargar_fuente, guardar_fuente, listar_ejemplos
+from application.archivos import ErrorArchivo, cargar_fuente, crear_fuente, guardar_fuente, listar_ejemplos
 from config import reglas
 from core.modelos import TipoDiagnostico
 
@@ -71,6 +71,27 @@ class TestArchivos(unittest.TestCase):
         nombres = [p.name for p in listar_ejemplos()]
         self.assertEqual(nombres, ["casos_limite.flow", "correcto.flow", "incorrecto.flow"])
         self.assertEqual(listar_ejemplos(self.dir / "no_existe"), [])
+
+    def test_crear_fuente_escribe_una_plantilla_valida(self):
+        from application.analisis_service import analizar_texto
+        ruta = self.dir / "nuevo.flow"
+        texto = crear_fuente(ruta)
+        self.assertEqual(ruta.read_text(encoding="utf-8"), texto)
+        self.assertEqual(cargar_fuente(ruta), texto)
+        self.assertTrue(texto.startswith(reglas.PALABRA_INICIO) and texto.rstrip().endswith(reglas.PALABRA_FIN))
+        self.assertTrue(analizar_texto(texto).es_valida)
+
+    def test_crear_fuente_extension_no_permitida(self):
+        ruta = self.dir / "nuevo.exe"
+        with self.assertRaises(ErrorArchivo) as contexto:
+            crear_fuente(ruta)
+        self.assertEqual(contexto.exception.diagnostico.codigo, "ARC-002")
+        self.assertFalse(ruta.exists())
+
+    def test_crear_fuente_en_carpeta_inexistente_es_arc_005(self):
+        with self.assertRaises(ErrorArchivo) as contexto:
+            crear_fuente(self.dir / "no_existe" / "x.flow")
+        self.assertEqual(contexto.exception.diagnostico.codigo, "ARC-005")
 
 
 if __name__ == "__main__":

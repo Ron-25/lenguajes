@@ -12,6 +12,7 @@ Analizador léxico educativo con interfaz gráfica tipo IDE para **FlowLang 1.0*
 - Comprobación estructural ligera: `inicio`/`fin` y balance de `()` y `{}` con una pila.
 - Tabla de símbolos con hash polinomial, encadenamiento, contador de colisiones y redimensionado.
 - Interfaz oscura **estilo PyCharm**: barra superior con menús y botones de ejecución, franjas de iconos con *tool windows* que se muestran y ocultan (Proyecto, Lenguaje, Consola, Problemas, Tokens, Tabla de símbolos, Estadísticas, Modo educativo), pestaña de editor con numeración, resaltado y widget de inspección `✗ N ⌃ ⌄`, barra de estado con migas de pan; evaluación **progresiva** (los errores aparecen mientras se analiza), modo **paso a paso**, Modo educativo (regex, recorrido de estados), estadísticas y oferta final de ver la tabla de símbolos.
+- Crear archivos nuevos con una plantilla válida (`Ctrl+N`), abrir, guardar y limpiar desde la barra o los menús.
 - Modo consola sin tkinter: `python3 main.py --consola archivo.flow`.
 
 ## Requisitos e instalación

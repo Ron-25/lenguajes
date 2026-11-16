@@ -42,7 +42,7 @@ Si Tk no está instalado, `python3 main.py` te lo dice y te sugiere el modo cons
 
 La ventana sigue el estilo de PyCharm (tema oscuro). Todas las zonas se redimensionan arrastrando los bordes.
 
-1. **Barra superior**: el logo *SL*, dos menús desplegables y los botones de acción. **«SmartLex Studio ▾»** abre el menú de archivo (Abrir, Guardar, Limpiar, Ayuda, Salir); **«FlowLang · Análisis léxico ▾»** abre el de ejecución (Analizar, Paso a paso, Detener). A continuación van **▶ Analizar** (verde), **Paso a paso** y **■ Detener** (rojo), y a la derecha, en gris, los iconos Abrir, Guardar, Limpiar y Ayuda. Los que no se pueden usar en el estado actual aparecen apagados, y al detener el ratón sobre un icono aparece su nombre y atajo.
+1. **Barra superior**: el logo *SL*, dos menús desplegables y los botones de acción. **«SmartLex Studio ▾»** abre el menú de archivo (Nuevo archivo, Abrir, Guardar, Limpiar, Ayuda, Salir); **«FlowLang · Análisis léxico ▾»** abre el de ejecución (Analizar, Paso a paso, Detener). A continuación van **▶ Analizar** (verde), **Paso a paso** y **■ Detener** (rojo), y a la derecha, en gris, los iconos **Nuevo archivo** (documento con «+»), Abrir, Guardar, Limpiar y Ayuda. Los que no se pueden usar en el estado actual aparecen apagados, y al detener el ratón sobre un icono aparece su nombre y atajo.
 2. **Franjas de iconos** (izquierda y derecha): cada icono es una *tool window*. Izquierda arriba: **Proyecto** y **Lenguaje FlowLang**; izquierda abajo: **Consola de evaluación** y **Problemas** (con el número de errores). Derecha: **Tokens**, **Tabla de símbolos** (apagada hasta terminar el análisis), **Estadísticas** y **Modo educativo**. Un clic en el icono de la vista que ya se ve **oculta** esa zona; otro clic la vuelve a mostrar. El botón `—` de cada cabecera también la oculta. El icono de la vista visible queda resaltado.
 3. **Proyecto** (izquierda): árbol `SmartLexStudio › ejemplos › *.flow` con el archivo abierto seleccionado; doble clic en un ejemplo lo carga. **Lenguaje FlowLang** muestra el árbol de palabras reservadas, operadores, delimitadores, escapes y límites; al elegir un elemento, su descripción aparece debajo.
 4. **Editor** (centro): una pestaña con el nombre del archivo (`sin título` si no hay) y una `×` que equivale a *Limpiar*; números de línea grises, colores por categoría de token (comentarios en cursiva) y línea del cursor resaltada. Las líneas con error léxico llevan una `✗` roja en el margen y el texto erróneo va subrayado en rojo. Arriba a la derecha del editor, el **widget de inspección** muestra `✗ N` con las flechas `⌃` `⌄` (o `✓` si no hubo errores): las flechas, o `Shift+F2` y `F2`, saltan al error anterior o siguiente.
@@ -65,12 +65,15 @@ Con las zonas izquierda e inferior ocultas el editor gana espacio:
 4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* (se abre la *Tabla de símbolos*) o usa luego el enlace de la barra de estado o el icono de la franja derecha.
 5. Si editas el texto después de analizar, el resultado queda marcado como desactualizado; vuelve a analizar.
 
+**Nuevo archivo** (`Ctrl+N`, `Cmd+N` en macOS; también en el menú «SmartLex Studio ▾»): si hay cambios sin guardar pregunta si guardarlos (*Sí* guarda, *No* descarta, *Cancelar* aborta); después pide el nombre del archivo (`.flow` por defecto; carpeta del archivo actual o `ejemplos/`) y lo crea con una plantilla mínima válida (`inicio` … `fin`), con el cursor en la línea 2. Si cancelas el diálogo no pasa nada; un error de archivo (extensión no permitida, sin permiso) aparece en *Problemas*.
+
 *Limpiar* deja la aplicación sin archivo y sin resultados. *Guardar* (`Ctrl+S`) escribe el contenido del editor en UTF-8.
 
 ### Atajos de teclado
 
 | Atajo | Acción |
 |---|---|
+| `Ctrl+N` (`Cmd+N` en macOS) | Nuevo archivo |
 | `Ctrl+O` (`Cmd+O` en macOS) | Abrir archivo |
 | `Ctrl+S` (`Cmd+S` en macOS) | Guardar |
 | `F5` | Analizar / continuar |

@@ -5,6 +5,7 @@ import importlib.util
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -98,7 +99,7 @@ class TestRediseno(unittest.TestCase):
         import tkinter as tk
         from ui import iconos
         lienzo = tk.Canvas(self.v)
-        self.assertEqual(len(iconos.TRAZOS), 16)
+        self.assertEqual(len(iconos.TRAZOS), 17)
         for nombre in iconos.TRAZOS:
             self.assertGreaterEqual(len(iconos.dibujar(lienzo, nombre, 0, 0, "#ffffff")), 1, nombre)
 
@@ -149,7 +150,7 @@ class TestRediseno(unittest.TestCase):
             activos = {n for n, b in self.v.barra.botones.items() if b.habilitado}
             self.assertEqual(activos, set(nombres), estado)
         self.assertEqual(set(self.v.barra.botones),
-                         {"abrir", "guardar", "analizar", "paso", "detener", "limpiar", "ayuda"})
+                         {"nuevo", "abrir", "guardar", "analizar", "paso", "detener", "limpiar", "ayuda"})
 
     def test_menu_de_ejecucion_copia_el_estado(self):
         self.v.abrir_archivo(CORRECTO)
@@ -272,6 +273,88 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(e._nombre.cget("text"), "correcto.flow")
         self.v.limpiar()
         self.assertEqual(e._nombre.cget("text"), "sin título")
+
+    # --- B17: nuevo archivo --------------------------------------------------------
+    def carpeta_temporal(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        return Path(tmp.name)
+
+    def test_nuevo_archivo_crea_y_abre_la_plantilla(self):
+        from application.archivos import plantilla_nueva
+        v = self.v
+        v.abrir_archivo(INCORRECTO)
+        ruta = self.carpeta_temporal() / "nuevo.flow"
+        self.filedialog.asksaveasfilename.return_value = str(ruta)
+        v.nuevo_archivo()
+        kwargs = self.filedialog.asksaveasfilename.call_args.kwargs
+        self.assertEqual(kwargs["defaultextension"], ".flow")
+        self.assertEqual(kwargs["initialfile"], "nuevo.flow")
+        self.assertEqual(ruta.read_text(encoding="utf-8"), plantilla_nueva())
+        self.assertEqual(v.editor.obtener_texto(), plantilla_nueva())
+        self.assertEqual(v.editor.posicion_cursor(), (2, 5))
+        self.assertEqual(v.estado, "LISTO")
+        self.assertEqual(v.editor._nombre.cget("text"), "nuevo.flow")
+        self.assertTrue(v.barra_estado.texto_ruta().endswith("nuevo.flow"))
+        self.assertEqual(self.filas(v.problemas.arbol_errores), 0)
+        self.assertEqual(v.panel_resultados.arbol_tokens.get_children(), ())
+        lista = v.panel_lateral.lista
+        self.assertEqual(lista.item(lista.selection()[0], "text").strip(), "nuevo.flow")
+
+    def test_nuevo_archivo_en_ejemplos_aparece_en_el_arbol(self):
+        v = self.v
+        ruta = RAIZ / "ejemplos" / "zz_prueba_nuevo.flow"
+        self.addCleanup(lambda: ruta.unlink(missing_ok=True))
+        self.filedialog.asksaveasfilename.return_value = str(ruta)
+        v.nuevo_archivo()
+        lista = v.panel_lateral.lista
+        carpeta = lista.get_children(lista.get_children()[0])[0]
+        nombres = [lista.item(i, "text").strip() for i in lista.get_children(carpeta)]
+        self.assertIn("zz_prueba_nuevo.flow", nombres)
+        self.assertEqual(lista.item(lista.selection()[0], "text").strip(), "zz_prueba_nuevo.flow")
+
+    def test_nuevo_archivo_cancelado_no_cambia_nada(self):
+        v = self.v
+        v.abrir_archivo(CORRECTO)
+        texto = v.editor.obtener_texto()
+        self.filedialog.asksaveasfilename.return_value = ""
+        v.nuevo_archivo()
+        self.assertEqual(v.editor.obtener_texto(), texto)
+        self.assertEqual(v.ruta_actual.name, "correcto.flow")
+
+    def test_nuevo_archivo_con_cambios_y_cancelar_aborta(self):
+        v = self.v
+        v.abrir_archivo(CORRECTO)
+        v.editor.texto.insert("end", "x")
+        self.messagebox.askyesnocancel.return_value = None
+        v.nuevo_archivo()
+        self.messagebox.askyesnocancel.assert_called_once()
+        self.filedialog.asksaveasfilename.assert_not_called()
+        self.assertEqual(v.ruta_actual.name, "correcto.flow")
+
+    def test_nuevo_archivo_con_cambios_y_no_descarta(self):
+        v = self.v
+        v.abrir_archivo(CORRECTO)
+        v.editor.texto.insert("end", "x")
+        self.messagebox.askyesnocancel.return_value = False
+        ruta = self.carpeta_temporal() / "otro.txt"
+        self.filedialog.asksaveasfilename.return_value = str(ruta)
+        v.nuevo_archivo()
+        self.assertEqual(v.ruta_actual, ruta)
+
+    def test_nuevo_archivo_extension_invalida_es_error_de_archivo(self):
+        v = self.v
+        self.filedialog.asksaveasfilename.return_value = str(self.carpeta_temporal() / "x.exe")
+        v.nuevo_archivo()
+        self.messagebox.showerror.assert_called_once()
+        self.assertEqual(self.filas(v.problemas.arbol_errores), 1)
+        self.assertEqual(v.estado, "SIN_FUENTE")
+
+    def test_atajo_y_menu_de_nuevo(self):
+        self.assertIn("<Control-Key-n>", self.v.bind_all())
+        menu = self.v.barra.menu_archivo
+        self.v.barra.llenar_menu(menu, "archivo")
+        self.assertEqual(menu.entrycget(0, "label"), "Nuevo archivo")
 
 
 if __name__ == "__main__":

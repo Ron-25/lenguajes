@@ -8,7 +8,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from application.analisis_service import SesionAnalisis, explicar_token, tokenizar
-from application.archivos import ErrorArchivo, cargar_fuente, guardar_fuente
+from application.archivos import ErrorArchivo, cargar_fuente, crear_fuente, guardar_fuente
 from config import reglas
 from core.modelos import Diagnostico, Token
 from ui.componentes import (RAIZ_PROYECTO, BarraEstado, BarraHerramientas, FranjaHerramientas, PanelConsola,
@@ -35,14 +35,14 @@ _ICONOS_DERECHA = (("tokens", "Tokens", False), ("simbolos", "Tabla de símbolos
 
 SIN_FUENTE, LISTO, ANALIZANDO, TERMINADO = "SIN_FUENTE", "LISTO", "ANALIZANDO", "TERMINADO"
 _BOTONES_POR_ESTADO = {
-    SIN_FUENTE: ("abrir", "analizar", "ayuda"),
-    LISTO: ("abrir", "guardar", "analizar", "paso", "limpiar", "ayuda"),
-    ANALIZANDO: ("abrir", "analizar", "paso", "detener", "limpiar", "ayuda"),
-    TERMINADO: ("abrir", "guardar", "analizar", "paso", "limpiar", "ayuda"),
+    SIN_FUENTE: ("nuevo", "abrir", "analizar", "ayuda"),
+    LISTO: ("nuevo", "abrir", "guardar", "analizar", "paso", "limpiar", "ayuda"),
+    ANALIZANDO: ("nuevo", "abrir", "analizar", "paso", "detener", "limpiar", "ayuda"),
+    TERMINADO: ("nuevo", "abrir", "guardar", "analizar", "paso", "limpiar", "ayuda"),
 }
 _AYUDA = (
     "SmartLex Studio — analizador léxico de FlowLang 1.0\n\n"
-    "Ctrl+O  Abrir archivo (.flow / .txt)\nCtrl+S  Guardar\n"
+    "Ctrl+N  Nuevo archivo\nCtrl+O  Abrir archivo (.flow / .txt)\nCtrl+S  Guardar\n"
     "F5  Analizar (evaluación progresiva)\nF10  Paso a paso (Modo educativo)\n"
     "Esc  Detener\nF1  Esta ayuda\nF2 / Shift+F2  Siguiente / anterior error\n\n"
     "Clic en un token: ver cómo se reconoció.\nDoble clic en un error: ir a su posición.\n"
@@ -61,6 +61,7 @@ class VentanaPrincipal(tk.Tk):
         self._pasos_por_tick = 1
         self._errores_vistos = 0
         self._tamanos: dict[str, int] = {}
+        self._texto_guardado = ""  # texto del editor en la ultima carga o guardado (detecta cambios)
         aplicar_tema(self)
         self._configurar_ventana()
         self._construir()
@@ -95,7 +96,7 @@ class VentanaPrincipal(tk.Tk):
     def _construir(self) -> None:
         """Disposicion de la arquitectura §16.2: barras, franjas y tres zonas redimensionables."""
         self.barra = BarraHerramientas(self, {
-            "abrir": self.abrir_archivo, "guardar": self.guardar_archivo, "analizar": self.analizar,
+            "nuevo": self.nuevo_archivo, "abrir": self.abrir_archivo, "guardar": self.guardar_archivo, "analizar": self.analizar,
             "paso": self.paso_a_paso, "detener": self.detener, "limpiar": self.limpiar,
             "ayuda": self.mostrar_ayuda, "salir": self.destroy})
         self.barra_estado = BarraEstado(self, self.ver_tabla_simbolos)
@@ -141,12 +142,12 @@ class VentanaPrincipal(tk.Tk):
         self.cuerpo.sashpos(0, alto - 250)
 
     def _registrar_atajos(self) -> None:
-        atajos = {"<Control-o>": self.abrir_archivo, "<Control-s>": self.guardar_archivo,
+        atajos = {"<Control-n>": self.nuevo_archivo, "<Control-o>": self.abrir_archivo, "<Control-s>": self.guardar_archivo,
                   "<F5>": self.analizar, "<F10>": self.paso_a_paso, "<Escape>": self.detener,
                   "<F1>": self.mostrar_ayuda, "<F2>": lambda: self.editor.ir_a_error(1),
                   "<Shift-F2>": lambda: self.editor.ir_a_error(-1)}
         if sys.platform == "darwin":
-            atajos.update({"<Command-o>": self.abrir_archivo, "<Command-s>": self.guardar_archivo})
+            atajos.update({"<Command-n>": self.nuevo_archivo, "<Command-o>": self.abrir_archivo, "<Command-s>": self.guardar_archivo})
         for secuencia, accion in atajos.items():
             self.bind_all(secuencia, lambda _e, f=accion: f())
 
@@ -213,13 +214,43 @@ class VentanaPrincipal(tk.Tk):
         except ErrorArchivo as error:
             self._mostrar_error_archivo(error.diagnostico)
             return
+        self._mostrar_fuente(Path(ruta), texto)
+
+    def _mostrar_fuente(self, ruta: Path, texto: str) -> None:
+        """Pone `texto` en el editor como el archivo abierto `ruta` (abrir y crear comparten esto)."""
         self._reiniciar_resultados()
         self.editor.establecer_texto(texto)
         self.editor.resaltar(tokenizar(self.editor.obtener_texto()))
-        self.ruta_actual = Path(ruta)
+        self._texto_guardado = self.editor.obtener_texto()
+        self.ruta_actual = ruta
         self._poner_titulo()
-        self.consola.escribir(f"Archivo cargado: {self.ruta_actual.name} ({len(texto)} caracteres)", "info")
+        self.consola.escribir(f"Archivo cargado: {ruta.name} ({len(texto)} caracteres)", "info")
         self._actualizar_estado(LISTO)
+
+    def nuevo_archivo(self) -> None:
+        """Crea un archivo con la plantilla minima: pregunta por cambios sin guardar y por la ruta."""
+        if self.editor.obtener_texto() != self._texto_guardado:
+            respuesta = messagebox.askyesnocancel("Nuevo archivo", "¿Guardar cambios antes de crear un archivo nuevo?")
+            if respuesta is None:
+                return
+            if respuesta:
+                self.guardar_archivo()
+                if self.editor.obtener_texto() != self._texto_guardado:
+                    return  # el usuario cancelo el guardado
+        carpeta = self.ruta_actual.parent if self.ruta_actual else RAIZ_PROYECTO / "ejemplos"
+        ruta = filedialog.asksaveasfilename(
+            title="Nuevo archivo FlowLang", defaultextension=reglas.EXTENSIONES_PERMITIDAS[0],
+            initialdir=str(carpeta), initialfile="nuevo" + reglas.EXTENSIONES_PERMITIDAS[0],
+            filetypes=[("FlowLang", " ".join("*" + e for e in reglas.EXTENSIONES_PERMITIDAS))])
+        if not ruta:
+            return
+        try:
+            texto = crear_fuente(ruta)
+        except ErrorArchivo as error:
+            self._mostrar_error_archivo(error.diagnostico)
+            return
+        self._mostrar_fuente(Path(ruta), texto)
+        self.editor.ir_a(2, 5)
 
     def _mostrar_error_archivo(self, diagnostico: Diagnostico) -> None:
         self.consola.escribir(f"✗ {diagnostico.codigo} {diagnostico.mensaje} {diagnostico.sugerencia}", "error")
@@ -245,6 +276,7 @@ class VentanaPrincipal(tk.Tk):
             self._mostrar_error_archivo(error.diagnostico)
             return
         self.ruta_actual = ruta
+        self._texto_guardado = self.editor.obtener_texto()
         self._poner_titulo()
         self.consola.escribir(f"Guardado: {ruta.name}", "info")
 
@@ -441,6 +473,7 @@ class VentanaPrincipal(tk.Tk):
         self._reiniciar_resultados()
         self.editor.limpiar()
         self.consola.limpiar()
+        self._texto_guardado = ""
         self.ruta_actual = None
         self._poner_titulo()
         self._actualizar_estado(SIN_FUENTE)

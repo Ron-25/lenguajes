@@ -15,6 +15,8 @@ TRAZOS: dict[str, list[tuple]] = {
     "analizar": [("poligono", True, 4, 2, 13, 8, 4, 14)],
     "paso": [("poligono", False, 3, 2, 11, 8, 3, 14), ("linea", False, 13, 2, 13, 14)],
     "detener": [("rect", True, 3, 3, 13, 13)],
+    "nuevo": [("poligono", False, 3, 1, 10, 1, 13, 4, 13, 15, 3, 15), ("linea", False, 8, 7, 8, 12),
+              ("linea", False, 6, 9, 10, 9)],
     "abrir": [("poligono", False, 2, 3, 6, 3, 8, 5, 13, 5, 13, 13, 2, 13)],
     "guardar": [("rect", False, 2, 2, 14, 14), ("rect", False, 5, 2, 11, 6), ("rect", False, 4, 9, 12, 14)],
     "limpiar": [("linea", False, 3, 4, 13, 4), ("rect", False, 4, 5, 12, 14), ("linea", False, 6, 2, 10, 2),
