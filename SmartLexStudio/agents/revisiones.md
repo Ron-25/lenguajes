@@ -9,6 +9,7 @@ Aquí se registran las auditorías de cada fase (reviewer-opus), las discrepanci
 | 1 | 2026-11-15 | Fase A (A1–A10) | reviewer-opus | claude-opus-5-5 | Aprobado con observaciones | 6 escalados (E-1…E-6) |
 | 2 | 2026-11-15 | Aprobación formal de la Fase A | architect-fable | claude-fable-5-2 | **Aprobada; Fase B autorizada** | Ninguno bloqueante. E-1…E-6 resueltos en D-30…D-35; D-26…D-28 ratificadas en D-29; pendientes de implementar en B0 (E-2, E-4), B2/B6 (E-5), B4 (E-1) y B8 (E-6). E-3 queda como limitación documentada |
 | 3 | 2026-11-15 | Fase B (B0–B7) y proyecto completo (paso 9) | reviewer-opus | claude-opus-5-5 | Aprobado con observaciones | 2 escalados menores (E-7, E-8); B8 pendiente |
+| 4 | 2026-11-15 | Revisión de cierre (B9, B10, manual, README; base `555ea7b`) | reviewer-opus | claude-opus-5-5 | **Aprobado** | Ninguno. AUD-28 corregido; E-7 resuelto por B9, E-8 por B10 |
 
 ---
 
@@ -140,4 +141,17 @@ Requisito 4 (manejador de errores): AUD-02, AUD-05, AUD-06. Requisito 5 (interfa
 | AUD-27 | Sugerencia | `ui/`, `main.py` | Texto de veredicto armado en tres sitios | Ninguna | Observación |
 
 Decisiones revisadas: D-36 aprobada, D-37 aprobada, D-38 aprobada, D-39 aprobada, D-40 superada (ya hay capturas reales en `docs/capturas/`).
+
+---
+
+### Revisión 4 — Revisión de cierre
+
+- **Base:** `555ea7b` · **Detalle:** `docs/06_auditoria.md`, «Revisión de cierre» · **Veredicto:** APROBADO
+
+| ID | Severidad | Archivo | Descripción | Acción | Estado |
+|---|---|---|---|---|---|
+| AUD-28 | Menor (Baja) | `ui/interfaz.py` | `after` pendientes (tick, desplazamientos diferidos, *debounce*) sobrevivían a `destroy()` → `invalid command name … ("after" script)` intermitente en la batería | `destroy()` cancela todos los `after info` en Tcl | Corregido; `test_aud28_destruir_con_after_pendientes` |
+| — | Errata | `docs/04_manual_usuario.md` §4, §8 | «Detener libera el editor» (falso) | Texto corregido | Corregido |
+
+B9 (D-42) y B10 (D-43) revisados: correctos, con pruebas significativas. Batería: 3 corridas `Ran 118 tests` · `OK`, 0 trazas.
 

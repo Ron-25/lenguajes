@@ -239,3 +239,42 @@ Ninguno es bloqueante.
 ### 10. Veredicto
 
 **APROBADO CON OBSERVACIONES.** Los seis requisitos del PDF se cumplen con evidencia ejecutada. La arquitectura por capas se respeta (UI sin lógica léxica, núcleo sin tkinter, colores y reglas en un único lugar). El único hallazgo alto (coste cuadrático al animar entradas grandes, que congelaba la UI ~1 s por *tick*), el medio (aviso de cambio fuera de tiempo) y los bajos de comportamiento (cursor al final tras cargar, EOF en consola, columnas truncadas, botones) están corregidos con pruebas que fallan sobre `dc4e725`. Quedan dos escalados menores (E-7, E-8) y la tarea B8.
+
+---
+
+## Revisión de cierre
+
+- **Fecha:** 2026-11-15 · **Auditor:** reviewer-opus / claude-opus-5-5 · **Base:** `555ea7b` (B9, B10, manual, README; 117 pruebas)
+- **Veredicto de cierre:** **APROBADO** (sin hallazgos abiertos de severidad media o superior)
+
+### 1. Diff de B9/B10 (`git diff 1af68fb 555ea7b -- ui application tests`)
+
+| Cambio | Revisión |
+|---|---|
+| B9 / D-42: `PanelResultados.quitar_errores_de_archivo()` antes de `agregar_error` en `_mostrar_error_archivo` | Correcto: solo borra filas con `tipo == ARCHIVO`, refresca el detalle (AUD-20) y conserva los 15 errores de un análisis terminado. La prueba `test_un_solo_error_de_archivo` cubre los dos casos (sin análisis → 1 fila; tras analizar `incorrecto.flow` → 16 con un solo `ARC`). Resuelve E-7 / AUD-24 |
+| B10 / D-43: `explicar_token` separa Lexema / Categoría / Posición en líneas | Correcto y mínimo (2 líneas en el servicio); `test_detalle_una_linea_por_dato` exige `Campo: valor` en todas las líneas. Resuelve el aspecto visible de E-8 / AUD-25 (captura 4) |
+| AUD-16…AUD-22 | Siguen vigentes: `tests/test_auditoria_fase_b.py` en verde |
+
+### 2. Hallazgo nuevo
+
+| ID | Severidad | Archivo | Problema | Impacto | Prueba | Estado |
+|---|---|---|---|---|---|---|
+| AUD-28 | Baja | `ui/interfaz.py` (`VentanaPrincipal`) | Al destruir la ventana quedaban `after` pendientes en el intérprete: el *tick* del análisis (`_tick`), los desplazamientos diferidos de AUD-17 (`_bajar_al_final`, `_ver_ultimo_token`, `_ver_token_actual`), el *debounce* de 300 ms del editor y la solicitud inicial de 100 ms. tkinter borra los comandos Python al destruir los widgets, pero Tcl conserva los eventos; el bucle de eventos (compartido por hilo) los dispara en la siguiente ventana y Tcl imprime `invalid command name "…_tick" … ("after" script)` | Traza intermitente en stderr de la batería (dependía de si la prueba destruía la ventana con un análisis en curso); en uso real, solo al cerrar la ventana a mitad de un análisis | `tests/test_auditoria_fase_b.py::TestDestruccion::test_aud28_destruir_con_after_pendientes` (subproceso, porque Tcl escribe en el descriptor 2): falla en `555ea7b` con `_bajar_al_final` y `_tick` huérfanos; pasa tras la corrección | Corregido: `VentanaPrincipal.destroy()` cancela en Tcl (`after cancel`) todos los ids de `after info` antes de `super().destroy()`. Se cancela solo en Tcl (no con `after_cancel`) porque cada widget hijo borra su propio comando al destruirse; borrarlo antes provoca `TclError: can't delete Tcl command` |
+
+### 3. Documentación verificada contra el código
+
+`README.md` y `docs/04_manual_usuario.md`: atajos (Ctrl/Cmd+O, Ctrl/Cmd+S, F5, F10, Esc, F1), comandos (`--consola` con y sin ruta), 19 diagnósticos, 4 AFD, 17 reservadas, capacidad inicial 17 y factor 0,75, ejemplos de `LEX-003` (`3.`, `.5`, `3.4.5`), `SIN-006` con `( }`, comando de pruebas con `-t .` y estructura de carpetas: **coinciden**.
+Errata corregida en el manual (§4 y §8): decía que *Detener* libera el editor; en realidad la pausa mantiene la sesión en `ANALIZANDO` y el editor sigue en solo lectura hasta terminar o *Limpiar*.
+
+### 4. Regresión
+
+| Corrida (`python3.14 -m unittest discover -s tests`, sin `-v`) | Resultado | Trazas `("after" script)` en stderr |
+|---|---|---|
+| 1 | `Ran 118 tests in 24.373s` · `OK` | 0 |
+| 2 | `Ran 118 tests in 24.163s` · `OK` | 0 |
+| 3 | `Ran 118 tests in 24.253s` · `OK` | 0 |
+
+### 5. Veredicto de cierre
+
+**APROBADO.** B9 y B10 son correctos y están probados; AUD-28 corregido con prueba que falla en `555ea7b`; documentación de usuario coherente con el código tras una errata. Limitaciones que siguen vigentes (sin cambios): AUD-23 (consola), AUD-26 (re-resaltado en archivos grandes), D-31, D-34.
+

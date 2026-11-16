@@ -36,6 +36,38 @@ class TestModoConsola(unittest.TestCase):
         self.assertIn("VÁLIDA", r.stdout)
 
 
+_SCRIPT_DESTRUIR = """
+import time
+from unittest import mock
+from ui import interfaz
+mock.patch.object(interfaz, "messagebox").start(); mock.patch.object(interfaz, "filedialog").start()
+v = interfaz.VentanaPrincipal(solicitar_archivo=True)
+v.abrir_archivo("ejemplos/correcto.flow"); v.update()
+v.editor.texto.insert("end", " x"); v.update()
+v.analizar()
+v.consola.escribir("y")
+v.destroy()
+w = interfaz.VentanaPrincipal(solicitar_archivo=False)
+fin = time.time() + 0.8
+while time.time() < fin:
+    w.update(); time.sleep(0.01)
+w.destroy()
+"""
+
+
+@unittest.skipUnless(HAY_TK, "tkinter o pantalla no disponibles")
+class TestDestruccion(unittest.TestCase):
+    def test_aud28_destruir_con_after_pendientes(self):
+        """Destruir la ventana con tick, debounce y desplazamientos pendientes no deja
+        callbacks huerfanos («invalid command name … ("after" script)»). En subproceso porque
+        Tcl escribe el error directamente en el descriptor 2."""
+        r = subprocess.run([sys.executable, "-c", _SCRIPT_DESTRUIR], cwd=RAIZ,
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("after", r.stderr)
+        self.assertNotIn("invalid command name", r.stderr)
+
+
 @unittest.skipUnless(HAY_TK, "tkinter o pantalla no disponibles")
 class TestAuditoriaFaseB(unittest.TestCase):
     def setUp(self):

@@ -6,6 +6,8 @@ Tema: *Analizador léxico, tabla de símbolos y manejador de errores*. Objetivo:
 Estado inicial de todas las filas: **Pendiente**. El auditor completa `Estado` y la evidencia (salida de pruebas, captura) al cerrar cada fase.
 Las columnas *Implementación*, *Archivo* y *Prueba* se actualizaron con **evidencia ejecutada** en la auditoría final (2026-11-15, `docs/06_auditoria.md`, «Auditoría final»): 115 pruebas OK con python3.14 / Tk 9.0.
 
+**Estado final (revisión de cierre, 2026-11-15, commit base `555ea7b` + AUD-28):** los 7 requisitos del PDF (R1–R6, con R5 en a/b) y D1–D5 **cumplen**; batería `Ran 118 tests` · `OK` en tres corridas completas consecutivas sin trazas en stderr. R4 incluye además B9/D-42 (un solo error `ARC-*` visible; `tests/test_ui_humo.py::test_un_solo_error_de_archivo`); D1 incluye B10/D-43 (detalle del Modo educativo en formato `Campo: valor`; `tests/test_integracion.py::test_detalle_una_linea_por_dato`).
+
 ## Requisitos funcionales del PDF
 
 | Requisito | Implementación | Archivo | Prueba | Estado |
@@ -25,7 +27,7 @@ Las columnas *Implementación*, *Archivo* y *Prueba* se actualizaron con **evide
 | **D1** Emplear conceptos de teoría de autómatas de forma demostrable | Motor AFD genérico; 4 AFD como datos; recorrido de estados y tabla de transiciones en el Modo educativo (D-39) | `core/afd.py`, `config/reglas.py`, `ui/paneles.py` | `tests/test_afd.py`; captura 4 — OK | **Cumple** |
 | **D2** Posiciones exactas (línea y columna desde 1) en tokens y errores | Contadores en el lexer; `\r` normalizado en el editor (D-34); doble clic en un error navega a su posición | `core/lexer.py`, `ui/editor.py` | `tests/test_lexer.py`, `tests/test_ui_humo.py::test_navegacion_a_un_error`, `::test_retorno_de_carro`, `::test_fuera_del_bmp` — OK | **Cumple** |
 | **D3** Ejecutable en el laboratorio sin instalar nada | Solo biblioteca estándar; sin Tk, `main.py` explica cómo instalarlo o usar `--consola` | `main.py` | Batería OK en python3.11/3.12 (UI omitida) y 3.14 (completa) | **Cumple** |
-| **D4** Código explicable y modificable en vivo | Reglas centralizadas como datos | `config/reglas.py`, `docs/02_arquitectura.md` §11 | Ensayo en copia: añadir `repetir` cambia lexer, resaltado, panel lateral y Modo educativo; solo falla `test_conteos_de_flowlang_1_0` (D-32). Ensayo completo B8 pendiente | **Cumple** (B8 pendiente) |
+| **D4** Código explicable y modificable en vivo | Reglas centralizadas como datos | `config/reglas.py`, `docs/02_arquitectura.md` §11 | Ensayo en copia: añadir `repetir` cambia lexer, resaltado, panel lateral y Modo educativo; solo falla `test_conteos_de_flowlang_1_0` (D-32). Ensayo de modificaciones documentado en `docs/05_guia_sustentacion.md` (B8) | **Cumple** |
 | **D5** Dominio independiente de la interfaz | `core/` y `application/` sin `tkinter`; `ui/` no importa lexer/validador/simbolos/afd | todo `core/`, `application/` | `tests/test_integracion.py::test_dominio_sin_tkinter`; `grep` vacíos (auditoría final §2) | **Cumple** |
 
 ## Verificaciones manuales (se registran con captura en la auditoría final)

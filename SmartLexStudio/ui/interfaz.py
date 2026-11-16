@@ -56,6 +56,20 @@ class VentanaPrincipal(tk.Tk):
         if solicitar_archivo:
             self.after(100, self._solicitar_archivo_inicial)
 
+    def destroy(self) -> None:
+        """Cancela todos los `after` pendientes del interprete (tick, debounce del editor,
+        desplazamientos diferidos) antes de destruir: si no, el bucle de eventos los ejecuta
+        despues y Tcl informa «invalid command name … ("after" script)» (AUD-28)."""
+        try:
+            pendientes = self.tk.splitlist(self.tk.call("after", "info"))
+        except tk.TclError:
+            pendientes = ()
+        for identificador in pendientes:
+            # solo se cancela en Tcl: cada widget borra su propio comando al destruirse
+            self.tk.call("after", "cancel", identificador)
+        self._id_tick = None
+        super().destroy()
+
     # --- construccion ----------------------------------------------------
     def _configurar_ventana(self) -> None:
         ancho = min(1280, self.winfo_screenwidth())

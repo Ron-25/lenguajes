@@ -54,7 +54,7 @@ La ventana se divide en zonas (todas se pueden redimensionar arrastrando los bor
 ## 4. Flujo típico
 
 1. **Abrir** un archivo `.flow` o `.txt` (`Ctrl+O`). Al iniciar, la aplicación abre sola el selector «Seleccione el archivo con las cadenas de entrada»; si lo cancelas puedes escribir directamente en el editor o usar los ejemplos.
-2. **Analizar** (`F5`): la evaluación es **progresiva**; verás cómo se llenan las pestañas Tokens y Errores mientras avanza. Mientras analiza, el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
+2. **Analizar** (`F5`): la evaluación es **progresiva**; verás cómo se llenan las pestañas Tokens y Errores mientras avanza. Mientras analiza (incluso en pausa), el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
    - Alternativa **Paso a paso** (`F10`): cada pulsación procesa exactamente un token y abre el Modo educativo con su explicación.
 3. **Revisar los errores**: el primer error cambia a la pestaña *Errores*. Haz clic en una fila para ver el detalle completo y doble clic para saltar a esa posición del editor.
 4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* o usa luego el botón de la barra de estado.
@@ -164,6 +164,6 @@ En `ejemplos/` tienes tres programas: `correcto.flow` (válido), `incorrecto.flo
 | Un mensaje de error de archivo al abrir | Mira su código en la sección 6; el contenido del editor no se modifica. |
 | El botón *Analizar* sin archivo vuelve a pedir uno | Es lo esperado: abre un archivo o escribe en el editor. |
 | La pestaña *Tabla de símbolos* aparece apagada | Se activa al terminar el análisis; pulsa *Analizar* y espera. |
-| No puedo escribir en el editor | Está en solo lectura mientras se analiza; pulsa *Detener* (`Esc`) o espera al final. |
+| No puedo escribir en el editor | Está en solo lectura mientras dura el análisis, también cuando está detenido con *Detener* (`Esc`). Continúa con *Analizar* (`F5`) hasta el final, o pulsa *Limpiar*. |
 | Los colores se desplazan tras un emoji (Tcl/Tk 8.6) | Limitación visual conocida; los tokens y posiciones del análisis son correctos. |
 | Un archivo grande se anima lentamente | El análisis es correcto; la animación depende del dibujo de Tk. Usa el modo consola si solo necesitas el resultado. |
