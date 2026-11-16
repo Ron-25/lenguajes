@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -17,6 +18,7 @@ from ui.paneles import PanelErrores, PanelResultados
 
 DURACION_MAXIMA_ANIMACION_MS = 10000  # tope de la animacion completa (la pausa por linea se acorta en archivos largos)
 PASOS_MAXIMOS_POR_TICK = 500          # una linea larguisima no debe bloquear la ventana
+PRESUPUESTO_TICK_S = 0.03             # AUD-34: un latido atrasado agrupa lineas hasta 30 ms y cede para repintar
 TITULO_SOLICITUD = "Seleccione el archivo con las cadenas de entrada"
 
 SIN_FUENTE, LISTO, ANALIZANDO, TERMINADO = "SIN_FUENTE", "LISTO", "ANALIZANDO", "TERMINADO"
@@ -49,6 +51,7 @@ class VentanaPrincipal(tk.Tk):
         self._errores_vistos = 0
         self._linea_en_curso = 0   # ultima linea con tokens que el analisis ya empezo (0 = ninguna)
         self._lineas_fuente = 1
+        self._ritmo = (0.0, 0, -1)  # AUD-34: (instante de referencia, lineas animadas desde entonces, pausa usada)
         self._texto_guardado = ""  # texto del editor en la ultima carga o guardado (detecta cambios)
         aplicar_tema(self)
         self._configurar_ventana()
@@ -277,22 +280,40 @@ class VentanaPrincipal(tk.Tk):
         if self.estado != ANALIZANDO:
             self._iniciar_sesion()
         self.panel_resultados.mostrar("tokens")
+        self._ritmo = (time.monotonic(), 0, self._pausa_efectiva())
         self._id_tick = self.after(1, self._tick)
 
     def _pausa_efectiva(self) -> int:
         """Pausa entre lineas: el deslizador, acortada para que un archivo largo no dure mas del tope."""
         return min(self.cabecera.pausa_ms(), DURACION_MAXIMA_ANIMACION_MS // max(1, self._lineas_fuente))
 
+    def _atrasado(self) -> bool:
+        """AUD-34: el trabajo de cada linea se suma a la pausa; si el reloj va por detras del ritmo
+        `lineas x pausa` (o la pausa es 0), el latido sigue con la linea siguiente sin esperar.
+        Si el deslizador cambia, el ritmo se reinicia (no se recupera el atraso de la pausa anterior)."""
+        pausa = self._pausa_efectiva()
+        inicio, lineas, pausa_usada = self._ritmo
+        if pausa != pausa_usada:
+            self._ritmo = (time.monotonic(), 0, pausa)
+            return pausa == 0
+        return pausa == 0 or (time.monotonic() - inicio) * 1000 > lineas * pausa
+
     def _tick(self) -> None:
-        """Un latido: consume pasos hasta terminar la linea en curso y espera la pausa (§17.7)."""
+        """Un latido: consume pasos hasta terminar la linea en curso y espera la pausa (§17.7);
+        si va atrasado respecto del tope, agrupa lineas dentro de PRESUPUESTO_TICK_S (AUD-34)."""
         self._id_tick = None
         linea = self._linea_en_curso
+        limite = time.monotonic() + PRESUPUESTO_TICK_S
         for _ in range(PASOS_MAXIMOS_POR_TICK):
             if not self._consumir_paso(educativo=False):
                 return
             if self._linea_en_curso != linea:
-                self._id_tick = self.after(self._pausa_efectiva(), self._tick)
-                return
+                inicio, lineas, pausa_usada = self._ritmo
+                self._ritmo = (inicio, lineas + 1, pausa_usada)
+                linea = self._linea_en_curso
+                if not self._atrasado() or time.monotonic() >= limite:
+                    self._id_tick = self.after(max(1, self._pausa_efectiva()), self._tick)
+                    return
         self._id_tick = self.after(1, self._tick)
 
     def paso_a_paso(self) -> None:

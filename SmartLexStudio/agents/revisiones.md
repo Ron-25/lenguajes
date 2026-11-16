@@ -155,3 +155,14 @@ Decisiones revisadas: D-36 aprobada, D-37 aprobada, D-38 aprobada, D-39 aprobada
 
 B9 (D-42) y B10 (D-43) revisados: correctos, con pruebas significativas. Batería: 3 corridas `Ran 118 tests` · `OK`, 0 trazas.
 
+
+### Auditoría Fase D (reviewer-opus)
+
+| ID | Severidad | Archivo | Problema | Corrección | Estado |
+|---|---|---|---|---|---|
+| AUD-33 | Media | `ui/paneles.py` | Tabla de símbolos con `repr` crudo (apariciones `[(6, 12)…]`, `True/False`, cadenas sin comillas) | `formatear_apariciones` (`6:12, 9:9`), `formatear_valor`, columna «Veces» | Corregido; `test_aud33_tabla_de_simbolos_legible` |
+| AUD-34 | Media | `ui/interfaz.py` | Tope de 10 s incumplido (5 000 líneas a 120 ms: 39,6 s); en 0 ms sin repintado 1,9 s | Ritmo `líneas × pausa` + agrupación con presupuesto de 30 ms (`_atrasado`, `PRESUPUESTO_TICK_S`) → 9,0 s / 2,1 s con repintado | Corregido; `test_aud34_archivo_largo_respeta_el_tope_y_repinta` |
+| AUD-35 | Baja | `ui/estilos.py` | `TEMA["advertencia"]` sin uso | Ninguna (paleta fijada por §17.3) | Abierto, arquitecto |
+| AUD-36 | Baja | `ui/interfaz.py` (divisores) | Solo ~4 filas visibles de la Tabla de símbolos en 1440×880 | Escalado (proporciones §17.2) | Escalado a architect-fable |
+
+O-2 (pausa en 0 ms) no es defecto: el valor por defecto real es 120 ms; el driver de capturas lo pone en 0. D-73: aprobable; sugerir deslizador de 120 px. Batería: 3 corridas `Ran 176 tests`, 2 fallas esperadas (archivos del usuario), 0 trazas.

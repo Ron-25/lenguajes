@@ -20,6 +20,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | B17 Nuevo archivo (Ctrl+N) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | `crear_fuente`/`plantilla_nueva`, icono y menú, atajos, árbol Proyecto actualizado; 151 pruebas, única falla `test_conteos_de_flowlang_1_0` (cambio local ajeno); D-60 |
 | Diseño del rediseño claro estilo académico (Fase D) | architect-fable | claude-fable-5-2 | completado | `docs/02_arquitectura.md` §17 (zonas, paleta, pausa por línea, qué se elimina y reutiliza, pruebas a adaptar); tareas C1–C8; decisiones D-61…D-72; incluye la corrección pendiente AUD-29/31/32 |
 | Fase D (C1–C8) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | C1–C8 implementadas; 174 pruebas con python3.14 (Tk 9.0), solo las 2 fallas de D-72, tres corridas iguales; 6 capturas reales en 3 iteraciones y tabla de comparación en `docs/06_auditoria.md`; AUD-29/31/32 cerrados con prueba; D-73 pendiente de revisión; Tk 8.6 y M5 no probados |
+| Auditoría Fase D | reviewer-opus | claude-opus-5-5 | completado | AUD-33 (tabla de símbolos legible: `lín:col`, «Veces», `verdadero/falso`) y AUD-34 (tope de 10 s y repintado en archivos largos) corregidos con prueba; AUD-35/36 bajos al arquitecto; O-2 no es defecto; D-73 aprobable; 176 pruebas, 2 fallas esperadas, 0 trazas en 3 corridas |
 
 ## Reglas generales para el desarrollador
 

@@ -346,3 +346,24 @@ Diferencias aceptadas (§16.1): un solo archivo en la pestaña, sin guías de sa
 | Cabecera de una fila; columnas Tipo/Subtipo/Veces/Líneas; códigos E01… | Diferencia aceptada (§17.1) |
 
 Ningún defecto queda abierto. Los textos de la cabecera ocupan dos filas (D-62). **M1–M3** repetidas con las pruebas `test_requisito_5a/5b/6` y las capturas 1, 2, 5 y 6. **M5** (Windows/Linux del laboratorio) y la repetición en **Tk 8.6** siguen pendientes: no se han probado.
+
+---
+
+## Auditoría Fase D (reviewer-opus)
+
+Revisión de `git diff 10be484 8e1ecf8` (ui y tests) contra §17, las tareas C1–C8 y D-61…D-73, verificada **ejecutando** la aplicación (sondas con `mainloop` real, no solo las pruebas).
+
+| ID | Severidad | Problema | Impacto | Prueba que lo reproduce | Corrección | Estado |
+|---|---|---|---|---|---|---|
+| AUD-33 | Media | La Tabla de símbolos mostraba `repr` de Python: apariciones `[(7, 11), (16, 31)]`, booleanos `True/False`, cadenas sin comillas | Ilegible para el estudiante; `True` no es FlowLang | `test_aud33_tabla_de_simbolos_legible` | `ui/paneles.py`: `formatear_apariciones` → `7:11, 16:31, 25:33`; `formatear_valor` (booleano con su palabra `verdadero/falso`, cadena entre comillas con escapes, `None` vacío); columna nueva «Veces»; «Categoría» a 150 px (se cortaba «Palabra reservada») | Corregido |
+| AUD-34 | Media | El tope de 10 s (§17.7) no se cumplía: `_pausa_efectiva` acorta solo la espera y el trabajo de cada línea (~6 ms con repintado) se sumaba. Medido: 5 000 líneas a 120 ms → **39,6 s**; además en 0 ms la ventana no repintaba durante 1,9 s (un solo repintado en todo el análisis) | Archivos largos tardaban 4× el tope; en 0 ms la UI quedaba congelada visualmente | `test_aud34_archivo_largo_respeta_el_tope_y_repinta` (3 000 líneas < 13 s) | `ui/interfaz.py`: `_atrasado()` lleva el ritmo `líneas × pausa` desde `analizar()`; si el reloj va por detrás (o la pausa es 0) el latido agrupa líneas hasta `PRESUPUESTO_TICK_S = 30 ms` y cede; mover el deslizador reinicia el ritmo; el `after` usa `max(1, pausa)`. Medido después: 5 000 líneas 120 ms → 9,0 s (peor hueco de repintado 88 ms); 0 ms → 2,1 s con 27 repintados (peor hueco 99 ms); 60 líneas 120 ms → 6,6 s (sin cambio) | Corregido |
+| AUD-35 | Baja (informativo) | La clave `TEMA["advertencia"]` no se usa en `ui/` | Ninguno; la prueba exige las 25 claves de §17.3 | `grep '\["advertencia"\]' ui` vacío | Se deja: la paleta la fija la arquitectura | Abierto (arquitecto) |
+| AUD-36 | Baja | En 1440×880 la pestaña inferior muestra solo ~4 filas de la Tabla de símbolos (la referencia muestra ~12) y el resumen de la función hash ocupa dos líneas | Hay que arrastrar el divisor para leer la tabla | captura `2_tabla_simbolos.png` | Proporción de los divisores (`_colocar_divisores`) es decisión de diseño §17.2 | Escalado al arquitecto |
+
+**Observaciones del orquestador.** O-1 confirmada → AUD-33. O-2 **no es defecto**: al abrir la aplicación el deslizador vale 120 ms y la etiqueta dice «120 ms» (sonda y `test_pausa_por_defecto_y_etiqueta`); las capturas muestran 0 ms porque `capturar.py` llama `establecer_pausa(0)` para las capturas de análisis completo (la 6 usa 300 ms). Texto y valor se sincronizan por el `command` del `ttk.Scale`.
+
+**Verificado ejecutando.** Req. 5: con 120 ms sobre `incorrecto.flow` (1,8 s) las filas del manejador aparecen antes del final (142 muestras con errores > 0 antes de terminar), las marcas ✓/✗ crecen 0→1→2→4…→8, la pestaña Tabla de símbolos está deshabilitada en todas las muestras previas y al final se ofrece el `askyesno`. Req. 6, paso a paso/detener, Ctrl/⌘+N, C5 (Sí/No/Cancelar en abrir/ejemplos/limpiar/cerrar; Ctrl+O sin salto), F2 error→línea, Autómatas: cubiertos por pruebas de `test_ui_rediseno.py` que pasan. Modo consola: `main.py --consola ejemplos/incorrecto.flow` → 15 errores, veredicto INVÁLIDA, oferta de tabla. Capas: `ui/` solo importa `application`, `config`, `core.modelos` y `ui`; colores hex solo en `estilos.py`; `core/` y `application/` sin `tkinter`. Código muerto del diseño PyCharm: no queda (`test_no_queda_nada_del_diseno_pycharm` + barrido de funciones sin uso).
+
+**D-73 (opinión).** (a), (b), (d), (e), (f) razonables y de bajo riesgo. (c) aceptable, pero el deslizador de 80 px es poco preciso (0–500 ms en 80 px ≈ 6 ms/px): sugerencia al arquitecto de 120 px si cabe. Recomiendo aprobar D-73.
+
+**Batería.** `python3.14 -m unittest discover -s tests -t .` tres corridas: `Ran 176 tests` · `FAILED (failures=2)` (solo `test_conteos_de_flowlang_1_0` y `test_listar_ejemplos`, por los archivos locales del usuario), 0 trazas `("after" script)` / `invalid command` (AUD-28 sigue cerrado). Capturas regeneradas una vez (`capturar.py`); la 2 ya muestra «Veces» y `lín:col` (la cabecera «Veces» se veía cortada y se ensanchó a 70 px después de la captura).

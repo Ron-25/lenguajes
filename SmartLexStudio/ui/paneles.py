@@ -15,8 +15,8 @@ from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo, fuente_interfaz
 COLUMNAS_TOKENS = [("n", "#", 56), ("linea", "Lín", 50), ("col", "Col", 50),
                    ("categoria", "Categoría", 150), ("lexema", "Lexema", 220)]
 COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 76), ("hash", "Hash", 116), ("lexema", "Lexema", 150),
-                     ("categoria", "Categoría", 130), ("tipo", "Tipo", 90), ("valor", "Valor", 110),
-                     ("decl", "Decl.", 50), ("apariciones", "Apariciones", 220)]
+                     ("categoria", "Categoría", 150), ("tipo", "Tipo", 90), ("valor", "Valor", 110),
+                     ("decl", "Decl.", 50), ("veces", "Veces", 70), ("apariciones", "Apariciones (lín:col)", 240)]
 COLUMNAS_ERRORES = [("codigo", "Código", 80), ("linea", "Línea", 58), ("col", "Col", 45),
                     ("lexema", "Lexema", 110), ("error", "Error", 200)]
 
@@ -30,6 +30,22 @@ def recortar(texto: object, maximo: int = _MAX_TEXTO) -> str:
     """Texto en una linea (saltos como ⏎) y recortado a `maximo` caracteres."""
     limpio = str(texto).replace("\n", "⏎").replace("\t", "→")
     return limpio if len(limpio) <= maximo else limpio[:maximo] + "…"
+
+
+def formatear_apariciones(apariciones) -> str:
+    """Posiciones legibles `lin:col, lin:col` (AUD-33; antes se mostraba la lista Python cruda)."""
+    return recortar(", ".join(f"{linea}:{columna}" for linea, columna in apariciones), 60)
+
+
+def formatear_valor(valor: object) -> str:
+    """Valor del literal como en FlowLang: booleanos con su palabra, cadenas entre comillas, nada para None (AUD-33)."""
+    if valor is None:
+        return ""
+    if isinstance(valor, bool):
+        return next((palabra for palabra, v in reglas.VALORES_BOOLEANOS.items() if v is valor), str(valor))
+    if isinstance(valor, str):
+        return recortar('"' + valor.replace("\\", "\\\\").replace('"', '\\"') + '"')
+    return recortar(valor)
 
 
 def _tabla(padre, columnas, estirar: tuple[str, ...] = ()) -> ttk.Treeview:
@@ -169,8 +185,9 @@ class PanelResultados(ttk.Frame):
             for entrada in cubeta:
                 self.arbol_simbolos.insert("", "end", tags=(("colision",) if len(cubeta) > 1 else ()), values=(
                     indice, entrada.valor_hash, recortar(entrada.lexema), entrada.categoria.value,
-                    entrada.tipo_dato or "", recortar(entrada.valor) if entrada.valor is not None else "",
-                    entrada.linea_declaracion or "", recortar(entrada.apariciones)))
+                    entrada.tipo_dato or "", formatear_valor(entrada.valor),
+                    entrada.linea_declaracion or "", len(entrada.apariciones),
+                    formatear_apariciones(entrada.apariciones)))
         e = tabla.estadisticas()
         visibles = e.cantidad - e.cubetas_ocupadas
         self.etiqueta_resumen.configure(text=(

@@ -650,6 +650,37 @@ class TestRediseno(unittest.TestCase):
         self.assertEqual(self.filas(v.panel_errores.arbol_errores), 1)
         self.assertEqual(v.estado, "SIN_FUENTE")
 
+    # --- Auditoría Fase D (reviewer-opus) -----------------------------------------
+    def test_aud33_tabla_de_simbolos_legible(self):
+        from ui.paneles import formatear_apariciones, formatear_valor
+        self.assertEqual(formatear_apariciones([(6, 12), (9, 9), (10, 18)]), "6:12, 9:9, 10:18")
+        self.assertEqual([formatear_valor(x) for x in (True, False, None, 28, 1.05)],
+                         ["verdadero", "falso", "", "28", "1.05"])
+        self.assertEqual(formatear_valor('Invernadero "Norte"'), '"Invernadero \\"Norte\\""')
+        self.terminar(CORRECTO)
+        arbol = self.v.panel_resultados.arbol_simbolos
+        filas = {arbol.set(i, "lexema"): i for i in arbol.get_children()}
+        humedad = filas["humedad"]
+        self.assertEqual(arbol.set(humedad, "apariciones"), "6:13, 13:30, 23:9, 23:19")
+        self.assertEqual(arbol.set(humedad, "veces"), "4")
+        self.assertEqual(arbol.set(filas["verdadero"], "valor"), "verdadero")
+        for i in arbol.get_children():
+            self.assertNotIn("[(", arbol.set(i, "apariciones"))
+            self.assertNotIn(arbol.set(i, "valor"), ("True", "False", "None"))
+
+    def test_aud34_archivo_largo_respeta_el_tope_y_repinta(self):
+        v = self.v
+        base = Path(CORRECTO).read_text(encoding="utf-8").splitlines()
+        ruta = self.carpeta_temporal() / "largo.flow"
+        ruta.write_text("\n".join((base * 200)[:3000]), encoding="utf-8")
+        v.cabecera.establecer_pausa(120)
+        v.abrir_archivo(str(ruta))
+        inicio = time.monotonic()
+        v.analizar()
+        self.bombear(lambda: v.estado == "TERMINADO", limite=40)
+        # antes de AUD-34 el trabajo de cada línea se sumaba a la pausa (~24 s para 3 000 líneas)
+        self.assertLess(time.monotonic() - inicio, self.interfaz.DURACION_MAXIMA_ANIMACION_MS / 1000 * 1.3)
+
 
 if __name__ == "__main__":
     unittest.main()
