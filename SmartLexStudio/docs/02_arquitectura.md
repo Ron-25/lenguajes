@@ -498,6 +498,8 @@ Limitaciones conocidas y aceptadas: textos de cuatro diagnósticos que repiten u
 
 ## 16. Rediseño visual estilo PyCharm (New UI, tema oscuro)
 
+> **Sustituido por §17 (Fase D, D-61).** El aspecto PyCharm (franjas de iconos, *tool windows*, `ui/iconos.py`, paleta Darcula) deja de ser el diseño vigente; esta sección queda como historial. Siguen vigentes las técnicas validadas aquí que §17 reutiliza (`_puntos`, D-51; barras de desplazamiento sin flechas; capturas por identificador de ventana, D-58).
+
 > **Estado: implementado (tareas B11–B16 de `agents/tareas.md`, decisiones D-44…D-59); las diferencias con el diseño están en §15.** Este rediseño cambia **solo `ui/`**: `core/`, `application/`, `config/` y `main.py` no se tocan, y §10.3 (vista pasiva + coordinador), §10.4 (estados), §10.5 (requisito 6) y §10.6 siguen vigentes sin cambios.
 
 ### 16.1 Objetivo y límites
@@ -732,3 +734,215 @@ Regla de dependencias de `ui/` (igual que §2): `estilos` ← `iconos` ← `comp
 | **Se pierde un requisito al mover paneles** | Las pruebas de humo de los requisitos 5 y 6 no se relajan; B16 añade las del diseño nuevo |
 
 Lista de comprobación visual contra la referencia (la usa B16 con capturas reales): (1) barra superior del color de los paneles, con dos *widgets* `▾`, botón verde, botón rojo e iconos grises a la derecha; (2) franjas de iconos a ambos lados, con el icono activo resaltado; (3) cabecera «Proyecto» y árbol con iconos de carpeta y archivo, fila seleccionada azul grisáceo; (4) pestaña con icono, `×` y subrayado azul; (5) números de línea gris oscuro sobre el fondo del editor; (6) palabras reservadas naranja, cadenas verde, números cian, comentarios gris en cursiva; (7) `✗ N ⌃ ⌄` arriba a la derecha del editor; (8) barra de estado gris con migas `›` a la izquierda y `Lín:Col  LF  UTF-8  FlowLang 1.0` a la derecha; (9) tablas sin rejilla, filas altas, cabeceras discretas; (10) ningún resto del azul `#007acc` ni de las pestañas de `ttk.Notebook`.
+
+---
+
+## 17. Rediseño claro estilo académico (Fase D)
+
+> **Estado: especificado, pendiente de implementar (tareas C1–C8 de `agents/tareas.md`, decisiones D-61…D-72).** Sustituye a §16. Cambia **solo `ui/`**, las pruebas de UI, `docs/capturas/` y la documentación: `core/`, `application/`, `config/` y `main.py` no se tocan. Siguen vigentes §10.3 (vista pasiva + coordinador), §10.4 (cuatro estados y `_BOTONES_POR_ESTADO`), §10.5 (requisito 6), §8 (requisito 5) y las correcciones AUD-16…AUD-28.
+
+### 17.1 Objetivo y límites
+
+La referencia del usuario es la captura de otra aplicación académica («DronLang»): cabecera azul marino, cuerpo claro, editor con columna ✓/✗ a la izquierda, «Manejador de errores» a la derecha, pestañas de resultados abajo a todo el ancho y barra de estado con el veredicto. Se toma **el estilo y la disposición**, no el contenido: nombre «SmartLex Studio», lenguaje FlowLang, códigos `LEX-`/`SIN-`/`ARC-`, columnas de nuestra `EntradaSimbolo` y fórmula de nuestro hash.
+
+Diferencias deliberadas con la referencia (todas por conservar funciones que ya existen):
+
+| Referencia | SmartLex Studio | Motivo |
+|---|---|---|
+| Cabecera de una fila con 2 botones | Cabecera de **dos filas** (marca arriba, acciones abajo) | Hay 8 acciones + menú de ejemplos + deslizador; en una fila no caben a 1100 px (D-62) |
+| 4 pestañas | 6: las cuatro de la referencia y en el mismo orden, más **Lenguaje** y **Consola** | Conservan la referencia de FlowLang y la bitácora paso a paso (instalaciones en la tabla hash) (D-66) |
+| Códigos E01…E08, columnas Tipo/Subtipo/Veces/Líneas | Códigos y columnas reales del proyecto | No se inventan datos que el modelo no tiene |
+| Tabla de símbolos siempre visible | Pestaña deshabilitada hasta terminar | Requisito 5b: se ofrece **al final** (§8) |
+
+### 17.2 Mapa de zonas
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SmartLex Studio  Analizador léxico de FlowLang · Tabla de símbolos · Manejador de errores     │ fila 1
+│                                                             [Ayuda] [Ver tabla de símbolos]  │ (azul marino)
+│ [Nuevo archivo][Abrir archivo…][Ejemplos ▾][Guardar][Limpiar] │ [Analizar][Paso a paso][Detener] │ fila 2
+│                                                  │ Pausa por línea: ──●────── 120 ms         │ (misma fila 2)
+├───────────────────────────────────────────────┬──────────────────────────────────────────────┤
+│ Archivo de entrada: incorrecto.flow           │ Manejador de errores (15 errores)   (rojo)   │
+│ ┌───────────────────────────────────────────┐ │ ┌──────────────────────────────────────────┐ │
+│ │  1 ✓ │ inicio                             │ │ │ Código │ Línea │ Col │ Lexema │ Error     │ │
+│ │  2 ✗ │ numero 3x = 5;      (fondo rosado) │ │ │ LEX-002│   2   │ 12  │ 3x     │ Número…   │ │
+│ │  3 ✓ │ ...                                │ │ └──────────────────────────────────────────┘ │
+│ │      │                                    │ │ LEX-002 · Número mal formado — línea 2, col… │
+│ └───────────────────────────────────────────┘ │ Lexema: '3x' / mensaje / sugerencia          │
+├───────────────────────────────────────────────┴──────────────────────────────────────────────┤
+│ [Tokens][Tabla de símbolos][Resumen][Autómatas][Lenguaje][Consola]                            │
+│  (contenido de la pestaña, a todo el ancho)                                                  │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Líneas válidas: 7 · Líneas con errores: 8 · Tokens: 57 · Símbolos: 18 · Errores: 15          │
+│                    Análisis terminado   Lín 1, Col 1   ✗ El archivo NO es válido para FlowLang │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Contenedores: `ttk.Panedwindow` vertical (`cuerpo`) con dos paneles: arriba un `ttk.Panedwindow` horizontal (`superior`: editor peso 3, errores peso 2) y abajo `PanelResultados` (peso 2). Tamaños iniciales: errores 38 % del ancho; zona inferior 40 % del alto. Los divisores se pueden arrastrar; **ninguna zona se oculta** (desaparecen `alternar_herramienta`, `_ocultar_zona`, `_mostrar_zona`, `_restaurar_tamano`, `_tamanos` y con ellos AUD-30). Ventana 1280×800, mínimo 1100×650 (o el tamaño de la pantalla si es menor).
+
+**Cabecera** (`Cabecera`, en `ui/componentes.py`, sustituye a `BarraHerramientas`): un `tk.Frame` con fondo `cabecera`.
+- Fila 1: «SmartLex Studio» (blanco, negrita, 17) y el subtítulo `f"Analizador léxico de {reglas.NOMBRE_LENGUAJE} · Tabla de símbolos · Manejador de errores"` (`cabecera_tenue`, 12). A la derecha «Ayuda» y «Ver tabla de símbolos» (deshabilitado hasta `TERMINADO`).
+- Fila 2: botones con texto generados desde la tabla `_ACCIONES` (clave, texto, estilo): `nuevo` «Nuevo archivo», `abrir` «Abrir archivo…» (**único** primario), `guardar` «Guardar», `limpiar` «Limpiar», `analizar` «Analizar», `paso` «Paso a paso», `detener` «Detener»; separadores verticales entre el grupo de archivo, el de ejecución y el deslizador. `ayuda` va en la fila 1. Entre *Abrir* y *Guardar*, un `ttk.Menubutton` «Ejemplos ▾» cuyo menú se rellena **cada vez que se abre** (`postcommand`) con `application.archivos.listar_ejemplos()` y llama a `abrir_archivo(ruta)`; no está en `botones` (siempre habilitado, como `abrir`).
+- `Cabecera.botones` conserva las **ocho claves** (`nuevo, abrir, guardar, analizar, paso, detener, limpiar, ayuda`) con `ttk.Button`; `habilitar(nombres)` no cambia de contrato. `_BOTONES_POR_ESTADO` no se toca.
+- Deslizador: etiqueta «Pausa por línea:», `ttk.Scale` de `0` a `PAUSA_MAXIMA_MS` y etiqueta «120 ms». `Cabecera.pausa_ms() -> int` devuelve el valor redondeado a múltiplos de 10; `Cabecera.establecer_pausa(ms)` lo fija (pruebas y capturas).
+- Todos son `ttk` con el tema `clam` (en macOS `tk.Button` ignora el color de fondo): estilos `Primario.TButton`, `Secundario.TButton`, `Cabecera.TMenubutton`, `Cabecera.Horizontal.TScale`, con `width=0` para que no hereden el ancho mínimo de `clam` (AUD-18).
+
+**Barra de estado** (`BarraEstado`): a la izquierda los cinco contadores en una sola etiqueta; a la derecha, de izquierda a derecha, el mensaje de estado (§10.4), `Lín N, Col M` y el **veredicto**. API: `establecer_contadores(validas, con_errores, tokens, simbolos, errores)`, `establecer_estado(texto)`, `establecer_posicion(linea, columna)`, `establecer_veredicto(valido: bool | None)` (`None` lo borra; `True` → «✓ El archivo es válido para FlowLang» en `exito`; `False` → «✗ El archivo NO es válido para FlowLang» en `error`, negrita; el nombre sale de `reglas.NOMBRE_LENGUAJE`). Desaparecen las migas de pan, `LF`, `UTF-8` y el enlace «Ver tabla» (ahora es un botón de la cabecera).
+
+### 17.3 Paleta (`TEMA`, único lugar con colores: `ui/estilos.py`)
+
+Se conservan las claves que siguen en uso (cambia el valor), se eliminan las que quedan sin uso (`activo`, `detener`, `ayuda_fondo`) y se añaden cuatro (`cabecera`, `cabecera_tenue`, `error_fondo`, `error_lexema`). Regla de siempre: ningún `#rrggbb` fuera de `ui/estilos.py`.
+
+| Clave | Valor | Uso |
+|---|---|---|
+| `fondo` | `#F4F6F9` | fondo de la ventana y de los marcos |
+| `panel` | `#FFFFFF` | editor, tablas, detalle, pestaña activa |
+| `barra` | `#E8ECF2` | barra de estado, cabeceras de tabla, pestañas inactivas |
+| `borde` | `#C5CDD8` | bordes de tablas, editor y separadores |
+| `texto` | `#1B2430` | texto de la interfaz |
+| `texto_codigo` | `#1F2937` | texto base del editor |
+| `texto_secundario` | `#4B5563` | títulos de sección, cabeceras de tabla |
+| `texto_tenue` | `#8791A0` | textos de ayuda, deshabilitados |
+| `numero_linea` | `#8791A0` | números del margen |
+| `blanco` | `#FFFFFF` | texto sobre cabecera y botón primario |
+| `acento` | `#1D5FD1` | botón primario, pestaña activa, foco |
+| `acento_claro` | `#3B7DE9` | botón primario con el ratón encima |
+| `seleccion` | `#CFE0FB` | selección de texto y token actual |
+| `seleccion_fila` | `#DCE8FB` | fila seleccionada (texto `texto`, no blanco) |
+| `linea_actual` | `#F1F5FB` | línea del cursor |
+| `deslizador` | `#B5BFCC` | barras de desplazamiento y canal del deslizador |
+| `error` | `#C62828` | ✗, título del manejador, veredicto inválido |
+| `error_fondo` | `#FDECEC` | fondo de la línea con error |
+| `error_lexema` | `#F8C8C8` | fondo del lexema erróneo (además del subrayado) |
+| `exito` | `#1E8E3E` | ✓, veredicto válido |
+| `advertencia` | `#B26A00` | avisos de la consola |
+| `info` | `#1D5FD1` | mensajes informativos de la consola |
+| `colision` | `#FFF4CC` | filas de cubetas con colisión |
+| `cabecera` | `#14213D` | fondo de la cabecera |
+| `cabecera_tenue` | `#A9B6CC` | subtítulo y etiquetas sobre la cabecera |
+
+`COLORES_TOKEN` (sigue por `TipoToken`, todas las categorías; el Ejercicio 7 de la guía no cambia de mecanismo): `PALABRA_RESERVADA #0B3FA8`, `IDENTIFICADOR #1F2937`, `ENTERO #1565C0`, `DECIMAL #1565C0`, `CADENA #A14A00`, `OPERADOR_ARITMETICO`/`RELACIONAL`/`LOGICO`/`ASIGNACION #37474F`, `DELIMITADOR #5F6B7A`, `COMENTARIO #7A8594`, `ERROR #C62828`. Junto a `TIPOS_EN_CURSIVA = (COMENTARIO,)` se añade `TIPOS_EN_NEGRITA = (PALABRA_RESERVADA,)`; el editor aplica ambas con `font=` en la etiqueta. Tipografías y `_puntos()` (D-51) no cambian.
+
+Estilos `ttk` nuevos o cambiados en `aplicar_tema`: `Treeview` blanco con filas de 24 px y cabecera `barra` con borde; `TNotebook`/`TNotebook.Tab` (activa `panel` + texto `acento`, inactiva `barra`, deshabilitada `texto_tenue`); los cuatro estilos de la cabecera; `Titulo.TLabel` (negrita) y `TituloError.TLabel` (negrita, `error`); `Estado.TFrame`/`Estado.TLabel` sobre `barra`; `Veredicto.TLabel`; `TCombobox` de solo lectura.
+
+### 17.4 Editor (`ui/editor.py`)
+
+Se **mantiene** `EditorCodigo` (texto, normalización, *debounce*, `solo_lectura`, `resaltar`, `resaltar_token_actual`, `ir_a`, `ir_a_error`, desplazamiento diferido). Cambios:
+
+- La fila de pestaña pasa a ser un **título**: «Archivo de entrada: *nombre*» (`Titulo.TLabel`; «(sin archivo)» si no hay). `establecer_nombre(nombre)` conserva su firma. Se elimina la `×` y el parámetro `al_cerrar` (*Limpiar* está en la cabecera).
+- **Columna de marcas** en el margen: cada fila es `f"{n} {marca}"`, con `marca` = `✗` (etiqueta `marca_error`, color `error`) si la línea tiene algún diagnóstico con posición, `✓` (etiqueta `marca_ok`, color `exito`) si ya se evaluó y no tiene ninguno, o un espacio si está en blanco o aún no se evaluó. El número va primero, como en la referencia.
+- `marcar_lineas_evaluadas(lineas: Iterable[int])`: nueva; registra líneas ya recorridas por el lexer y refresca el margen.
+- `marcar_errores(diagnosticos)`: como hasta ahora (subrayado del lexema, lista de marcas para `F2`) y además: el lexema recibe fondo `error_lexema`; la línea entera recibe la etiqueta `linea_error` (fondo `error_fondo`, de `n.0` a `n+1.0`); la línea se marca `✗` para **cualquier** diagnóstico con `linea > 0`, no solo los léxicos (D-65). Prioridad de etiquetas de menor a mayor: `linea_actual` < `linea_error` < categorías < `marca_error` < `actual` < `sel`.
+- `conteo_lineas() -> tuple[int, int]`: `(válidas, con errores)` = (evaluadas sin error, con error). Es la única fuente de esos dos contadores de la barra de estado.
+- `limpiar_marcas()` borra también las líneas evaluadas y `linea_error`.
+- Se elimina el *widget* flotante de inspección (`✗ N ⌃ ⌄`, `_construir_inspeccion`, `_mostrar_inspeccion`, `indicar_sin_errores`): la columna ✓/✗ y el título «Manejador de errores (N errores)» dan la misma información. `F2` / `Shift+F2` siguen funcionando.
+- Fondo `panel`, borde de 1 px `borde`, cursor de inserción `texto`.
+
+### 17.5 Manejador de errores (`PanelErrores`, `ui/paneles.py`; atributo `VentanaPrincipal.panel_errores`)
+
+Sustituye a `PanelProblemas`. De arriba abajo: `titulo` (`ttk.Label`: «Manejador de errores (15 errores)» / «(1 error)» en `TituloError.TLabel`; «Manejador de errores (sin errores)» en `Titulo.TLabel`), `arbol_errores` y el cuadro de detalle.
+
+- Columnas: `codigo` «Código» 90, `linea` «Línea» 60, `col` «Col» 50, `lexema` «Lexema» 150, `error` «Error» (se estira; es `diagnostico.titulo`). Los errores de archivo muestran «—» en Línea y Col.
+- Detalle: `detalle_titulo` (`f"{codigo} · {titulo} — línea {l}, columna {c}"`, rojo y negrita; sin la parte de posición si `linea == 0`) y `detalle_error` (`f"Lexema: {lexema!r}\n{mensaje}\nSugerencia: {sugerencia}"`; la línea del lexema se omite si está vacío). Sin selección muestra la ayuda actual (`_AYUDA_ERRORES`).
+- Comportamiento que no cambia: un clic muestra el detalle (AUD-20), el doble clic llama a `al_seleccionar_error` y el editor va a la posición; `agregar_error`, `quitar_errores_de_archivo` (D-42) y `limpiar` conservan su contrato y actualizan el título.
+- **Requisito 5a**: el panel está siempre visible; `_consumir_paso` agrega cada error en el mismo paso en que el lexer lo produce. Ya no hace falta `mostrar_herramienta("problemas")`.
+
+### 17.6 Pestañas de resultados (`PanelResultados`, `ui/paneles.py`)
+
+Un `ttk.Notebook` (`cuaderno`) a todo el ancho. Vuelve `Notebook` (la Fase C lo había eliminado): es el control estándar para lo que muestra la referencia. Vistas, en este orden: `tokens` «Tokens», `simbolos` «Tabla de símbolos», `resumen` «Resumen», `automatas` «Autómatas», `lenguaje` «Lenguaje», `consola` «Consola». API: `mostrar(nombre)`, propiedad `vista_actual`, y los métodos de hoy (`agregar_token`, `mostrar_tabla_simbolos`, `mostrar_estadisticas`, `mostrar_explicacion`, `limpiar`, `habilitar_tabla_simbolos`, `tabla_simbolos_habilitada`). Se conservan los nombres de atributo `arbol_tokens`, `arbol_simbolos`, `etiqueta_resumen`, `lienzo` y `educativo`.
+
+- **Tokens**: igual que hoy (fila coloreada por categoría, desplazamiento diferido AUD-17, selección → Autómatas).
+- **Tabla de símbolos**: pestaña en estado `disabled` hasta que termina el análisis (`habilitar_tabla_simbolos`). Línea de resumen (una sola etiqueta, `wraplength` igual al ancho del panel):
+  `Función hash: h = (h · 31 + código(c)) mod 2³²  ·  cubeta = h mod capacidad  ·  Capacidad: 37  ·  Símbolos: 18  ·  Factor de carga: 0.49  ·  Redimensionados: 1  ·  Colisiones al insertar: 14  ·  En la tabla actual: 7 (filas resaltadas)`. (Los números son ilustrativos: salen de `tabla.estadisticas()`.)
+  El `31` sale de `reglas.BASE_HASH`; el módulo se escribe `2³²` si `reglas.MODULO_HASH == 2 ** 32` y, si no, el número. Columnas reales (`COLUMNAS_SIMBOLOS`, sin cambios de datos): Cubeta, Hash, Lexema, Categoría, Tipo de dato, Valor, Decl., Apariciones. Filas de cubetas con más de una entrada con fondo `colision`.
+- **Resumen**: el lienzo actual de estadísticas y veredictos (`mostrar_estadisticas`), con fondo `panel`.
+- **Autómatas** (antes «Modo educativo»): arriba, «Autómata:» + `ttk.Combobox` de solo lectura (`selector_automata`) con los nombres de `reglas.AUTOMATAS`; debajo, el texto `educativo`. Con un token seleccionado o tras «Paso a paso», `mostrar_explicacion` escribe lo de hoy (categoría, lexema, regla, recorrido, tabla de transiciones) y sincroniza el selector con el AFD que lo reconoció. Al elegir en el selector, `mostrar_automata(nombre)` escribe solo la tabla de transiciones y los estados finales de ese AFD. Tras `limpiar()`: primer AFD de la lista y, encima, la frase «Seleccione un token, o use «Paso a paso», para ver cómo se reconoció.». La tabla se escribe con una función privada común a ambos caminos.
+- **Lenguaje**: `VistaLenguaje` (`ui/componentes.py`), que es el árbol de referencia de FlowLang del antiguo `PanelLateral` (`_construir_arbol`, `_mostrar_descripcion`) sin cambios de contenido.
+- **Consola**: `PanelConsola` sin cambios; `VentanaPrincipal.consola` apunta a `panel_resultados.consola`.
+
+### 17.7 Evaluación progresiva: «Pausa por línea»
+
+Constantes de `ui/interfaz.py`: `PAUSA_POR_DEFECTO_MS = 120`, `PAUSA_MAXIMA_MS = 500`, `DURACION_MAXIMA_ANIMACION_MS = 10000`, `PASOS_MAXIMOS_POR_TICK = 500`. Desaparecen `RETARDO_ANIMACION_MS` y `_pasos_por_tick`.
+
+La sesión (`SesionAnalisis.siguiente_paso`) no cambia: sigue entregando un paso por token. La ventana **agrupa los pasos por línea**:
+
+```
+_consumir_paso(educativo):                      # lo usan el temporizador y «Paso a paso»
+    paso = sesion.siguiente_paso()
+    si paso es None: _finalizar(); devolver False
+    si paso.token y paso.token.linea != _linea_en_curso:
+        si _linea_en_curso > 0: editor.marcar_lineas_evaluadas([_linea_en_curso])   # ✓ o ✗
+        _linea_en_curso = paso.token.linea
+    ... (token a la tabla, token actual, consola, errores → panel_errores + editor.marcar_errores) ...
+    barra_estado.establecer_contadores(*editor.conteo_lineas(), len(tokens), len(resultado.tabla), errores)
+    devolver True
+
+_tick():
+    linea = _linea_en_curso
+    repetir hasta PASOS_MAXIMOS_POR_TICK veces:
+        si no _consumir_paso(False): terminar            # la sesión acabó
+        si _linea_en_curso != linea: programar after(_pausa_efectiva(), _tick); terminar
+    programar after(1, _tick)                            # línea larguísima: no bloquear la ventana
+
+_pausa_efectiva() = min(cabecera.pausa_ms(), DURACION_MAXIMA_ANIMACION_MS // max(1, _lineas_fuente))
+_finalizar(): marca la última línea, y lo demás como hoy
+```
+
+Efecto visible: cada «latido» completa una línea; la línea recién terminada recibe su ✓ o ✗, la tabla de tokens y el manejador de errores crecen, y el primer token de la línea siguiente queda resaltado durante la pausa. Un error pinta su línea de rosado y pone la ✗ **en el mismo paso** en que se detecta, sin esperar al fin de línea. El deslizador se lee en cada latido (se puede mover durante el análisis); en `0 ms` no hay pausa. El tope de 10 s solo actúa en archivos largos (más de 83 líneas con 120 ms). «Paso a paso» sigue consumiendo **un token** y marca la línea cuando el paso cambia de línea; «Detener» cancela el temporizador como hoy.
+
+`_iniciar_sesion` pone `_linea_en_curso = 0`, `_lineas_fuente`, borra el veredicto y selecciona la pestaña «Tokens»; `paso_a_paso` selecciona «Autómatas». `_finalizar`: última línea, veredictos en consola, Resumen, tabla de símbolos, habilita pestaña y botón, `barra_estado.establecer_veredicto(resultado.es_valida)`, estado `TERMINADO` y el `askyesno` «¿Desea ver la tabla de símbolos?» (requisito 5b), que al aceptar llama a `ver_tabla_simbolos()` → `panel_resultados.mostrar("simbolos")`.
+
+### 17.8 Cambios sin guardar y atajos (AUD-29, AUD-31, AUD-32)
+
+- `_confirmar_descartar(titulo) -> bool`: `True` si el texto del editor es igual a `_texto_guardado`; si no, `askyesnocancel(titulo, "Hay cambios sin guardar. ¿Guardarlos antes de continuar?")`: *Cancelar* → `False`; *Sí* → `guardar_archivo()` y `True` solo si después el texto coincide con lo guardado (si se canceló el diálogo de guardado, `False`); *No* → `True`.
+- Lo llaman, **antes** de cualquier otro diálogo: `nuevo_archivo`, `abrir_archivo` (con o sin ruta: cubre el botón, `Ctrl+O`, el menú Ejemplos y la solicitud inicial, donde no pregunta porque el editor está vacío), `limpiar` y `salir`.
+- `salir()`: nuevo; `if self._confirmar_descartar("Salir"): self.destroy()`. Se registra con `self.protocol("WM_DELETE_WINDOW", self.salir)`. `destroy()` no pregunta y conserva la cancelación de los `after` (AUD-28).
+- `Ctrl+O` en el editor: la clase `Text` de Tk lo usa para insertar un salto de línea. El `Text` del editor enlaza `<Control-o>` a una función que llama a `abrir_archivo()` y devuelve `"break"` (así no corre ni la clase ni el `bind_all`, y se abre una sola vez).
+- `nuevo_archivo` coloca el cursor al final de la segunda línea de la plantilla calculándolo del texto (`len(texto.splitlines()[1]) + 1`), no con un número fijo.
+- Atajos: los de hoy (`Ctrl/Cmd+N`, `Ctrl/Cmd+O`, `Ctrl/Cmd+S`, `F5`, `F10`, `Esc`, `F1`, `F2`, `Shift+F2`). El texto de `_AYUDA` añade la pausa por línea y las marcas ✓/✗.
+- En las pruebas, `messagebox` está simulado: `askyesnocancel` devuelve un `MagicMock` (verdadero) y eso llevaría a guardar con un `filedialog` simulado. Por eso el parche parcial rompía la batería: los `setUp` deben fijar `askyesnocancel.return_value = False`.
+
+### 17.9 Qué se elimina, qué se reutiliza
+
+| Se elimina | Se reutiliza tal cual | Se adapta |
+|---|---|---|
+| `ui/iconos.py` completo | `PanelConsola` | `EditorCodigo` (§17.4) |
+| `BotonIcono`, `Globo`, `PanelHerramientas`, `FranjaHerramientas`, `_Desplegable` | árbol de referencia del lenguaje (→ `VistaLenguaje`) | `BarraHerramientas` → `Cabecera` |
+| árbol *Proyecto* de `PanelLateral` (→ menú «Ejemplos ▾») | `_tabla`, `_texto_solo_lectura`, `recortar`, columnas de tokens y símbolos | `PanelProblemas` → `PanelErrores` |
+| menús «SmartLex Studio ▾» y «FlowLang · Análisis léxico ▾» | `mostrar_estadisticas`, `mostrar_explicacion`, `agregar_token` | `PanelResultados` (de *tool window* a `Notebook`) |
+| franjas, zonas ocultables y sus métodos; migas de pan | estados, `_BOTONES_POR_ESTADO`, `destroy`, `_al_editar`, archivos | `BarraEstado`, `_tick`, `_consumir_paso`, `_finalizar` |
+| *widget* de inspección del editor | `fuente_codigo`, `fuente_interfaz`, `_puntos`, `_estilos_barras` | `TEMA`, `COLORES_TOKEN`, estilos `ttk` |
+
+Reparto por archivo: `ui/estilos.py` (paleta y estilos), `ui/componentes.py` (`Cabecera`, `BarraEstado`, `PanelConsola`, `VistaLenguaje`), `ui/editor.py`, `ui/paneles.py` (`PanelErrores`, `PanelResultados`), `ui/interfaz.py` (coordinador). Ningún archivo de `ui/` debería superar las ~450 líneas; `ui/interfaz.py` baja de tamaño.
+
+### 17.10 Pruebas a adaptar
+
+Regla: ninguna aserción sobre los requisitos 5 y 6, el paso a paso, *Detener*, *Nuevo archivo*, el modo consola o AUD-16…AUD-28 se elimina ni se relaja; solo cambian nombres y lo que comprobaba piezas que ya no existen.
+
+| Prueba | Cambio |
+|---|---|
+| Todos los `setUp` de UI | `askyesnocancel.return_value = False`; tras crear la ventana, `v.cabecera.establecer_pausa(0)` (salvo las pruebas de la pausa) |
+| `v.problemas.*` | `v.panel_errores.*` |
+| `v.barra.botones` | `v.cabecera.botones` |
+| `v.mostrar_herramienta(x)` | `v.panel_resultados.mostrar(x)` (`estadisticas` → `resumen`, `educativo` → `automatas`) |
+| `test_colisiones_en_el_resumen` | textos «Colisiones al insertar: 14» y «En la tabla actual: 7» |
+| `test_aud18` | los ocho botones son `ttk.Button` con texto y ninguno mide más que su texto + relleno (`winfo_reqwidth() < 170`); la cabecera cabe en el ancho mínimo (`v.cabecera.winfo_reqwidth() <= 1100`) |
+| `test_aud17` | pausa 0; mismas cotas |
+| `test_aud20` | el detalle (`detalle_error`) contiene mensaje y sugerencia; `detalle_titulo` contiene código y posición |
+| `test_ui_rediseno.py`: iconos, `BotonIcono`, `PanelHerramientas`, franjas, alternar zonas, migas, menú de ejecución, árbol de Proyecto, inspección `✗ N`, pestaña del editor | se **eliminan** (las piezas ya no existen) y se sustituyen por las pruebas nuevas de C6 |
+| `test_tema_tiene_las_24_claves…` | las 25 claves de §17.3, todas `#RRGGBB` |
+| `test_solo_estilos_escribe_colores_y_no_quedan_pestanas` | se queda solo la parte de colores (vuelve a haber `Notebook`) |
+| Pruebas de B17 (`nuevo_archivo`) | siguen; el mensaje del diálogo es el de `_confirmar_descartar`; «aparece en el árbol» pasa a «aparece en el menú Ejemplos» |
+
+Fallas esperadas ajenas a esta fase (no «arreglar»): `test_conteos_de_flowlang_1_0` (cambio local del usuario en `config/reglas.py`) y `test_listar_ejemplos` (archivo local sin seguimiento `ejemplos/practica.flow`).
+
+### 17.11 Riesgos
+
+| Riesgo | Cómo se acota |
+|---|---|
+| Colores de `ttk.Button`/`ttk.Scale` distintos entre Tk 8.6 y 9.0 o entre sistemas | Solo `clam` y opciones estándar (`background`, `foreground`, `troughcolor`, `bordercolor`); `estilo.map` para `active`/`disabled`; `try/except TclError` donde se toque `layout` |
+| `✓`/`✗` sin glifo en alguna fuente monoespaciada | Son los mismos glifos que ya usa la consola y el margen actual (D-44); se verifica en la captura |
+| Refrescar el margen en cada línea con archivos grandes | Un refresco por latido, no por token; `test_aud17` (1 000 líneas) mantiene su cota de 30 s |
+| Animación muy larga con archivos grandes | `_pausa_efectiva` (tope de 10 s) y deslizador a 0 |
+| Cabecera que no cabe en pantallas estrechas | Dos filas; prueba de `winfo_reqwidth() <= 1100` |

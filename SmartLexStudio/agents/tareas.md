@@ -18,6 +18,7 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Diseño del rediseño visual estilo PyCharm | architect-fable | claude-fable-5-2 | completado | `docs/02_arquitectura.md` §16 (zonas, paleta, tipografías, iconos, *tool windows*, riesgos); tareas B11–B16 (Fase C); decisiones D-44…D-53. **Fase C AUTORIZADA** |
 | Fase C (B11–B16) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | B11–B16 implementadas; 141 pruebas con python3.14 (Tk 9.0), la única falla es `test_conteos_de_flowlang_1_0` por un cambio local ajeno en `config/reglas.py`; capturas reales 1..6 y tabla de 10 puntos en `docs/06_auditoria.md`; decisiones D-54…D-59 pendientes de revisión; Tk 8.6 y M5 pendientes |
 | B17 Nuevo archivo (Ctrl+N) | developer-sonnet | claude-sonnet-5-5 | completado (pendiente de revisión) | `crear_fuente`/`plantilla_nueva`, icono y menú, atajos, árbol Proyecto actualizado; 151 pruebas, única falla `test_conteos_de_flowlang_1_0` (cambio local ajeno); D-60 |
+| Diseño del rediseño claro estilo académico (Fase D) | architect-fable | claude-fable-5-2 | completado | `docs/02_arquitectura.md` §17 (zonas, paleta, pausa por línea, qué se elimina y reutiliza, pruebas a adaptar); tareas C1–C8; decisiones D-61…D-72; incluye la corrección pendiente AUD-29/31/32 |
 
 ## Reglas generales para el desarrollador
 
@@ -733,3 +734,86 @@ Reglas de la fase (además de las generales):
 ## Criterio de aprobación de la Fase C (arquitecto)
 
 **Aprobada si:** batería completa en verde en Tk 9.0 (y en Tk 8.6 si está disponible); los dos `grep` de B16 vacíos; `git diff --stat` respecto a `3a12ba2` no muestra cambios en `core/`, `application/`, `config/` ni `main.py`; las seis capturas existen y la tabla de los 10 puntos está registrada; las pruebas de los requisitos 5 y 6 no se han relajado; el manual, la guía (ejercicio 7 repetido) y el README describen la ventana nueva; ninguna clase nueva supera lo que un estudiante puede explicar en dos minutos.
+
+---
+
+# FASE D — Rediseño claro estilo académico (solo `ui/`)
+
+**Leer antes de empezar:** `docs/02_arquitectura.md` **§17** completo (es la especificación; estas tareas solo la reparten) y las decisiones D-61…D-72. Referencia visual del usuario (otra aplicación, «DronLang»; se imita estilo y disposición, **no** nombres, códigos ni datos; no se copia al repositorio): `/private/tmp/claude-501/-Volumes-Ojito-proyecto-de-lenguajes/001cc0b7-bd4c-4a80-909f-4edbc49746a8/images/3.png`. Punto de partida: `d952707`.
+
+Reglas de la fase (además de las generales):
+
+1. **Solo se modifican** `ui/`, `tests/test_ui_humo.py`, `tests/test_auditoria_fase_b.py`, `tests/test_ui_rediseno.py`, `docs/capturas/` y los documentos de C8. `core/`, `application/`, `config/` y `main.py` no se tocan; si parece necesario, parar y anotarlo en `agents/revisiones.md`.
+2. **`config/reglas.py` tiene un cambio local del usuario y `ejemplos/practica.flow` es un archivo suyo sin seguimiento: no se editan, no se restauran, no se borran y no entran en ningún *commit*.** `git add` siempre con rutas explícitas (nunca `-A` ni `.`). Por ellos fallan `test_conteos_de_flowlang_1_0` y `test_listar_ejemplos`: son las **dos únicas** fallas admitidas (D-72).
+3. Colores: ningún literal `#rrggbb` fuera de `ui/estilos.py`. Comprobación vacía: `grep -nE "#[0-9a-fA-F]{6}" ui/*.py | grep -v "^ui/estilos.py"`.
+4. No queda nada de PyCharm. Comprobación vacía: `grep -rnE "iconos|BotonIcono|Globo|FranjaHerramientas|PanelHerramientas|PanelLateral|PanelProblemas|alternar_herramienta|mostrar_herramienta|_migas|PyCharm|Darcula" ui/ tests/ docs/capturas/capturar.py`.
+5. Se conservan sin cambio de comportamiento: los cuatro estados y `_BOTONES_POR_ESTADO`, `destroy()` (AUD-28), `_al_editar`, `descartar_cambio_pendiente` (AUD-16), los desplazamientos diferidos (AUD-17, AUD-19), `quitar_errores_de_archivo` (D-42), la solicitud inicial del archivo (requisito 6), el `askyesno` final (requisito 5b), `nuevo_archivo` (B17) y el modo consola.
+6. C1 se entrega sola con la batería en su estado admitido. **C2–C5 forman un bloque** (la ventana no arranca a medias): la batería completa se exige al cerrar C6. Batería: `/opt/homebrew/bin/python3.14 -m unittest discover -s tests -t . -v`; arranque: `/opt/homebrew/bin/python3.14 main.py` sin trazas en la terminal.
+7. Si algo de §17 no se puede hacer en Tk tal como está escrito, aplicar la variante más simple que conserve el aspecto y registrarla en `agents/decisiones.md` (D-73 en adelante) como «pendiente de revisión del arquitecto».
+
+### C1 — Paleta clara y estilos `ttk` (`ui/estilos.py`)
+
+- `TEMA` con las 25 claves y valores de §17.3; `COLORES_TOKEN` con los valores de §17.3 para **todos** los `TipoToken`; `TIPOS_EN_NEGRITA = (TipoToken.PALABRA_RESERVADA,)`.
+- `aplicar_tema`: estilos de §17.3 (Treeview claro con cabecera con borde, `TNotebook`, `Primario.TButton`, `Secundario.TButton`, `Cabecera.TMenubutton`, `Cabecera.Horizontal.TScale`, `Titulo.TLabel`, `TituloError.TLabel`, `Estado.*`, `Veredicto.TLabel`, `TCombobox`). Botones con `width=0`. Se mantienen `_puntos`, `fuente_codigo`, `fuente_interfaz`, `_estilos_barras`.
+- **Aceptación:** `set(TEMA)` es exactamente el conjunto de §17.3 y cada valor cumple `^#[0-9A-F]{6}$`; `COLORES_TOKEN` cubre `set(TipoToken)`; `aplicar_tema(tk.Tk())` no lanza excepción; los textos del docstring y comentarios ya no dicen PyCharm.
+
+### C2 — Cabecera, barra de estado y vista Lenguaje (`ui/componentes.py`; se borra `ui/iconos.py`)
+
+- `Cabecera(padre, acciones: dict[str, Callable], al_elegir_ejemplo: Callable[[Path], None], al_ver_tabla: Callable)` según §17.2: dos filas, `botones` (ocho claves), `habilitar(nombres)`, `habilitar_ver_tabla(activo)`, `pausa_ms()`, `establecer_pausa(ms)`, menú «Ejemplos ▾» rellenado en `postcommand` con `listar_ejemplos()`.
+- `BarraEstado` con la API de §17.2 (`establecer_contadores` de cinco valores, `establecer_estado`, `establecer_posicion`, `establecer_veredicto`).
+- `VistaLenguaje(padre)`: el árbol de referencia de FlowLang del antiguo `PanelLateral`, sin el árbol *Proyecto* ni imágenes.
+- `PanelConsola` no cambia. Se eliminan `BotonIcono`, `Globo`, `PanelHerramientas`, `FranjaHerramientas`, `_Desplegable`, `BarraHerramientas`, `PanelLateral` y `ui/iconos.py`. `RAIZ_PROYECTO` se queda.
+- **Aceptación** (pruebas de C6): con una ventana de 1100 px, `cabecera.winfo_reqwidth() <= 1100`; `pausa_ms()` vale 120 al arrancar y `establecer_pausa(0)` lo deja en 0 y la etiqueta en «0 ms»; el menú Ejemplos tiene una entrada por cada archivo de `listar_ejemplos()` y un archivo creado después aparece al volver a abrirlo; `establecer_veredicto(True/False/None)` produce los textos de §17.2 con «FlowLang» tomado de `reglas.NOMBRE_LENGUAJE`.
+
+### C3 — Editor con columna ✓/✗ (`ui/editor.py`)
+
+- Todo §17.4: título «Archivo de entrada: …», margen `número + marca`, `marcar_lineas_evaluadas`, `linea_error`, fondo `error_lexema` en el lexema, ✗ para cualquier diagnóstico con posición, `conteo_lineas()`, negrita de reservadas, sin *widget* de inspección ni `al_cerrar`.
+- No se tocan `establecer_texto`, `obtener_texto`, `_al_modificar`, `_notificar_cambio`, `descartar_cambio_pendiente`, `resaltar_token_actual`, `ir_a`, `ir_a_error`.
+- **Aceptación** (pruebas de C6): tras `marcar_lineas_evaluadas([1, 2, 3])` y un diagnóstico en la línea 2, el margen contiene `1 ✓`, `2 ✗`, `3 ✓`, la línea 4 no tiene marca y `conteo_lineas() == (2, 1)`; `texto.tag_ranges("linea_error")` cubre `2.0`–`3.0`; `tag_ranges("marca_error")` sigue dando `2.11`–`2.14` para el primer error de `incorrecto.flow`; `limpiar_marcas()` deja el margen sin ✓ ni ✗ y `conteo_lineas() == (0, 0)`; un diagnóstico estructural (`SIN-`) con línea también pone ✗.
+
+### C4 — Manejador de errores y pestañas (`ui/paneles.py`)
+
+- `PanelErrores` según §17.5 (título con el número de errores, cinco columnas, `detalle_titulo` + `detalle_error`).
+- `PanelResultados` según §17.6: `cuaderno` con las seis vistas en orden, `mostrar(nombre)`, `vista_actual`, pestaña de símbolos deshabilitada hasta `habilitar_tabla_simbolos(True)`, línea de resumen con la fórmula real, pestaña Autómatas con `selector_automata` y `mostrar_automata(nombre)`, `VistaLenguaje` y `PanelConsola` como pestañas (`self.consola`).
+- **Aceptación** (pruebas de C6): con `incorrecto.flow` terminado el título es «Manejador de errores (15 errores)» y con `correcto.flow` «Manejador de errores (sin errores)»; las columnas de `arbol_errores` son `("codigo", "linea", "col", "lexema", "error")` y la primera fila empieza por un código `LEX-`; los títulos de las pestañas son, en orden, Tokens, Tabla de símbolos, Resumen, Autómatas, Lenguaje, Consola; antes de terminar `cuaderno.tab(1, "state") == "disabled"` y después `"normal"`; con `correcto.flow` el resumen contiene `h = (h · 31 + código(c)) mod 2³²`, `cubeta = h mod capacidad`, `Colisiones al insertar: 14` y `En la tabla actual: 7`, y hay filas con la etiqueta `colision`; `selector_automata` ofrece los cuatro nombres de `reglas.AUTOMATAS`, y al elegir cada uno el texto contiene «Tabla de transiciones de» + ese nombre; al seleccionar un token identificador, el selector pasa al AFD que lo reconoció.
+
+### C5 — Ventana, pausa por línea y cambios sin guardar (`ui/interfaz.py`)
+
+- Disposición de §17.2 (cabecera, `cuerpo`/`superior`, `panel_errores`, `panel_resultados`, barra de estado), `minsize` 1100×650, título de ventana como hoy.
+- Evaluación progresiva de §17.7 (constantes, `_linea_en_curso`, `_tick`, `_pausa_efectiva`, `_consumir_paso`, `_finalizar` con veredicto en la barra de estado). `ver_tabla_simbolos()` → `panel_resultados.mostrar("simbolos")` si está habilitada.
+- §17.8 completo: `_confirmar_descartar`, `salir()` + `WM_DELETE_WINDOW`, `<Control-o>` en el `Text` del editor, cursor de *Nuevo* calculado. El parche `…/scratchpad/opus_parcial.patch` sirve de referencia para estas tres piezas, **no se aplica con `git apply`** (está hecho sobre la ventana PyCharm).
+- Se eliminan franjas, zonas ocultables, `_migas` y los menús; `_mostrar_error_archivo` deja de llamar a `mostrar_herramienta`.
+- **Aceptación** (pruebas de C6, además de las existentes de los requisitos 5 y 6):
+  - *Pausa por línea*: con `incorrecto.flow`, pausa 0 y avanzando con `paso_a_paso()` hasta el primer token de la línea 3, el margen muestra `1 ✓` y `2 ✗` y la línea 3 aún no tiene marca; con el temporizador simulado (`after` capturado), cada llamada a `_tick` deja `_linea_en_curso` exactamente una línea con tokens más adelante y programa el siguiente `after` con `_pausa_efectiva()`; `_pausa_efectiva()` vale 120 con un archivo de 10 líneas y 10 con uno de 1 000.
+  - *Requisito 5a*: durante el análisis (sesión no terminada) `panel_errores.arbol_errores` ya tiene filas y el editor ya tiene `marca_error`.
+  - *Requisito 5b*: al terminar se llama una vez a `askyesno` con «tabla de símbolos»; si devuelve `True`, `panel_resultados.vista_actual == "simbolos"`.
+  - *Barra de estado*: al terminar `incorrecto.flow` el texto de contadores contiene `Tokens: 57`, `Símbolos: 18`, `Errores: 15` y los dos contadores de líneas coinciden con `editor.conteo_lineas()`; el veredicto es «✗ El archivo NO es válido para FlowLang» y con `correcto.flow` «✓ El archivo es válido para FlowLang»; al editar el texto o limpiar, el veredicto se borra.
+  - *AUD-29*: con cambios sin guardar, *Abrir* con ruta, el menú Ejemplos, *Limpiar* y `salir()` llaman a `askyesnocancel`; con *Cancelar* (`None`) el texto y `ruta_actual` no cambian, `askopenfilename` **no** se llama y la ventana sigue existiendo; con *No* se descarta; con *Sí* se guarda antes (y si el guardado se cancela, no se continúa). Sin cambios, ninguno pregunta. La solicitud inicial (requisito 6) no pregunta.
+  - *AUD-31*: `editor.texto.event_generate("<Control-o>")` con el foco en el editor no cambia `obtener_texto()` y llama a `askopenfilename` exactamente una vez.
+  - *Paso a paso* selecciona la pestaña Autómatas; *Analizar* selecciona Tokens.
+
+### C6 — Pruebas
+
+- Adaptar `tests/test_ui_humo.py` y `tests/test_auditoria_fase_b.py` con la tabla de §17.10 (solo renombres, `askyesnocancel.return_value = False`, pausa 0, textos del resumen y AUD-18/AUD-20 reformuladas). **Ninguna otra aserción cambia.**
+- Reescribir `tests/test_ui_rediseno.py`: se eliminan las pruebas de piezas que ya no existen (lista en §17.10) y se añaden las de aceptación de C1–C5. Las pruebas de B17 se conservan adaptadas.
+- **Aceptación:** batería completa con solo las dos fallas de D-72, en tres corridas seguidas (sin pruebas intermitentes); ninguna traza `invalid command name` en la salida; los dos `grep` de las reglas 3 y 4 vacíos; `git diff --stat d952707 -- SmartLexStudio/core SmartLexStudio/application SmartLexStudio/main.py` vacío y `git status --short` muestra `config/reglas.py` y `ejemplos/practica.flow` exactamente como al empezar.
+
+### C7 — Capturas reales y comparación con la referencia (`docs/capturas/`)
+
+- Actualizar `docs/capturas/capturar.py` (API nueva; pausa 0 salvo en la captura «durante»; ventana 1440×880) y regenerar con la aplicación real (método de D-58): `1_correcto_tokens.png`, `2_tabla_simbolos.png`, `3_resumen.png`, `4_automatas.png`, `5_incorrecto_errores.png` (error seleccionado, detalle visible, pestaña Tabla de símbolos abajo: es la equivalente a la referencia) y `6_durante_evaluacion.png` (análisis detenido a mitad: líneas de arriba con ✓/✗, las de abajo sin marca, errores ya listados). Borrar `3_estadisticas.png`, `4_modo_educativo.png` y `6_paneles_ocultos.png`.
+- **Aceptación:** abrir cada PNG con la herramienta de lectura de imágenes y comprobar que muestra la ventana de SmartLex Studio completa (no otra aplicación, no recortada, texto legible, ✓ y ✗ con glifo). Comparar `5_incorrecto_errores.png` con la referencia y dejar en `docs/06_auditoria.md` una tabla «elemento de la referencia → presente / diferencia aceptada (§17.1) / defecto» con estas filas como mínimo: cabecera azul marino con nombre y subtítulo; botón primario azul; deslizador con valor en ms; «Ver tabla de símbolos» a la derecha; título del archivo; números + ✓/✗; línea con error en rosado; lexema subrayado en rojo; resaltado sobrio (reservadas azul negrita, comentarios gris cursiva); título rojo del manejador con el número; tabla de cinco columnas; cuadro de detalle; pestañas; línea de resumen del hash; filas de colisión en amarillo; barra de estado con contadores; veredicto en rojo/verde. Ningún «defecto» puede quedar abierto.
+
+### C8 — Documentación
+
+- `docs/04_manual_usuario.md`: recorrido de la ventana nueva (cabecera y cada botón con su atajo, menú Ejemplos, pausa por línea y su tope en archivos largos, columna ✓/✗, manejador de errores y detalle, seis pestañas, barra de estado y veredicto, confirmación de cambios sin guardar), con las capturas nuevas.
+- `docs/05_guia_sustentacion.md`: **Ejercicio 7** (cambiar un color o el tema) y el «Cambio 4» del ejercicio de nuevo tipo de token con los valores «antes» de §17.3; donde diga «Modo educativo», «Problemas», «tool window» o «franja», usar «Autómatas», «Manejador de errores» y las pestañas; añadir a la demostración la pausa por línea como evidencia del requisito 5.
+- `README.md`: descripción de la interfaz, captura principal (`5_incorrecto_errores.png`) y árbol de archivos (sin `ui/iconos.py`).
+- `docs/matriz_requisitos.md`: evidencia de R3, R4, R5a, R5b y R6 con los nombres nuevos (`panel_errores`, pausa por línea, pestaña y botón «Ver tabla de símbolos», `_confirmar_descartar`) y número real de pruebas; M1–M3 redactadas con la ventana nueva.
+- `docs/02_arquitectura.md`: quitar «pendiente de implementar» de §17; §10.1 y §10.2 remiten a §17; añadir a §15 las diferencias entre §17 y lo implementado.
+- `docs/06_auditoria.md`: cerrar AUD-29…AUD-32 (AUD-30 «no aplica: las zonas ya no se ocultan»), la tabla de C7 y M1–M3 repetidas; M5 y Tk 8.6 siguen pendientes si no se pueden probar (no declarar lo que no se hizo).
+- `agents/tareas.md`: fila de la Fase D en el registro de ejecución.
+- **Aceptación:** `grep -rnE "PyCharm|tool window|franja|Modo educativo|iconos\.py|3_estadisticas|4_modo_educativo|6_paneles_ocultos" README.md docs/04_manual_usuario.md docs/05_guia_sustentacion.md docs/matriz_requisitos.md` vacío; todas las imágenes enlazadas existen; los valores de color citados en la guía coinciden con `ui/estilos.py`.
+
+## Criterio de aprobación de la Fase D (arquitecto)
+
+**Aprobada si:** batería con solo las dos fallas de D-72 en Tk 9.0; los `grep` de las reglas 3 y 4 y el de C8 vacíos; `core/`, `application/`, `main.py` sin cambios y `config/reglas.py` / `ejemplos/practica.flow` intactos y fuera de los *commits*; las seis capturas son reales y la tabla de comparación de C7 no tiene defectos abiertos; los requisitos 5a, 5b y 6, paso a paso, detener, nuevo archivo y el modo consola tienen prueba en verde; AUD-29, AUD-31 y AUD-32 cerrados con prueba.
