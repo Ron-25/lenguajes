@@ -318,7 +318,7 @@ Tabla de símbolos: hash 1601544 · cubeta 56 (capacidad 79) · tipo decimal · 
 
 ### 10.1 Disposición (inspirada en VS Code; `ttk.Panedwindow` anidados, todo redimensionable)
 
-> **Esta disposición (inspirada en VS Code) quedó sustituida por el rediseño estilo PyCharm de §16**, ya implementado: zonas, paleta, iconos y *tool windows* están en §16.2–§16.7, que reemplazan este diagrama y la tabla de §10.2. Se conservan como referencia histórica.
+> **Esta disposición (inspirada en VS Code) quedó sustituida por el rediseño claro de §17** (que a su vez reemplazó al de §16), ya implementado. Texto histórico: zonas, paleta, iconos y *tool windows* están en §16.2–§16.7, que reemplazan este diagrama y la tabla de §10.2. Se conservan como referencia histórica.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -344,6 +344,8 @@ Tabla de símbolos: hash 1601544 · cubeta 56 (capacidad 79) · tipo decimal · 
 ```
 
 ### 10.2 Componentes y archivo
+
+> Vigente: la tabla de componentes y archivos de §17.9 (`Cabecera`, `BarraEstado`, `PanelConsola`, `VistaLenguaje`, `EditorCodigo`, `PanelErrores`, `PanelResultados`, `VentanaPrincipal`). La tabla siguiente es histórica.
 
 | Zona | Clase | Archivo | Contenido |
 |---|---|---|---|
@@ -489,6 +491,8 @@ Revisión final del arquitecto sobre el commit `3a8f372` (115 pruebas en verde).
 | Pruebas de UI | Detectan Tk en un subproceso; se omiten (17) si no hay Tk | D-38 |
 | Rediseño §16 | Implementado: `ui/iconos.py` nuevo; `PanelProblemas`; `RAIZ_PROYECTO` vive en `componentes.py`; zona inferior inicial de 250 px (no 210); `F2`/`Shift+F2` solo en `bind_all`; sin rombo `◆` en el menú de ejecución; las técnicas «por validar» (`Panedwindow.forget/insert`, barras sin flechas, globos) funcionaron sin alternativa | D-54…D-57 |
 | Capturas | `docs/capturas/capturar.py` fotografía la ventana por su identificador (`id_ventana.swift`) | D-58 |
+
+Rediseño §17 (Fase D): implementado. Diferencias con la especificación: el menú «Ejemplos» no lleva «▾» en su texto (el tema `clam` ya dibuja su flecha; D-73); `PAUSA_POR_DEFECTO_MS` y `PAUSA_MAXIMA_MS` viven en `ui/componentes.py` y `ui/interfaz.py` los importa; el deslizador mide 80 px y los botones usan fuente 11 y relleno (7, 4) para que la cabecera quepa en 1100 px; el cuadro de detalle del manejador mide 178 px fijos; se añadió el estilo `PanelError.TLabel`; la pestaña Resumen responde a la rueda del ratón; `ui/iconos.py` y las zonas ocultables desaparecen.
 
 Pendiente menor tras esta revisión (tareas B9 y B10): un único error de archivo visible a la vez en la pestaña Errores, y una línea por dato en el `detalle` del Modo educativo.
 
@@ -739,7 +743,7 @@ Lista de comprobación visual contra la referencia (la usa B16 con capturas real
 
 ## 17. Rediseño claro estilo académico (Fase D)
 
-> **Estado: especificado, pendiente de implementar (tareas C1–C8 de `agents/tareas.md`, decisiones D-61…D-72).** Sustituye a §16. Cambia **solo `ui/`**, las pruebas de UI, `docs/capturas/` y la documentación: `core/`, `application/`, `config/` y `main.py` no se tocan. Siguen vigentes §10.3 (vista pasiva + coordinador), §10.4 (cuatro estados y `_BOTONES_POR_ESTADO`), §10.5 (requisito 6), §8 (requisito 5) y las correcciones AUD-16…AUD-28.
+> **Estado: implementado (tareas C1–C8 de `agents/tareas.md`, decisiones D-61…D-73).** Sustituye a §16. Cambia **solo `ui/`**, las pruebas de UI, `docs/capturas/` y la documentación: `core/`, `application/`, `config/` y `main.py` no se tocan. Siguen vigentes §10.3 (vista pasiva + coordinador), §10.4 (cuatro estados y `_BOTONES_POR_ESTADO`), §10.5 (requisito 6), §8 (requisito 5) y las correcciones AUD-16…AUD-28.
 
 ### 17.1 Objetivo y límites
 

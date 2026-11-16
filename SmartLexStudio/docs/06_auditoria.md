@@ -303,3 +303,46 @@ Errata corregida en el manual (§4 y §8): decía que *Detener* libera el editor
 Diferencias aceptadas (§16.1): un solo archivo en la pestaña, sin guías de sangría, selección rectangular, barra de título nativa, sin widgets de Git/usuario/buscar. Ligeras: logo cuadrado (no redondeado), botones rellenos rectangulares, `⌃ ⌄` pequeños.
 
 **Verificaciones manuales.** M1–M3 repetidas con el diseño nuevo por medio de las pruebas `test_requisito_5_*` y `test_requisito_6_*` y de las capturas 1, 2 y 5. **M5** (Windows/Linux del laboratorio: tamaño del texto con `_puntos`, iconos legibles, menús, globos) y la repetición en **Tk 8.6** quedan **pendientes**: abrir la aplicación, comprobar que el texto no se ve pequeño, que los siete iconos de la barra se leen, que los menús `▾` se abren y que aparece el globo al detener el ratón.
+
+
+---
+
+## Fase D — rediseño claro estilo académico (developer-sonnet)
+
+**Pruebas.** `python3.14 -m unittest discover -s tests -t .` (Tk 9.0): `Ran 174 tests` · `FAILED (failures=2)`, tres corridas seguidas con el mismo resultado y sin trazas `invalid command name`. Las dos fallas son las admitidas por D-72: `test_conteos_de_flowlang_1_0` (cambio local en `config/reglas.py`) y `test_listar_ejemplos` (`ejemplos/practica.flow` sin seguimiento).
+
+**Cierre de hallazgos.**
+
+| ID | Estado | Prueba |
+|---|---|---|
+| AUD-29 | Cerrado: `_confirmar_descartar` en *Nuevo*, *Abrir* (botón, `Ctrl+O`, menú Ejemplos), *Limpiar* y `salir()` | `test_cancelar_conserva_el_texto_y_el_archivo`, `test_no_descarta_los_cambios`, `test_si_guarda_antes_de_continuar`, `test_si_pero_se_cancela_el_guardado_no_continua`, `test_sin_cambios_no_pregunta` |
+| AUD-30 | No aplica: las zonas ya no se ocultan | — |
+| AUD-31 | Cerrado: `<Control-o>` en el `Text` devuelve `"break"` | `test_ctrl_o_en_el_editor_abre_y_no_inserta_un_salto` |
+| AUD-32 | Cerrado: el cursor de *Nuevo* se calcula de la plantilla | `test_nuevo_archivo_crea_y_abre_la_plantilla` |
+
+**Capturas reales** (`docs/capturas/capturar.py`, ventana 1440×880, fotografiada con `id_ventana.swift`): 1_correcto_tokens, 2_tabla_simbolos, 3_resumen, 4_automatas, 5_incorrecto_errores y 6_durante_evaluacion. Tres iteraciones: (1) flecha duplicada en «Ejemplos», detalle del error recortado y columnas del manejador truncadas; (2) cabecera «Línea» cortada y detalle aún justo; (3) sin defectos.
+
+**Comparación con la referencia** (`5_incorrecto_errores.png` frente a la captura de la otra aplicación):
+
+| Elemento de la referencia | Resultado |
+|---|---|
+| Cabecera azul marino con nombre y subtítulo | Presente |
+| Botón primario azul | Presente («Abrir archivo…») |
+| Deslizador con valor en ms | Presente |
+| «Ver tabla de símbolos» a la derecha | Presente |
+| Título del archivo | Presente («Archivo de entrada: …») |
+| Números + ✓/✗ | Presente |
+| Línea con error en rosado | Presente |
+| Lexema subrayado en rojo | Presente |
+| Resaltado sobrio (reservadas azul negrita, comentarios gris cursiva) | Presente |
+| Título rojo del manejador con el número | Presente |
+| Tabla de cinco columnas | Presente |
+| Cuadro de detalle | Presente |
+| Pestañas | Diferencia aceptada (§17.1): seis en vez de cuatro |
+| Línea de resumen del hash | Presente (con la fórmula real, `2³²` y no «mod 67») |
+| Filas de colisión en amarillo | Presente |
+| Barra de estado con contadores | Presente |
+| Veredicto en rojo/verde | Presente |
+| Cabecera de una fila; columnas Tipo/Subtipo/Veces/Líneas; códigos E01… | Diferencia aceptada (§17.1) |
+
+Ningún defecto queda abierto. Los textos de la cabecera ocupan dos filas (D-62). **M1–M3** repetidas con las pruebas `test_requisito_5a/5b/6` y las capturas 1, 2, 5 y 6. **M5** (Windows/Linux del laboratorio) y la repetición en **Tk 8.6** siguen pendientes: no se han probado.

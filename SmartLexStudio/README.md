@@ -2,7 +2,7 @@
 
 Analizador léxico educativo con interfaz gráfica tipo IDE para **FlowLang 1.0**, un lenguaje pequeño para describir automatizaciones (riego, luces, alarmas). Reconoce los lexemas con **autómatas finitos deterministas** definidos por tablas de transición, informa los errores léxicos y estructurales, y guarda los símbolos en una **tabla hash propia**.
 
-![SmartLex Studio con correcto.flow analizado](docs/capturas/1_correcto_tokens.png)
+![SmartLex Studio con incorrecto.flow analizado](docs/capturas/5_incorrecto_errores.png)
 
 ## Características
 
@@ -11,8 +11,8 @@ Analizador léxico educativo con interfaz gráfica tipo IDE para **FlowLang 1.0*
 - Catálogo de 19 diagnósticos (`LEX-`, `SIN-`, `ARC-`) con mensaje y sugerencia; recuperación en modo pánico (no se detiene en el primer error).
 - Comprobación estructural ligera: `inicio`/`fin` y balance de `()` y `{}` con una pila.
 - Tabla de símbolos con hash polinomial, encadenamiento, contador de colisiones y redimensionado.
-- Interfaz oscura **estilo PyCharm**: barra superior con menús y botones de ejecución, franjas de iconos con *tool windows* que se muestran y ocultan (Proyecto, Lenguaje, Consola, Problemas, Tokens, Tabla de símbolos, Estadísticas, Modo educativo), pestaña de editor con numeración, resaltado y widget de inspección `✗ N ⌃ ⌄`, barra de estado con migas de pan; evaluación **progresiva** (los errores aparecen mientras se analiza), modo **paso a paso**, Modo educativo (regex, recorrido de estados), estadísticas y oferta final de ver la tabla de símbolos.
-- Crear archivos nuevos con una plantilla válida (`Ctrl+N`), abrir, guardar y limpiar desde la barra o los menús.
+- Interfaz clara de estilo académico: cabecera azul marino con las acciones (Nuevo archivo, Abrir archivo…, menú Ejemplos, Guardar, Limpiar, Analizar, Paso a paso, Detener) y el deslizador «Pausa por línea»; editor con columna ✓/✗ por línea; **Manejador de errores** siempre visible a la derecha, con detalle; pestañas Tokens, Tabla de símbolos, Resumen, Autómatas, Lenguaje y Consola; barra de estado con contadores y veredicto. Pregunta antes de descartar cambios sin guardar.
+- Crear archivos nuevos con una plantilla válida (`Ctrl+N`), abrir, guardar y limpiar desde la cabecera.
 - Modo consola sin tkinter: `python3 main.py --consola archivo.flow`.
 
 ## Requisitos e instalación
@@ -51,7 +51,7 @@ SmartLexStudio/
 ├── application/             Casos de uso (sin tkinter)
 │   ├── archivos.py  analisis_service.py
 ├── ui/                      Interfaz tkinter
-│   ├── estilos.py  iconos.py  editor.py  componentes.py  paneles.py  interfaz.py
+│   ├── estilos.py  editor.py  componentes.py  paneles.py  interfaz.py
 ├── ejemplos/                correcto.flow, incorrecto.flow, casos_limite.flow
 ├── tests/                   Pruebas con unittest (test_*.py)
 ├── docs/                    Documentación y capturas (docs/capturas/)

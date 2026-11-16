@@ -1,7 +1,6 @@
 """Ventana principal: coordina las vistas y consume la sesion de analisis con `after`."""
 from __future__ import annotations
 
-import math
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -11,27 +10,14 @@ from application.analisis_service import SesionAnalisis, explicar_token, tokeniz
 from application.archivos import ErrorArchivo, cargar_fuente, crear_fuente, guardar_fuente
 from config import reglas
 from core.modelos import Diagnostico, Token
-from ui.componentes import (RAIZ_PROYECTO, BarraEstado, BarraHerramientas, FranjaHerramientas, PanelConsola,
-                            PanelHerramientas, PanelLateral)
+from ui.componentes import PAUSA_MAXIMA_MS, PAUSA_POR_DEFECTO_MS, RAIZ_PROYECTO, BarraEstado, Cabecera
 from ui.editor import EditorCodigo
 from ui.estilos import aplicar_tema
-from ui.paneles import PanelProblemas, PanelResultados
+from ui.paneles import PanelErrores, PanelResultados
 
-RETARDO_ANIMACION_MS = 20
-DURACION_MAXIMA_ANIMACION_MS = 3000
+DURACION_MAXIMA_ANIMACION_MS = 10000  # tope de la animacion completa (la pausa por linea se acorta en archivos largos)
+PASOS_MAXIMOS_POR_TICK = 500          # una linea larguisima no debe bloquear la ventana
 TITULO_SOLICITUD = "Seleccione el archivo con las cadenas de entrada"
-
-# herramienta -> zona de la ventana (arquitectura §16.7)
-_HERRAMIENTAS = {
-    "proyecto": "izquierda", "lenguaje": "izquierda",
-    "consola": "inferior", "problemas": "inferior",
-    "tokens": "derecha", "simbolos": "derecha", "estadisticas": "derecha", "educativo": "derecha",
-}
-# (nombre, descripcion, abajo) de cada franja
-_ICONOS_IZQUIERDA = (("proyecto", "Proyecto", False), ("lenguaje", "Lenguaje FlowLang", False),
-                     ("consola", "Consola de evaluación", True), ("problemas", "Problemas", True))
-_ICONOS_DERECHA = (("tokens", "Tokens", False), ("simbolos", "Tabla de símbolos", False),
-                   ("estadisticas", "Estadísticas", False), ("educativo", "Modo educativo", False))
 
 SIN_FUENTE, LISTO, ANALIZANDO, TERMINADO = "SIN_FUENTE", "LISTO", "ANALIZANDO", "TERMINADO"
 _BOTONES_POR_ESTADO = {
@@ -43,9 +29,11 @@ _BOTONES_POR_ESTADO = {
 _AYUDA = (
     "SmartLex Studio — analizador léxico de FlowLang 1.0\n\n"
     "Ctrl+N  Nuevo archivo\nCtrl+O  Abrir archivo (.flow / .txt)\nCtrl+S  Guardar\n"
-    "F5  Analizar (evaluación progresiva)\nF10  Paso a paso (Modo educativo)\n"
+    "F5  Analizar (evaluación progresiva)\nF10  Paso a paso (pestaña Autómatas)\n"
     "Esc  Detener\nF1  Esta ayuda\nF2 / Shift+F2  Siguiente / anterior error\n\n"
-    "Clic en un token: ver cómo se reconoció.\nDoble clic en un error: ir a su posición.\n"
+    "Pausa por línea: el deslizador fija cuánto espera el análisis entre una línea y la siguiente.\n"
+    "Margen del editor: ✓ línea evaluada sin errores, ✗ línea con errores.\n"
+    "Clic en un token: ver cómo se reconoció (pestaña Autómatas).\nDoble clic en un error: ir a su posición.\n"
     "Al terminar se ofrece ver la tabla de símbolos.")
 
 
@@ -58,9 +46,9 @@ class VentanaPrincipal(tk.Tk):
         self.sesion: SesionAnalisis | None = None
         self.ruta_actual: Path | None = None
         self._id_tick: str | None = None
-        self._pasos_por_tick = 1
         self._errores_vistos = 0
-        self._tamanos: dict[str, int] = {}
+        self._linea_en_curso = 0   # ultima linea con tokens que el analisis ya empezo (0 = ninguna)
+        self._lineas_fuente = 1
         self._texto_guardado = ""  # texto del editor en la ultima carga o guardado (detecta cambios)
         aplicar_tema(self)
         self._configurar_ventana()
@@ -68,6 +56,7 @@ class VentanaPrincipal(tk.Tk):
         self._registrar_atajos()
         self._poner_titulo()
         self._actualizar_estado(SIN_FUENTE)
+        self.protocol("WM_DELETE_WINDOW", self.salir)
         if solicitar_archivo:
             self.after(100, self._solicitar_archivo_inicial)
 
@@ -90,56 +79,38 @@ class VentanaPrincipal(tk.Tk):
         ancho = min(1280, self.winfo_screenwidth())
         alto = min(800, self.winfo_screenheight() - 60)
         self.geometry(f"{ancho}x{alto}")
-        self.minsize(min(1000, ancho), min(650, alto))
+        self.minsize(min(1100, ancho), min(650, alto))
         self.title("SmartLex Studio")
 
     def _construir(self) -> None:
-        """Disposicion de la arquitectura §16.2: barras, franjas y tres zonas redimensionables."""
-        self.barra = BarraHerramientas(self, {
-            "nuevo": self.nuevo_archivo, "abrir": self.abrir_archivo, "guardar": self.guardar_archivo, "analizar": self.analizar,
-            "paso": self.paso_a_paso, "detener": self.detener, "limpiar": self.limpiar,
-            "ayuda": self.mostrar_ayuda, "salir": self.destroy})
-        self.barra_estado = BarraEstado(self, self.ver_tabla_simbolos)
-        self.franja_izquierda = FranjaHerramientas(self, self.alternar_herramienta)
-        self.franja_derecha = FranjaHerramientas(self, self.alternar_herramienta)
-        self.barra.pack(side="top", fill="x")
+        """Disposicion de la arquitectura §17.2: cabecera, editor + errores, pestanas de resultados y barra de estado."""
+        self.cabecera = Cabecera(self, {
+            "nuevo": self.nuevo_archivo, "abrir": self.abrir_archivo, "guardar": self.guardar_archivo,
+            "analizar": self.analizar, "paso": self.paso_a_paso, "detener": self.detener,
+            "limpiar": self.limpiar, "ayuda": self.mostrar_ayuda}, self.abrir_archivo, self.ver_tabla_simbolos)
+        self.barra_estado = BarraEstado(self)
+        self.cabecera.pack(side="top", fill="x")
         self.barra_estado.pack(side="bottom", fill="x")
-        self.franja_izquierda.pack(side="left", fill="y")
-        self.franja_derecha.pack(side="right", fill="y")
-        for franja, iconos in ((self.franja_izquierda, _ICONOS_IZQUIERDA), (self.franja_derecha, _ICONOS_DERECHA)):
-            for nombre, descripcion, abajo in iconos:
-                franja.agregar(nombre, descripcion, abajo)
-        self.franja_derecha.habilitar("simbolos", False)
         self.cuerpo = ttk.Panedwindow(self, orient="vertical")
-        self.cuerpo.pack(fill="both", expand=True)
+        self.cuerpo.pack(fill="both", expand=True, padx=12, pady=(10, 8))
         self.superior = ttk.Panedwindow(self.cuerpo, orient="horizontal")
-        self.panel_lateral = PanelLateral(self.superior, self.abrir_archivo)
         self.editor = EditorCodigo(self.superior, al_cambiar=self._al_editar,
-                                   al_mover_cursor=self.barra_estado.establecer_posicion, al_cerrar=self.limpiar)
-        self.panel_resultados = PanelResultados(self.superior, self._al_seleccionar_token)
-        self.inferior = PanelHerramientas(self.cuerpo)
-        self.consola = PanelConsola(self.inferior.cuerpo)
-        self.problemas = PanelProblemas(self.inferior.cuerpo, self._al_seleccionar_error)
-        self.inferior.agregar_vista("consola", "Consola de evaluación", self.consola)
-        self.inferior.agregar_vista("problemas", "Problemas", self.problemas)
-        self._paneles = {"izquierda": self.panel_lateral, "derecha": self.panel_resultados, "inferior": self.inferior}
-        for zona, panel in self._paneles.items():
-            panel.al_ocultar = lambda z=zona: self._ocultar_zona(z)
-        self.superior.add(self.panel_lateral, weight=0)
+                                   al_mover_cursor=self.barra_estado.establecer_posicion)
+        self.panel_errores = PanelErrores(self.superior, self._al_seleccionar_error)
+        self.panel_resultados = PanelResultados(self.cuerpo, self._al_seleccionar_token)
+        self.consola = self.panel_resultados.consola
         self.superior.add(self.editor, weight=3)
-        self.superior.add(self.panel_resultados, weight=2)
-        self.cuerpo.add(self.superior, weight=4)
-        self.cuerpo.add(self.inferior, weight=1)
+        self.superior.add(self.panel_errores, weight=2)
+        self.cuerpo.add(self.superior, weight=3)
+        self.cuerpo.add(self.panel_resultados, weight=2)
         self._colocar_divisores()
-        self._refrescar_franjas()
 
     def _colocar_divisores(self) -> None:
-        """Tamanos iniciales: izquierda 250 px, derecha 36 % del ancho, inferior 250 px."""
+        """Tamanos iniciales: errores 38 % del ancho, resultados 40 % del alto (los divisores se arrastran)."""
         self.update_idletasks()
         ancho, alto = self.superior.winfo_width(), self.cuerpo.winfo_height()
-        self.superior.sashpos(0, 250)
-        self.superior.sashpos(1, ancho - int(ancho * 0.36))
-        self.cuerpo.sashpos(0, alto - 250)
+        self.superior.sashpos(0, ancho - int(ancho * 0.38))
+        self.cuerpo.sashpos(0, alto - int(alto * 0.40))
 
     def _registrar_atajos(self) -> None:
         atajos = {"<Control-n>": self.nuevo_archivo, "<Control-o>": self.abrir_archivo, "<Control-s>": self.guardar_archivo,
@@ -150,33 +121,22 @@ class VentanaPrincipal(tk.Tk):
             atajos.update({"<Command-n>": self.nuevo_archivo, "<Command-o>": self.abrir_archivo, "<Command-s>": self.guardar_archivo})
         for secuencia, accion in atajos.items():
             self.bind_all(secuencia, lambda _e, f=accion: f())
+        # En un Text, Ctrl+O inserta un salto de linea (clase Text): se abre el archivo y "break" evita las dos cosas (AUD-31)
+        self.editor.texto.bind("<Control-o>", lambda _e: (self.abrir_archivo(), "break")[1])
 
     # --- estado ----------------------------------------------------------
     def _actualizar_estado(self, estado: str, mensaje: str | None = None) -> None:
         self.estado = estado
-        self.barra.habilitar(_BOTONES_POR_ESTADO[estado])
+        self.cabecera.habilitar(_BOTONES_POR_ESTADO[estado])
         textos = {SIN_FUENTE: "Sin archivo", LISTO: "Listo para analizar",
                   ANALIZANDO: "Analizando…", TERMINADO: "Análisis terminado"}
         self.barra_estado.establecer_estado(mensaje or textos[estado])
 
-    def _migas(self) -> list[str]:
-        """Migas de pan del archivo: proyecto › carpeta › archivo (o `carpeta › archivo` si esta fuera)."""
-        nombre = RAIZ_PROYECTO.name
-        if self.ruta_actual is None:
-            return [nombre]
-        ruta = self.ruta_actual.resolve()
-        try:
-            return [nombre, *ruta.relative_to(RAIZ_PROYECTO.resolve()).parts]
-        except ValueError:
-            return [ruta.parent.name, ruta.name]
-
     def _poner_titulo(self) -> None:
-        """Titulo de la ventana, migas de la barra de estado, pestana del editor y arbol de Proyecto."""
+        """Titulo de la ventana y titulo del editor."""
         nombre = f" — {self.ruta_actual.name}" if self.ruta_actual else ""
         self.title(f"SmartLex Studio{nombre}")
-        self.barra_estado.establecer_ruta(self._migas())
         self.editor.establecer_nombre(self.ruta_actual.name if self.ruta_actual else None)
-        self.panel_lateral.marcar_abierto(self.ruta_actual)
 
     def _cancelar_temporizador(self) -> None:
         if self._id_tick is not None:
@@ -188,10 +148,10 @@ class VentanaPrincipal(tk.Tk):
         self.sesion = None
         self._errores_vistos = 0
         self.panel_resultados.limpiar()
-        self.problemas.limpiar()
+        self.panel_errores.limpiar()
         self._habilitar_simbolos(False)
-        self.franja_izquierda.poner_contador("problemas", 0)
-        self.barra_estado.establecer_contadores(0, 0)
+        self.barra_estado.establecer_contadores(0, 0, 0, 0, 0)
+        self.barra_estado.establecer_veredicto(None)
         self.editor.limpiar_marcas()
         self.editor.solo_lectura(False)
 
@@ -200,8 +160,22 @@ class VentanaPrincipal(tk.Tk):
         if self.estado == SIN_FUENTE and not self.editor.obtener_texto().strip():
             self.abrir_archivo()
 
+    def _confirmar_descartar(self, titulo: str) -> bool:
+        """True si se puede continuar: no hay cambios sin guardar, o el usuario los guardo o los descarta (AUD-29)."""
+        if self.editor.obtener_texto() == self._texto_guardado:
+            return True
+        respuesta = messagebox.askyesnocancel(titulo, "Hay cambios sin guardar. ¿Guardarlos antes de continuar?")
+        if respuesta is None:
+            return False
+        if respuesta:
+            self.guardar_archivo()
+            return self.editor.obtener_texto() == self._texto_guardado  # False si se cancelo el guardado
+        return True
+
     def abrir_archivo(self, ruta=None) -> None:
         """Carga un archivo (pidiendolo si no se da la ruta) y lo muestra en el editor."""
+        if not self._confirmar_descartar("Abrir archivo"):
+            return
         if ruta is None:
             ruta = filedialog.askopenfilename(
                 title=TITULO_SOLICITUD, initialdir=str(RAIZ_PROYECTO / "ejemplos"),
@@ -229,14 +203,8 @@ class VentanaPrincipal(tk.Tk):
 
     def nuevo_archivo(self) -> None:
         """Crea un archivo con la plantilla minima: pregunta por cambios sin guardar y por la ruta."""
-        if self.editor.obtener_texto() != self._texto_guardado:
-            respuesta = messagebox.askyesnocancel("Nuevo archivo", "¿Guardar cambios antes de crear un archivo nuevo?")
-            if respuesta is None:
-                return
-            if respuesta:
-                self.guardar_archivo()
-                if self.editor.obtener_texto() != self._texto_guardado:
-                    return  # el usuario cancelo el guardado
+        if not self._confirmar_descartar("Nuevo archivo"):
+            return
         carpeta = self.ruta_actual.parent if self.ruta_actual else RAIZ_PROYECTO / "ejemplos"
         ruta = filedialog.asksaveasfilename(
             title="Nuevo archivo FlowLang", defaultextension=reglas.EXTENSIONES_PERMITIDAS[0],
@@ -250,13 +218,12 @@ class VentanaPrincipal(tk.Tk):
             self._mostrar_error_archivo(error.diagnostico)
             return
         self._mostrar_fuente(Path(ruta), texto)
-        self.editor.ir_a(2, 5)
+        self.editor.ir_a(2, len(texto.splitlines()[1]) + 1)  # final de la linea sangrada de la plantilla
 
     def _mostrar_error_archivo(self, diagnostico: Diagnostico) -> None:
         self.consola.escribir(f"✗ {diagnostico.codigo} {diagnostico.mensaje} {diagnostico.sugerencia}", "error")
-        self.problemas.quitar_errores_de_archivo()
-        self.problemas.agregar_error(diagnostico)
-        self.mostrar_herramienta("problemas")
+        self.panel_errores.quitar_errores_de_archivo()
+        self.panel_errores.agregar_error(diagnostico)
         messagebox.showerror(diagnostico.titulo, f"{diagnostico.mensaje}\n\n{diagnostico.sugerencia}")
 
     def guardar_archivo(self) -> None:
@@ -291,12 +258,11 @@ class VentanaPrincipal(tk.Tk):
         self.editor.descartar_cambio_pendiente()
         self._reiniciar_resultados()
         self.sesion = SesionAnalisis(fuente)
-        estimado = len(fuente) // 4
-        self._pasos_por_tick = max(1, math.ceil(estimado / (DURACION_MAXIMA_ANIMACION_MS / RETARDO_ANIMACION_MS)))
+        self._linea_en_curso = 0
+        self._lineas_fuente = fuente.count("\n") + 1
         self.editor.solo_lectura(True)
         self.consola.limpiar()
-        if not self._zona_visible("inferior"):
-            self.mostrar_herramienta("consola")
+        self.panel_resultados.mostrar("tokens")
         self.consola.escribir(f"Analizando {self.ruta_actual.name if self.ruta_actual else 'texto del editor'}…", "info")
         self._actualizar_estado(ANALIZANDO)
 
@@ -310,17 +276,27 @@ class VentanaPrincipal(tk.Tk):
             return
         if self.estado != ANALIZANDO:
             self._iniciar_sesion()
-        self._id_tick = self.after(RETARDO_ANIMACION_MS, self._tick)
+        self.panel_resultados.mostrar("tokens")
+        self._id_tick = self.after(1, self._tick)
+
+    def _pausa_efectiva(self) -> int:
+        """Pausa entre lineas: el deslizador, acortada para que un archivo largo no dure mas del tope."""
+        return min(self.cabecera.pausa_ms(), DURACION_MAXIMA_ANIMACION_MS // max(1, self._lineas_fuente))
 
     def _tick(self) -> None:
+        """Un latido: consume pasos hasta terminar la linea en curso y espera la pausa (§17.7)."""
         self._id_tick = None
-        for _ in range(self._pasos_por_tick):
+        linea = self._linea_en_curso
+        for _ in range(PASOS_MAXIMOS_POR_TICK):
             if not self._consumir_paso(educativo=False):
                 return
-        self._id_tick = self.after(RETARDO_ANIMACION_MS, self._tick)
+            if self._linea_en_curso != linea:
+                self._id_tick = self.after(self._pausa_efectiva(), self._tick)
+                return
+        self._id_tick = self.after(1, self._tick)
 
     def paso_a_paso(self) -> None:
-        """Consume exactamente un paso y lo explica en el Modo educativo."""
+        """Consume exactamente un paso y lo explica en la pestana Autómatas."""
         self._sincronizar_con_texto()
         if self.estado == SIN_FUENTE:
             self.abrir_archivo()
@@ -337,35 +313,42 @@ class VentanaPrincipal(tk.Tk):
             self._actualizar_estado(ANALIZANDO, "Evaluación detenida (F5 continúa, F10 avanza un paso)")
 
     def _consumir_paso(self, educativo: bool) -> bool:
-        """Aplica un paso a las vistas; False cuando la sesion ya termino."""
+        """Aplica un paso a las vistas (lo usan el temporizador y «Paso a paso»); False cuando la sesion ya termino."""
         paso = self.sesion.siguiente_paso()
         if paso is None:
             self._finalizar()
             return False
         resultado = self.sesion.resultado
         if paso.token is not None:
+            if paso.token.linea != self._linea_en_curso:
+                self._cerrar_linea_en_curso()
+                self._linea_en_curso = paso.token.linea
             self.panel_resultados.agregar_token(paso.numero, paso.token)
             self.editor.resaltar_token_actual(paso.token)
         self.consola.escribir(paso.descripcion, "error" if paso.diagnosticos else "normal")
         for diagnostico in paso.diagnosticos:
             self._errores_vistos += 1
-            self.problemas.agregar_error(diagnostico)
+            self.panel_errores.agregar_error(diagnostico)
             self.editor.marcar_errores([diagnostico])
-            if self._errores_vistos == 1 and not educativo:
-                self.mostrar_herramienta("problemas")
             if paso.token is None:
                 self.editor.ir_a(diagnostico.linea, diagnostico.columna)
-        self.barra_estado.establecer_contadores(len(resultado.tokens), self._errores_vistos)
-        self.franja_izquierda.poner_contador("problemas", self._errores_vistos)
+        self.barra_estado.establecer_contadores(*self.editor.conteo_lineas(), len(resultado.tokens),
+                                                len(resultado.tabla), self._errores_vistos)
         if educativo:
-            self.mostrar_herramienta("educativo")
+            self.panel_resultados.mostrar("automatas")
             if paso.token is not None:
                 self.panel_resultados.mostrar_explicacion(explicar_token(paso.token, resultado.tabla))
         return True
 
+    def _cerrar_linea_en_curso(self) -> None:
+        """La linea que se estaba recorriendo ya termino: recibe su ✓ o su ✗."""
+        if self._linea_en_curso > 0:
+            self.editor.marcar_lineas_evaluadas([self._linea_en_curso])
+
     def _finalizar(self) -> None:
         resultado = self.sesion.resultado
         self._cancelar_temporizador()
+        self._cerrar_linea_en_curso()
         self.editor.solo_lectura(False)
         self.editor.resaltar_token_actual(None)
         self.consola.escribir("— Fin del análisis —", "info")
@@ -373,8 +356,9 @@ class VentanaPrincipal(tk.Tk):
         self.panel_resultados.mostrar_estadisticas(resultado)
         self.panel_resultados.mostrar_tabla_simbolos(resultado.tabla)
         self._habilitar_simbolos(True)
-        if not resultado.manejador.hay_errores():
-            self.editor.indicar_sin_errores()
+        self.barra_estado.establecer_contadores(*self.editor.conteo_lineas(), len(resultado.tokens),
+                                                len(resultado.tabla), self._errores_vistos)
+        self.barra_estado.establecer_veredicto(resultado.es_valida)
         self._actualizar_estado(TERMINADO)
         valida = "VÁLIDA" if resultado.es_valida else "INVÁLIDA"
         if messagebox.askyesno("Análisis terminado", f"Análisis terminado: cadena {valida} "
@@ -395,81 +379,19 @@ class VentanaPrincipal(tk.Tk):
             self.consola.escribir("Líneas léxicamente inválidas: " + ", ".join(map(str, lineas)), "error")
 
     def ver_tabla_simbolos(self) -> None:
-        """Muestra la tabla de simbolos (solo disponible al terminar)."""
+        """Muestra la pestana de la tabla de simbolos (solo disponible al terminar)."""
         if self.panel_resultados.tabla_simbolos_habilitada():
-            self.mostrar_herramienta("simbolos")
+            self.panel_resultados.mostrar("simbolos")
 
     def _habilitar_simbolos(self, activo: bool) -> None:
-        """Icono de la franja, enlace de la barra de estado y vista, todo a la vez."""
+        """Pestana de la tabla y boton de la cabecera, a la vez."""
         self.panel_resultados.habilitar_tabla_simbolos(activo)
-        self.franja_derecha.habilitar("simbolos", activo)
-        self.barra_estado.habilitar_ver_tabla(activo)
-        if not activo and self.panel_resultados.vista_actual == "simbolos":
-            self.mostrar_herramienta("tokens")
-
-    # --- tool windows ------------------------------------------------------
-    def _zona_visible(self, zona: str) -> bool:
-        panel = self._paneles[zona]
-        return str(panel) in self._contenedor(zona).panes()
-
-    def _contenedor(self, zona: str) -> ttk.Panedwindow:
-        return self.cuerpo if zona == "inferior" else self.superior
-
-    def _refrescar_franjas(self) -> None:
-        """El icono de la vista visible de cada zona queda resaltado."""
-        activas = {z: self._paneles[z].vista_actual for z in self._paneles if self._zona_visible(z)}
-        self.franja_izquierda.marcar([activas.get("izquierda"), activas.get("inferior")])
-        self.franja_derecha.marcar([activas.get("derecha")])
-
-    def mostrar_herramienta(self, nombre: str) -> None:
-        """Deja visible la zona de `nombre` con esa vista."""
-        zona = _HERRAMIENTAS[nombre]
-        self._paneles[zona].mostrar(nombre)
-        if not self._zona_visible(zona):
-            self._mostrar_zona(zona)
-        self._refrescar_franjas()
-
-    def alternar_herramienta(self, nombre: str) -> None:
-        """Clic en un icono: si su vista ya se ve, oculta la zona; si no, la muestra."""
-        zona = _HERRAMIENTAS[nombre]
-        if self._zona_visible(zona) and self._paneles[zona].vista_actual == nombre:
-            self._ocultar_zona(zona)
-        else:
-            self.mostrar_herramienta(nombre)
-
-    def _ocultar_zona(self, zona: str) -> None:
-        """Quita la zona del Panedwindow guardando su tamano (el editor nunca se oculta)."""
-        if not self._zona_visible(zona):
-            return
-        panel = self._paneles[zona]
-        self._tamanos[zona] = panel.winfo_height() if zona == "inferior" else panel.winfo_width()
-        self._contenedor(zona).forget(panel)
-        self._refrescar_franjas()
-
-    def _mostrar_zona(self, zona: str) -> None:
-        """Vuelve a poner la zona en su sitio y restaura su tamano cuando Tk la haya medido."""
-        panel, contenedor = self._paneles[zona], self._contenedor(zona)
-        if zona == "izquierda":
-            contenedor.insert(0, panel, weight=0)
-        else:
-            contenedor.add(panel, weight=2 if zona == "derecha" else 1)
-        self.after_idle(lambda: self._restaurar_tamano(zona))
-
-    def _restaurar_tamano(self, zona: str) -> None:
-        contenedor = self._contenedor(zona)
-        tamano = self._tamanos.get(zona, 250)
-        try:
-            if zona == "izquierda":
-                contenedor.sashpos(0, tamano)
-            elif zona == "derecha":
-                contenedor.sashpos(len(contenedor.panes()) - 2, contenedor.winfo_width() - tamano)
-            else:
-                contenedor.sashpos(0, contenedor.winfo_height() - tamano)
-        except tk.TclError:
-            pass  # la ventana aun no tiene medidas: Tk reparte por pesos
+        self.cabecera.habilitar_ver_tabla(activo)
 
     def limpiar(self) -> None:
-        """Deja la aplicacion sin archivo y sin resultados."""
+        """Deja la aplicacion sin archivo y sin resultados (pregunta si hay cambios sin guardar)."""
+        if not self._confirmar_descartar("Limpiar"):
+            return
         self._reiniciar_resultados()
         self.editor.limpiar()
         self.consola.limpiar()
@@ -477,6 +399,11 @@ class VentanaPrincipal(tk.Tk):
         self.ruta_actual = None
         self._poner_titulo()
         self._actualizar_estado(SIN_FUENTE)
+
+    def salir(self) -> None:
+        """Cierra la ventana (boton de cierre), preguntando si hay cambios sin guardar; `destroy` no pregunta."""
+        if self._confirmar_descartar("Salir"):
+            self.destroy()
 
     def mostrar_ayuda(self) -> None:
         """Atajos y modo de uso."""
@@ -488,6 +415,7 @@ class VentanaPrincipal(tk.Tk):
         if self.estado == ANALIZANDO:
             return
         texto = self.editor.obtener_texto()
+        self.barra_estado.establecer_veredicto(None)
         self.editor.limpiar_marcas()
         self.editor.resaltar(tokenizar(texto))
         if self.estado == TERMINADO:

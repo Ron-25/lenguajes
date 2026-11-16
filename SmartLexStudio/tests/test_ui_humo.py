@@ -36,10 +36,12 @@ class TestUIHumo(unittest.TestCase):
         for p in parches:
             self.addCleanup(p.stop)
         self.messagebox.askyesno.return_value = False
+        self.messagebox.askyesnocancel.return_value = False  # el MagicMock por defecto es verdadero (D-70)
         self.ventanas = []
 
     def crear(self, **kwargs):
         ventana = self.interfaz.VentanaPrincipal(**kwargs)
+        ventana.cabecera.establecer_pausa(0)
         self.ventanas.append(ventana)
         self.addCleanup(ventana.destroy)
         return ventana
@@ -66,7 +68,7 @@ class TestUIHumo(unittest.TestCase):
         v = self.terminar(INCORRECTO)
         p = v.panel_resultados
         self.assertEqual(self.filas(p.arbol_tokens), 57)
-        self.assertEqual(self.filas(v.problemas.arbol_errores), 15)
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 15)
         self.messagebox.askyesno.assert_called_once()
         self.assertIn("tabla de símbolos", self.messagebox.askyesno.call_args[0][1])
         self.assertTrue(p.tabla_simbolos_habilitada())
@@ -105,9 +107,9 @@ class TestUIHumo(unittest.TestCase):
     def test_errores_durante_la_evaluacion(self):
         v = self.crear(solicitar_archivo=False)
         v.abrir_archivo(INCORRECTO)
-        while self.filas(v.problemas.arbol_errores) == 0:
+        while self.filas(v.panel_errores.arbol_errores) == 0:
             v.paso_a_paso()
-        self.assertEqual(self.filas(v.problemas.arbol_errores), 1)
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 1)
         rangos = [str(i) for i in v.editor.texto.tag_ranges("marca_error")]
         self.assertEqual(rangos, ["2.11", "2.14"])
         self.assertFalse(v.sesion.terminada)
@@ -116,13 +118,13 @@ class TestUIHumo(unittest.TestCase):
         v = self.crear(solicitar_archivo=False)
         for _ in range(2):
             v.abrir_archivo(str(RAIZ / "no_existe.flow"))
-        self.assertEqual(self.filas(v.problemas.arbol_errores), 1)
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 1)
         v = self.terminar(INCORRECTO)
         for _ in range(2):
             v.abrir_archivo(str(RAIZ / "no_existe.flow"))
-        self.assertEqual(self.filas(v.problemas.arbol_errores), 16)
-        codigos = [v.problemas.arbol_errores.item(i, "values")[0]
-                   for i in v.problemas.arbol_errores.get_children()]
+        self.assertEqual(self.filas(v.panel_errores.arbol_errores), 16)
+        codigos = [v.panel_errores.arbol_errores.item(i, "values")[0]
+                   for i in v.panel_errores.arbol_errores.get_children()]
         self.assertEqual(sum(c.startswith("ARC") for c in codigos), 1)
 
     def test_navegacion_a_un_error(self):
@@ -134,8 +136,8 @@ class TestUIHumo(unittest.TestCase):
     def test_colisiones_en_el_resumen(self):
         v = self.terminar(CORRECTO)
         resumen = v.panel_resultados.etiqueta_resumen.cget("text")
-        self.assertIn("al insertar 14", resumen)
-        self.assertIn("En la tabla actual 7", resumen)
+        self.assertIn("Colisiones al insertar: 14", resumen)
+        self.assertIn("En la tabla actual: 7", resumen)
 
     def test_retorno_de_carro(self):
         v = self.crear(solicitar_archivo=False)

@@ -34,23 +34,30 @@ def esperar(ms):
         v.update(); time.sleep(0.01)
 
 
-def paso(espera, accion):
-    esperar(espera); accion()
+def terminar(ruta):
+    """Abre el ejemplo y lo analiza completo (pausa por linea 0)."""
+    v.cabecera.establecer_pausa(0)
+    v.abrir_archivo(ruta); v.analizar()
+    while v.estado != "TERMINADO":
+        esperar(100)
+    esperar(300)
 
 
 esperar(500)
-v.abrir_archivo("ejemplos/correcto.flow"); v.analizar()
-esperar(6000); v.mostrar_herramienta("tokens"); esperar(300); shot("1_correcto_tokens")
-v.mostrar_herramienta("simbolos"); esperar(500); shot("2_tabla_simbolos")
-v.mostrar_herramienta("estadisticas"); esperar(500); shot("3_estadisticas")
-pr.arbol_tokens.selection_set(pr.arbol_tokens.get_children()[11]); v.mostrar_herramienta("educativo")
-esperar(500); shot("4_modo_educativo")
-v.abrir_archivo("ejemplos/incorrecto.flow"); v.analizar()
-esperar(6000)
-v.mostrar_herramienta("tokens"); v.mostrar_herramienta("problemas")
-fila = v.problemas.arbol_errores.get_children()[3]
-v.problemas.arbol_errores.selection_set(fila); v.problemas.arbol_errores.see(fila)
+terminar("ejemplos/correcto.flow")
+pr.mostrar("tokens"); esperar(300); shot("1_correcto_tokens")
+pr.mostrar("simbolos"); esperar(500); shot("2_tabla_simbolos")
+pr.mostrar("resumen"); esperar(500); shot("3_resumen")
+pr.arbol_tokens.selection_set(pr.arbol_tokens.get_children()[11]); pr.mostrar("automatas")
+esperar(500); shot("4_automatas")
+terminar("ejemplos/incorrecto.flow")
+pr.mostrar("simbolos")
+fila = v.panel_errores.arbol_errores.get_children()[3]
+v.panel_errores.arbol_errores.selection_set(fila); v.panel_errores.arbol_errores.see(fila)
 esperar(500); shot("5_incorrecto_errores")
-v.alternar_herramienta("proyecto"); v.alternar_herramienta("problemas")
-esperar(500); shot("6_paneles_ocultos")
+# analisis detenido a mitad: pausa de 300 ms por linea y se detiene tras unas lineas
+v.cabecera.establecer_pausa(300)
+v.abrir_archivo("ejemplos/incorrecto.flow"); v.analizar()
+esperar(2300); v.detener(); pr.mostrar("tokens")
+esperar(500); shot("6_durante_evaluacion")
 v.destroy()

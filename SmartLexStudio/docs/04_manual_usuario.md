@@ -40,34 +40,33 @@ Si Tk no está instalado, `python3 main.py` te lo dice y te sugiere el modo cons
 
 ## 3. Recorrido de la interfaz
 
-La ventana sigue el estilo de PyCharm (tema oscuro). Todas las zonas se redimensionan arrastrando los bordes.
+La ventana es clara, de estilo académico: cabecera azul marino, editor a la izquierda, **Manejador de errores** a la derecha y pestañas de resultados abajo. Los divisores entre zonas se arrastran; ninguna zona se oculta.
 
-1. **Barra superior**: el logo *SL*, dos menús desplegables y los botones de acción. **«SmartLex Studio ▾»** abre el menú de archivo (Nuevo archivo, Abrir, Guardar, Limpiar, Ayuda, Salir); **«FlowLang · Análisis léxico ▾»** abre el de ejecución (Analizar, Paso a paso, Detener). A continuación van **▶ Analizar** (verde), **Paso a paso** y **■ Detener** (rojo), y a la derecha, en gris, los iconos **Nuevo archivo** (documento con «+»), Abrir, Guardar, Limpiar y Ayuda. Los que no se pueden usar en el estado actual aparecen apagados, y al detener el ratón sobre un icono aparece su nombre y atajo.
-2. **Franjas de iconos** (izquierda y derecha): cada icono es una *tool window*. Izquierda arriba: **Proyecto** y **Lenguaje FlowLang**; izquierda abajo: **Consola de evaluación** y **Problemas** (con el número de errores). Derecha: **Tokens**, **Tabla de símbolos** (apagada hasta terminar el análisis), **Estadísticas** y **Modo educativo**. Un clic en el icono de la vista que ya se ve **oculta** esa zona; otro clic la vuelve a mostrar. El botón `—` de cada cabecera también la oculta. El icono de la vista visible queda resaltado.
-3. **Proyecto** (izquierda): árbol `SmartLexStudio › ejemplos › *.flow` con el archivo abierto seleccionado; doble clic en un ejemplo lo carga. **Lenguaje FlowLang** muestra el árbol de palabras reservadas, operadores, delimitadores, escapes y límites; al elegir un elemento, su descripción aparece debajo.
-4. **Editor** (centro): una pestaña con el nombre del archivo (`sin título` si no hay) y una `×` que equivale a *Limpiar*; números de línea grises, colores por categoría de token (comentarios en cursiva) y línea del cursor resaltada. Las líneas con error léxico llevan una `✗` roja en el margen y el texto erróneo va subrayado en rojo. Arriba a la derecha del editor, el **widget de inspección** muestra `✗ N` con las flechas `⌃` `⌄` (o `✓` si no hubo errores): las flechas, o `Shift+F2` y `F2`, saltan al error anterior o siguiente.
-5. **Herramientas de la derecha**: Tokens, Tabla de símbolos, Estadísticas y Modo educativo, una a la vez (sección 5).
-6. **Herramientas de abajo**: **Consola de evaluación** (una línea por token; en rojo las que traen errores; al final los veredictos) y **Problemas** (tabla de errores a todo el ancho con su detalle).
-7. **Barra de estado** (gris): migas de pan `SmartLexStudio › ejemplos › correcto.flow`, estado y contadores de tokens y errores, y a la derecha `Lín:Col`, `LF`, `UTF-8`, `FlowLang 1.0` y el enlace **Ver tabla de símbolos** (activo solo al terminar el análisis).
+1. **Cabecera, fila 1**: «SmartLex Studio», el subtítulo «Analizador léxico de FlowLang · Tabla de símbolos · Manejador de errores» y, a la derecha, **Ayuda** (`F1`) y **Ver tabla de símbolos** (apagado hasta terminar el análisis).
+2. **Cabecera, fila 2**: **Nuevo archivo** (`Ctrl+N`, `Cmd+N` en macOS), **Abrir archivo…** (`Ctrl+O`; es el botón azul), el menú **Ejemplos** (lista los archivos de `ejemplos/` cada vez que se abre; elegir uno lo carga), **Guardar** (`Ctrl+S`), **Limpiar**, y después **Analizar** (`F5`), **Paso a paso** (`F10`) y **Detener** (`Esc`). Los que no se pueden usar en el estado actual aparecen apagados. Al final, el deslizador **Pausa por línea** (0 a 500 ms, 120 por defecto): se puede mover durante el análisis.
+3. **Editor** (izquierda): título «Archivo de entrada: *nombre*» (`(sin archivo)` si no hay). El margen muestra el número de línea y una marca: `✓` verde si la línea ya se evaluó y no tiene errores, `✗` rojo si tiene algún error (léxico o estructural); las líneas en blanco o aún no evaluadas no llevan marca. La línea con error se pinta en rosado y el texto erróneo va subrayado en rojo sobre fondo rojizo. Las palabras reservadas van en azul y negrita, los comentarios en gris cursiva. `F2` y `Shift+F2` saltan al siguiente y al anterior error.
+4. **Manejador de errores** (derecha, siempre visible): el título dice «(15 errores)», «(1 error)» o «(sin errores)». La tabla tiene las columnas `Código`, `Línea`, `Col`, `Lexema` y `Error`; debajo, el cuadro de detalle con el código, la posición, el lexema, el mensaje y la sugerencia del error elegido. Los errores de archivo (`ARC-…`) muestran «—» en Línea y Col.
+5. **Pestañas de resultados** (abajo, a todo el ancho): **Tokens**, **Tabla de símbolos**, **Resumen**, **Autómatas**, **Lenguaje** (referencia de FlowLang: palabras reservadas, operadores, delimitadores, escapes y límites) y **Consola** (una línea por token; al final los veredictos) (sección 5).
+6. **Barra de estado**: a la izquierda los contadores `Líneas válidas · Líneas con errores · Tokens · Símbolos · Errores`; a la derecha el estado, `Lín N, Col M` y el **veredicto** («✓ El archivo es válido para FlowLang» en verde o «✗ El archivo NO es válido para FlowLang» en rojo; se borra al editar el texto).
 
-![Errores durante el análisis: Problemas abierto y un error seleccionado](capturas/5_incorrecto_errores.png)
+![Análisis terminado con errores: error seleccionado y pestaña Tabla de símbolos](capturas/5_incorrecto_errores.png)
 
-Con las zonas izquierda e inferior ocultas el editor gana espacio:
+Con el análisis detenido a mitad se ve el avance por línea: las líneas de arriba con `✓`/`✗`, las de abajo sin marca y los errores ya listados.
 
-![Zonas ocultas](capturas/6_paneles_ocultos.png)
+![Análisis detenido a mitad](capturas/6_durante_evaluacion.png)
 
 ## 4. Flujo típico
 
 1. **Abrir** un archivo `.flow` o `.txt` (`Ctrl+O`). Al iniciar, la aplicación abre sola el selector «Seleccione el archivo con las cadenas de entrada»; si lo cancelas puedes escribir directamente en el editor o usar los ejemplos.
-2. **Analizar** (`F5`): la evaluación es **progresiva**; verás cómo se llenan las herramientas Tokens y Problemas mientras avanza (la consola se abre sola si estaba oculta). Mientras analiza (incluso en pausa), el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
-   - Alternativa **Paso a paso** (`F10`): cada pulsación procesa exactamente un token y abre el Modo educativo con su explicación.
-3. **Revisar los errores**: el primer error abre la herramienta *Problemas* (y suma al contador de su icono). Haz clic en una fila para ver el detalle completo y doble clic para saltar a esa posición del editor.
-4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* (se abre la *Tabla de símbolos*) o usa luego el enlace de la barra de estado o el icono de la franja derecha.
+2. **Analizar** (`F5`): la evaluación es **progresiva** y avanza **línea por línea**: en cada latido se completa una línea, que recibe su `✓` o `✗`, y se espera la *Pausa por línea*. Con 0 ms no hay pausa. En archivos largos la pausa se acorta para que la animación completa no pase de unos 10 s (más de 83 líneas con 120 ms). Mientras analiza (incluso en pausa), el editor está en solo lectura. *Detener* (`Esc`) la pausa y *Analizar* la continúa.
+   - Alternativa **Paso a paso** (`F10`): cada pulsación procesa exactamente un token y abre la pestaña Autómatas con su explicación.
+3. **Revisar los errores**: cada error aparece en el Manejador de errores en el mismo paso en que se detecta. Haz clic en una fila para ver el detalle y doble clic para saltar a esa posición del editor.
+4. **Ver la tabla de símbolos**: al terminar, un diálogo pregunta «¿Desea ver la tabla de símbolos?». Responde *Sí* (se abre la pestaña *Tabla de símbolos*) o usa luego el botón **Ver tabla de símbolos** de la cabecera.
 5. Si editas el texto después de analizar, el resultado queda marcado como desactualizado; vuelve a analizar.
 
-**Nuevo archivo** (`Ctrl+N`, `Cmd+N` en macOS; también en el menú «SmartLex Studio ▾»): si hay cambios sin guardar pregunta si guardarlos (*Sí* guarda, *No* descarta, *Cancelar* aborta); después pide el nombre del archivo (`.flow` por defecto; carpeta del archivo actual o `ejemplos/`) y lo crea con una plantilla mínima válida (`inicio` … `fin`), con el cursor en la línea 2. Si cancelas el diálogo no pasa nada; un error de archivo (extensión no permitida, sin permiso) aparece en *Problemas*.
+**Nuevo archivo** (`Ctrl+N`, `Cmd+N` en macOS): si hay cambios sin guardar pregunta si guardarlos (*Sí* guarda, *No* descarta, *Cancelar* aborta); después pide el nombre del archivo (`.flow` por defecto; carpeta del archivo actual o `ejemplos/`) y lo crea con una plantilla mínima válida (`inicio` … `fin`), con el cursor en la línea 2. Si cancelas el diálogo no pasa nada; un error de archivo (extensión no permitida, sin permiso) aparece en el Manejador de errores.
 
-*Limpiar* deja la aplicación sin archivo y sin resultados. *Guardar* (`Ctrl+S`) escribe el contenido del editor en UTF-8.
+*Limpiar* deja la aplicación sin archivo y sin resultados. **Cambios sin guardar**: *Nuevo archivo*, *Abrir archivo*, el menú *Ejemplos*, *Limpiar* y el cierre de la ventana preguntan «Hay cambios sin guardar. ¿Guardarlos antes de continuar?» (*Sí* guarda, *No* descarta, *Cancelar* aborta). `Ctrl+O` también funciona con el cursor dentro del editor. *Guardar* (`Ctrl+S`) escribe el contenido del editor en UTF-8.
 
 ### Atajos de teclado
 
@@ -82,32 +81,34 @@ Con las zonas izquierda e inferior ocultas el editor gana espacio:
 | `F1` | Ayuda |
 | `F2` / `Shift+F2` | Siguiente / anterior error en el editor |
 
-## 5. Las herramientas de la derecha y de abajo
+## 5. Las pestañas de resultados y el Manejador de errores
 
 ### Tokens
-Una fila por token reconocido, coloreada según su categoría. Columnas: `#` (orden), `Lín`, `Col` (posición desde 1), `Categoría` y `Lexema`. Al hacer clic en una fila, el token se resalta en el editor y el Modo educativo lo explica. Los comentarios y los fragmentos erróneos también aparecen (categorías *Comentario* y *Error*).
+Una fila por token reconocido, coloreada según su categoría. Columnas: `#` (orden), `Lín`, `Col` (posición desde 1), `Categoría` y `Lexema`. Al hacer clic en una fila, el token se resalta en el editor y la pestaña Autómatas lo explica. Los comentarios y los fragmentos erróneos también aparecen (categorías *Comentario* y *Error*).
 
 ### Tabla de símbolos
-Se habilita **al terminar** el análisis. Es una tabla hash con encadenamiento: las filas se ordenan por cubeta y las entradas que comparten cubeta (colisión) tienen un fondo distinto. Encima, un resumen:
+Se habilita **al terminar** el análisis. Es una tabla hash con encadenamiento: las filas se ordenan por cubeta y las entradas que comparten cubeta (colisión) tienen un fondo distinto. Encima, una línea con la **función hash real** (`h = (h · 31 + código(c)) mod 2³²`, `cubeta = h mod capacidad`) y el resumen:
 
 - **Capacidad**: número de cubetas (empieza en 17 y crece cuando el factor de carga supera 0,75).
-- **Entradas** y **Factor de carga** (`entradas / capacidad`).
+- **Símbolos** y **Factor de carga** (`entradas / capacidad`).
 - **Colisiones al insertar**: veces que un lexema nuevo cayó en una cubeta ya ocupada (contador histórico).
 - **En la tabla actual**: colisiones que se ven ahora (`entradas − cubetas ocupadas`); suelen ser menos porque al redimensionar muchas se separan.
 - **Cadena más larga** y **Redimensionados**.
 
 Columnas: `Cubeta`, `Hash`, `Lexema`, `Categoría`, `Tipo` (tipo de dato: el de la declaración, o el del literal), `Valor` (para literales y booleanos), `Decl.` (línea de la declaración) y `Apariciones` (lista de `(línea, columna)`). Cada lexema aparece una sola vez; si se repite, solo se suman apariciones.
 
-### Problemas (zona inferior)
-Tabla de errores a todo el ancho (la herramienta se abre sola con el primer error). Columnas: `Código`, `Tipo`, `Lín:Col`, `Mensaje` y `Sugerencia`. Bajo la tabla se muestra el detalle completo del error seleccionado. Los errores de archivo (`ARC-…`) no tienen posición. Como máximo se muestra un error de archivo a la vez.
-
-### Estadísticas
+### Resumen
 Aparece al terminar: veredicto léxico, estructural y global; tokens por categoría con barras proporcionales; número de líneas, caracteres y tokens; errores por tipo.
 
-### Modo educativo
-Explica un token: lexema, categoría y posición; descripción; la **expresión regular** de su categoría; el **reconocedor** (qué autómata lo leyó) y el **recorrido de estados** (por ejemplo `q0 → q1 → q1 → q2 → q3` para `45.5`); para errores, el código y la sugerencia; si el lexema está en la tabla, su hash, cubeta, tipo y número de apariciones. Al final muestra la tabla de transiciones del autómata usado.
+### Autómatas
+Arriba, el selector **Autómata** con los cuatro AFD de FlowLang: al elegir uno se ve su tabla de transiciones y sus estados finales. Al hacer clic en un token (o con *Paso a paso*) explica ese token: lexema, categoría y posición; descripción; la **expresión regular** de su categoría; el **reconocedor** (qué autómata lo leyó, que queda elegido en el selector) y el **recorrido de estados** (por ejemplo `q0 → q1 → q1 → q2 → q3` para `45.5`); para errores, el código y la sugerencia; si el lexema está en la tabla, su hash, cubeta, tipo y número de apariciones. Al final muestra la tabla de transiciones del autómata usado.
 
-![Modo educativo](capturas/4_modo_educativo.png)
+![Pestaña Autómatas](capturas/4_automatas.png)
+
+![Pestaña Resumen](capturas/3_resumen.png)
+
+### Lenguaje y Consola
+**Lenguaje** es el árbol de referencia de FlowLang (elige un elemento para ver su descripción). **Consola** registra la evaluación: una línea por token (en rojo las que traen errores), la instalación de cada símbolo en la tabla hash y los veredictos finales.
 
 ## 6. Códigos de error
 

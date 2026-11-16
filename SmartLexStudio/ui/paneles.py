@@ -1,4 +1,4 @@
-"""Tool window derecha (Tokens, Tabla de simbolos, Estadisticas, Modo educativo) y Problemas (errores)."""
+"""Manejador de errores (derecha) y pestanas de resultados (abajo): arquitectura §17.5 y §17.6."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -8,7 +8,7 @@ from typing import Callable
 from application.analisis_service import ExplicacionToken, ResultadoAnalisis
 from config import reglas
 from core.modelos import Diagnostico, Token, TipoDiagnostico
-from ui.componentes import PanelHerramientas
+from ui.componentes import PanelConsola, VistaLenguaje
 from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo, fuente_interfaz
 
 # (identificador, titulo, ancho)
@@ -17,11 +17,11 @@ COLUMNAS_TOKENS = [("n", "#", 56), ("linea", "Lín", 50), ("col", "Col", 50),
 COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 76), ("hash", "Hash", 116), ("lexema", "Lexema", 150),
                      ("categoria", "Categoría", 130), ("tipo", "Tipo", 90), ("valor", "Valor", 110),
                      ("decl", "Decl.", 50), ("apariciones", "Apariciones", 220)]
-COLUMNAS_ERRORES = [("codigo", "Código", 90), ("tipo", "Tipo", 100), ("pos", "Lín:Col", 80),
-                    ("mensaje", "Mensaje", 420), ("sugerencia", "Sugerencia", 420)]
+COLUMNAS_ERRORES = [("codigo", "Código", 80), ("linea", "Línea", 58), ("col", "Col", 45),
+                    ("lexema", "Lexema", 110), ("error", "Error", 200)]
 
-_VISTAS = (("tokens", "Tokens"), ("simbolos", "Tabla de símbolos"),
-           ("estadisticas", "Estadísticas"), ("educativo", "Modo educativo"))
+_VISTAS = (("tokens", "Tokens"), ("simbolos", "Tabla de símbolos"), ("resumen", "Resumen"),
+           ("automatas", "Autómatas"), ("lenguaje", "Lenguaje"), ("consola", "Consola"))
 _MAX_TEXTO = 40
 _AYUDA_ERRORES = "Clic en un error: ver el detalle completo.  Doble clic: ir a su posición en el editor."
 
@@ -52,15 +52,30 @@ def _tabla(padre, columnas, estirar: tuple[str, ...] = ()) -> ttk.Treeview:
 
 
 def _texto_solo_lectura(padre, fuente) -> tk.Text:
-    texto = tk.Text(padre, wrap="word", state="disabled", font=fuente, background=TEMA["fondo"],
+    texto = tk.Text(padre, wrap="word", state="disabled", font=fuente, background=TEMA["panel"],
                     foreground=TEMA["texto_codigo"], borderwidth=0, highlightthickness=0, padx=16, pady=12,
                     spacing1=2, spacing3=2)
     texto.pack(fill="both", expand=True)
     return texto
 
 
-class PanelResultados(PanelHerramientas):
-    """Tool window derecha, vista pasiva: muestra lo que le entrega la ventana y avisa de la seleccion de tokens."""
+def _escribir_tabla_transiciones(t: tk.Text, automata: dict) -> None:
+    """Tabla de transiciones y estados finales de un AFD (la usan la explicacion de un token y el selector)."""
+    t.insert("end", "\nTabla de transiciones de " + automata["nombre"] + "\n", "campo")
+    for estado, fila in automata["transiciones"].items():
+        celdas = "   ".join(f"{k} → {v}" for k, v in fila.items())
+        t.insert("end", f"  {estado}:  {celdas}\n", "valor")
+    finales = ", ".join(list(automata["aceptacion"]) + list(automata["errores"]))
+    t.insert("end", f"  Estados finales: {finales}\n", "campo")
+
+
+def _modulo_hash() -> str:
+    """El modulo de la funcion hash como se escribe en la formula (2³² si es 2 ** 32)."""
+    return "2³²" if reglas.MODULO_HASH == 2 ** 32 else str(reglas.MODULO_HASH)
+
+
+class PanelResultados(ttk.Frame):
+    """Pestanas de resultados (vista pasiva): muestra lo que le entrega la ventana y avisa de la seleccion de tokens."""
 
     def __init__(self, padre, al_seleccionar_token: Callable[[Token], None]) -> None:
         super().__init__(padre)
@@ -68,16 +83,20 @@ class PanelResultados(PanelHerramientas):
         self._tokens: dict[str, Token] = {}
         self._ultimo_token: str | None = None
         self._id_ver_token: str | None = None
-        self._simbolos_habilitados = False
-        marcos = {clave: ttk.Frame(self.cuerpo, style="Panel.TFrame") for clave, _t in _VISTAS}
-        self._construir_tokens(marcos["tokens"])
-        self._construir_simbolos(marcos["simbolos"])
-        self.lienzo = tk.Canvas(marcos["estadisticas"], background=TEMA["fondo"], highlightthickness=0)
+        self.cuaderno = ttk.Notebook(self)
+        self.cuaderno.pack(fill="both", expand=True)
+        self._marcos = {clave: ttk.Frame(self.cuaderno, style="Panel.TFrame") for clave, _t in _VISTAS}
+        self._construir_tokens(self._marcos["tokens"])
+        self._construir_simbolos(self._marcos["simbolos"])
+        self.lienzo = tk.Canvas(self._marcos["resumen"], background=TEMA["panel"], highlightthickness=0)
         self.lienzo.pack(fill="both", expand=True)
-        self.educativo = _texto_solo_lectura(marcos["educativo"], fuente_codigo(13))
-        self._configurar_etiquetas_educativo()
+        self.lienzo.bind("<MouseWheel>", lambda e: self.lienzo.yview_scroll(-1 if e.delta > 0 else 1, "units"))
+        self._construir_automatas(self._marcos["automatas"])
+        VistaLenguaje(self._marcos["lenguaje"]).pack(fill="both", expand=True)
+        self.consola = PanelConsola(self._marcos["consola"])
+        self.consola.pack(fill="both", expand=True)
         for clave, titulo in _VISTAS:
-            self.agregar_vista(clave, titulo, marcos[clave])
+            self.cuaderno.add(self._marcos[clave], text=titulo)
         self.limpiar()
 
     # --- construccion ----------------------------------------------------
@@ -88,14 +107,23 @@ class PanelResultados(PanelHerramientas):
         self.arbol_tokens.bind("<<TreeviewSelect>>", self._seleccion_token)
 
     def _construir_simbolos(self, marco) -> None:
-        self.etiqueta_resumen = ttk.Label(marco, style="Panel.TLabel", padding=(12, 8), wraplength=520, justify="left")
+        self.etiqueta_resumen = ttk.Label(marco, style="Panel.TLabel", padding=(12, 8), justify="left")
         self.etiqueta_resumen.pack(fill="x")
+        self.etiqueta_resumen.bind("<Configure>", lambda e: self.etiqueta_resumen.configure(wraplength=e.width - 24))
         self.arbol_simbolos = _tabla(marco, COLUMNAS_SIMBOLOS)
         self.arbol_simbolos.tag_configure("colision", background=TEMA["colision"])
 
-    def _configurar_etiquetas_educativo(self) -> None:
+    def _construir_automatas(self, marco) -> None:
+        fila = ttk.Frame(marco, style="Panel.TFrame")
+        fila.pack(fill="x", padx=12, pady=(8, 0))
+        ttk.Label(fila, text="Autómata:", style="Panel.TLabel").pack(side="left")
+        self.selector_automata = ttk.Combobox(fila, state="readonly", width=28,
+                                              values=[a["nombre"] for a in reglas.AUTOMATAS])
+        self.selector_automata.pack(side="left", padx=8)
+        self.selector_automata.bind("<<ComboboxSelected>>", lambda _e: self.mostrar_automata(self.selector_automata.get()))
+        self.educativo = _texto_solo_lectura(marco, fuente_codigo(13))
         t = self.educativo
-        t.tag_configure("titulo", foreground=TEMA["blanco"], font=(fuente_interfaz()[0], 14, "bold"), spacing3=8)
+        t.tag_configure("titulo", foreground=TEMA["texto"], font=(fuente_interfaz()[0], 14, "bold"), spacing3=8)
         t.tag_configure("campo", foreground=TEMA["texto_secundario"])
         t.tag_configure("valor", foreground=TEMA["texto_codigo"])
         t.tag_configure("codigo", foreground=TEMA["exito"])
@@ -109,6 +137,16 @@ class PanelResultados(PanelHerramientas):
             self._al_token(self._tokens[seleccion[0]])
 
     # --- API publica -------------------------------------------------------
+    @property
+    def vista_actual(self) -> str:
+        """Clave de la pestana visible (tokens, simbolos, resumen, automatas, lenguaje, consola)."""
+        elegida = self.cuaderno.select()
+        return next(clave for clave, marco in self._marcos.items() if str(marco) == str(elegida))
+
+    def mostrar(self, nombre: str) -> None:
+        """Deja visible la pestana `nombre`."""
+        self.cuaderno.select(self._marcos[nombre])
+
     def agregar_token(self, numero: int, token: Token) -> None:
         """Agrega una fila a la pestana Tokens (coloreada por categoria)."""
         iid = self.arbol_tokens.insert("", "end", tags=(token.tipo.name,), values=(
@@ -125,7 +163,7 @@ class PanelResultados(PanelHerramientas):
             self.arbol_tokens.see(self._ultimo_token)
 
     def mostrar_tabla_simbolos(self, tabla) -> None:
-        """Llena la pestana de simbolos en orden de cubeta y resume sus estadisticas."""
+        """Llena la pestana de simbolos en orden de cubeta y resume la funcion hash y las estadisticas."""
         self.arbol_simbolos.delete(*self.arbol_simbolos.get_children())
         for indice, cubeta in enumerate(tabla.cubetas()):
             for entrada in cubeta:
@@ -136,12 +174,13 @@ class PanelResultados(PanelHerramientas):
         e = tabla.estadisticas()
         visibles = e.cantidad - e.cubetas_ocupadas
         self.etiqueta_resumen.configure(text=(
-            f"Capacidad {e.capacidad}  ·  Entradas {e.cantidad}  ·  Factor de carga {e.factor_carga:.2f}  ·  "
-            f"Colisiones al insertar {e.colisiones}  ·  En la tabla actual {visibles}  ·  "
-            f"Cadena más larga {e.cadena_mas_larga}  ·  Redimensionados {e.redimensionados}"))
+            f"Función hash: h = (h · {reglas.BASE_HASH} + código(c)) mod {_modulo_hash()}  ·  "
+            f"cubeta = h mod capacidad  ·  Capacidad: {e.capacidad}  ·  Símbolos: {e.cantidad}  ·  "
+            f"Factor de carga: {e.factor_carga:.2f}  ·  Redimensionados: {e.redimensionados}  ·  "
+            f"Colisiones al insertar: {e.colisiones}  ·  En la tabla actual: {visibles} (filas resaltadas)"))
 
     def mostrar_estadisticas(self, resultado: ResultadoAnalisis) -> None:
-        """Veredictos, tokens por categoria con barras, lineas, caracteres y errores por tipo."""
+        """Pestana Resumen: veredictos, tokens por categoria con barras, lineas, caracteres y errores por tipo."""
         c, base = self.lienzo, fuente_interfaz(12)[0]
         c.delete("all")
         y = 20
@@ -187,7 +226,7 @@ class PanelResultados(PanelHerramientas):
         c.configure(scrollregion=(0, 0, 500, y + 20))
 
     def mostrar_explicacion(self, explicacion: ExplicacionToken) -> None:
-        """Muestra en el Modo educativo todo lo que se sabe del token."""
+        """Pestana Autómatas: todo lo que se sabe del token y el selector en el AFD que lo reconocio."""
         t = self.educativo
         t.configure(state="normal")
         t.delete("1.0", "end")
@@ -203,16 +242,22 @@ class PanelResultados(PanelHerramientas):
                 t.insert("end", linea + "\n", etiqueta)
         automata = next((a for a in reglas.AUTOMATAS if a["nombre"] == explicacion.reconocedor), None)
         if automata is not None:
-            t.insert("end", "\nTabla de transiciones de " + automata["nombre"] + "\n", "campo")
-            for estado, fila in automata["transiciones"].items():
-                celdas = "   ".join(f"{k} → {v}" for k, v in fila.items())
-                t.insert("end", f"  {estado}:  {celdas}\n", "valor")
-            finales = ", ".join(list(automata["aceptacion"]) + list(automata["errores"]))
-            t.insert("end", f"  Estados finales: {finales}\n", "campo")
+            self.selector_automata.set(automata["nombre"])
+            _escribir_tabla_transiciones(t, automata)
+        t.configure(state="disabled")
+
+    def mostrar_automata(self, nombre: str) -> None:
+        """Solo la tabla de transiciones y los estados finales del AFD `nombre` (selector sin token)."""
+        automata = next(a for a in reglas.AUTOMATAS if a["nombre"] == nombre)
+        self.selector_automata.set(nombre)
+        t = self.educativo
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        _escribir_tabla_transiciones(t, automata)
         t.configure(state="disabled")
 
     def limpiar(self) -> None:
-        """Vacia las vistas de resultados y deshabilita la tabla de simbolos."""
+        """Vacia las vistas de resultados, deshabilita la tabla de simbolos y vuelve a la pestana Tokens."""
         for arbol in (self.arbol_tokens, self.arbol_simbolos):
             arbol.delete(*arbol.get_children())
         self._tokens.clear()
@@ -220,43 +265,66 @@ class PanelResultados(PanelHerramientas):
         self.etiqueta_resumen.configure(text="")
         self.lienzo.delete("all")
         self.lienzo.create_text(20, 24, anchor="w", fill=TEMA["texto_tenue"], font=fuente_interfaz(13),
-                                text="Las estadísticas aparecen al terminar el análisis.")
+                                text="El resumen aparece al terminar el análisis.")
+        self.mostrar_automata(reglas.AUTOMATAS[0]["nombre"])
         self.educativo.configure(state="normal")
-        self.educativo.delete("1.0", "end")
-        self.educativo.insert("end", "Seleccione un token, o use «Paso a paso», para ver cómo se reconoció.", "vacio")
+        self.educativo.insert("1.0", "Seleccione un token, o use «Paso a paso», para ver cómo se reconoció.\n", "vacio")
         self.educativo.configure(state="disabled")
         self.habilitar_tabla_simbolos(False)
+        self.mostrar("tokens")
 
     def habilitar_tabla_simbolos(self, activo: bool) -> None:
-        """La tabla de simbolos solo esta disponible al terminar el analisis."""
-        self._simbolos_habilitados = activo
+        """La pestana de la tabla de simbolos solo esta disponible al terminar el analisis."""
+        self.cuaderno.tab(self._marcos["simbolos"], state="normal" if activo else "disabled")
 
     def tabla_simbolos_habilitada(self) -> bool:
         """True si la tabla de simbolos esta disponible."""
-        return self._simbolos_habilitados
+        return str(self.cuaderno.tab(self._marcos["simbolos"], "state")) == "normal"
 
 
-class PanelProblemas(ttk.Frame):
-    """Vista Problemas (zona inferior): tabla de errores a todo el ancho y detalle del error elegido."""
+class PanelErrores(ttk.Frame):
+    """Manejador de errores (derecha, siempre visible): titulo con el total, tabla y detalle del error elegido."""
 
     def __init__(self, padre, al_seleccionar_error: Callable[[Diagnostico], None]) -> None:
-        super().__init__(padre, style="Panel.TFrame")
+        super().__init__(padre)
         self._al_error = al_seleccionar_error
         self._errores: dict[str, Diagnostico] = {}
-        self.detalle_error = ttk.Label(self, style="Panel.TLabel", padding=(14, 8), justify="left", wraplength=1100)
-        self.detalle_error.pack(side="bottom", fill="x")
-        self.arbol_errores = _tabla(self, COLUMNAS_ERRORES, estirar=("mensaje", "sugerencia"))
+        self.titulo = ttk.Label(self)
+        self.titulo.pack(side="top", anchor="w", pady=(0, 6))
+        caja = ttk.Frame(self, style="Panel.TFrame", height=178, padding=(12, 8))
+        caja.pack(side="bottom", fill="x", pady=(8, 0))
+        caja.pack_propagate(False)
+        self.detalle_titulo = ttk.Label(caja, style="PanelError.TLabel")
+        self.detalle_titulo.pack(anchor="w")
+        self.detalle_error = ttk.Label(caja, style="Panel.TLabel", justify="left")
+        self.detalle_error.pack(anchor="w", pady=(4, 0))
+        caja.bind("<Configure>", lambda e: self.detalle_error.configure(wraplength=e.width - 24))
+        self.arbol_errores = _tabla(self, COLUMNAS_ERRORES, estirar=("error",))
         self.arbol_errores.tag_configure("error", foreground=TEMA["error"])
         self.arbol_errores.bind("<Double-1>", self._doble_clic_error)
         self.arbol_errores.bind("<<TreeviewSelect>>", self._mostrar_detalle_error)
         self.limpiar()
 
+    def _actualizar_titulo(self) -> None:
+        n = len(self._errores)
+        if n:
+            self.titulo.configure(text=f"Manejador de errores ({n} {'error' if n == 1 else 'errores'})",
+                                  style="TituloError.TLabel")
+        else:
+            self.titulo.configure(text="Manejador de errores (sin errores)", style="Titulo.TLabel")
+
     def _mostrar_detalle_error(self, _evento=None) -> None:
-        """Texto completo del error elegido: las columnas pueden recortarse (AUD-20)."""
+        """Detalle completo del error elegido: las columnas pueden recortarse (AUD-20)."""
         seleccion = self.arbol_errores.selection()
         d = self._errores.get(seleccion[0]) if seleccion else None
-        texto = f"{d.codigo} · {d.titulo}\n{d.mensaje}\n{d.sugerencia}" if d else _AYUDA_ERRORES
-        self.detalle_error.configure(text=texto)
+        if d is None:
+            self.detalle_titulo.configure(text="")
+            self.detalle_error.configure(text=_AYUDA_ERRORES)
+            return
+        posicion = f" — línea {d.linea}, columna {d.columna}" if d.linea > 0 else ""
+        self.detalle_titulo.configure(text=f"{d.codigo} · {d.titulo}{posicion}")
+        lexema = f"Lexema: {d.lexema!r}\n" if d.lexema else ""
+        self.detalle_error.configure(text=f"{lexema}{d.mensaje}\nSugerencia: {d.sugerencia}")
 
     def _doble_clic_error(self, evento) -> None:
         fila = self.arbol_errores.identify_row(evento.y)
@@ -265,11 +333,13 @@ class PanelProblemas(ttk.Frame):
 
     def agregar_error(self, diagnostico: Diagnostico) -> None:
         """Agrega una fila a la tabla de errores."""
-        posicion = f"{diagnostico.linea}:{diagnostico.columna}" if diagnostico.linea else "—"
+        con_posicion = diagnostico.linea > 0
         iid = self.arbol_errores.insert("", "end", tags=("error",), values=(
-            diagnostico.codigo, diagnostico.tipo.value, posicion, diagnostico.mensaje, diagnostico.sugerencia))
+            diagnostico.codigo, diagnostico.linea if con_posicion else "—",
+            diagnostico.columna if con_posicion else "—", recortar(diagnostico.lexema), diagnostico.titulo))
         self._errores[iid] = diagnostico
         self.arbol_errores.see(iid)
+        self._actualizar_titulo()
 
     def quitar_errores_de_archivo(self) -> None:
         """Elimina las filas de errores de archivo (ARC-...), para que quede como maximo una (D-42)."""
@@ -277,10 +347,12 @@ class PanelProblemas(ttk.Frame):
             if diagnostico.tipo == TipoDiagnostico.ARCHIVO:
                 self.arbol_errores.delete(iid)
                 del self._errores[iid]
+        self._actualizar_titulo()
         self._mostrar_detalle_error()
 
     def limpiar(self) -> None:
         """Vacia la tabla y el detalle."""
         self.arbol_errores.delete(*self.arbol_errores.get_children())
         self._errores.clear()
-        self.detalle_error.configure(text=_AYUDA_ERRORES)
+        self._actualizar_titulo()
+        self._mostrar_detalle_error()

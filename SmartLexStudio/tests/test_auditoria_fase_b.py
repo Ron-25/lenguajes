@@ -78,7 +78,9 @@ class TestAuditoriaFaseB(unittest.TestCase):
         for p in parches:
             self.addCleanup(p.stop)
         self.messagebox.askyesno.return_value = False
+        self.messagebox.askyesnocancel.return_value = False  # el MagicMock por defecto es verdadero (D-70)
         self.v = interfaz.VentanaPrincipal(solicitar_archivo=False)
+        self.v.cabecera.establecer_pausa(0)
         self.addCleanup(self.v.destroy)
 
     def bombear(self, condicion, limite=30.0):
@@ -120,12 +122,17 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.assertLess(time.perf_counter() - inicio, 30)
 
     def test_aud18_botones_con_ancho_natural(self):
-        """Los botones de la barra no heredan el ancho minimo del tema clam. Tras el rediseno (D-53)
-        ya no hay ttk.Button con texto: cada boton mide lo que su icono y los siete son iguales."""
+        """Los ocho botones de la cabecera son ttk.Button con texto y no heredan el ancho minimo del
+        tema clam (width=0); la cabecera cabe en el ancho minimo de la ventana (§17.10)."""
+        from tkinter import ttk
         self.v.update()
-        anchos = {n: b.winfo_reqwidth() for n, b in self.v.barra.botones.items()}
-        self.assertTrue(all(a <= 40 for a in anchos.values()), anchos)
-        self.assertEqual(len(set(anchos.values())), 1, anchos)
+        botones = self.v.cabecera.botones
+        self.assertEqual(set(botones), {"nuevo", "abrir", "guardar", "analizar", "paso", "detener", "limpiar", "ayuda"})
+        for nombre, boton in botones.items():
+            self.assertIsInstance(boton, ttk.Button, nombre)
+            self.assertTrue(str(boton.cget("text")), nombre)
+            self.assertLess(boton.winfo_reqwidth(), 170, nombre)
+        self.assertLessEqual(self.v.cabecera.winfo_reqwidth(), 1100)
 
     def test_aud19_cursor_y_vista_al_inicio(self):
         """Tras abrir, el cursor está en 1:1; al terminar, la vista vuelve al cursor."""
@@ -141,7 +148,7 @@ class TestAuditoriaFaseB(unittest.TestCase):
         self.v.abrir_archivo(INCORRECTO)
         self.v.analizar()
         self.bombear(lambda: self.v.estado == "TERMINADO")
-        pr = self.v.problemas
+        pr = self.v.panel_errores
         fila = pr.arbol_errores.get_children()[7]
         pr.arbol_errores.selection_set(fila)
         self.v.update()
@@ -149,6 +156,9 @@ class TestAuditoriaFaseB(unittest.TestCase):
         texto = str(pr.detalle_error.cget("text"))
         self.assertIn(d.mensaje, texto)
         self.assertIn(d.sugerencia, texto)
+        titulo = str(pr.detalle_titulo.cget("text"))
+        self.assertIn(d.codigo, titulo)
+        self.assertIn(f"línea {d.linea}, columna {d.columna}", titulo)
         pr.limpiar()
         self.assertNotIn(d.mensaje, str(pr.detalle_error.cget("text")))
 
