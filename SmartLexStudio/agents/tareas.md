@@ -15,6 +15,8 @@ Documentos de referencia obligatorios antes de implementar: `docs/03_especificac
 | Auditoría Fase B y final (paso 9) | reviewer-opus | claude-opus-5-5 | completado | APROBADO CON OBSERVACIONES: 13 hallazgos (0 críticos, 1 alto, 1 medio, 5 bajos, 6 sugerencias); 7 corregidos con prueba (`tests/test_auditoria_fase_b.py`, las 6 fallan en `dc4e725`), 2 escalados (E-7, E-8); 115 pruebas OK; requisitos 1–6 del PDF cumplen; D-36…D-39 aprobadas, D-40 superada; capturas rehechas. Ver `docs/06_auditoria.md` |
 | Revisión final (paso 10) y guía de sustentación (paso 11) | architect-fable | claude-fable-5-2 | completado | **APROBADO.** Código real conforme a la arquitectura; D-36…D-40 ratificadas (D-41); E-7 → tarea B9 (D-42); E-8 → tarea B10 (D-43); `docs/02_arquitectura.md` (§15 nuevo) y `docs/03_especificacion.md` sincronizados; `docs/05_guia_sustentacion.md` escrito con 10 ejercicios verificados en copias temporales. Pendiente de Sonnet: B9, B10, manual de usuario y README |
 | Revisión de cierre (B9, B10, manual, README) | reviewer-opus | claude-opus-5-5 | completado | **APROBADO.** B9/B10 correctos; AUD-28 (`after` huérfanos al destruir la ventana) corregido con prueba; errata del manual (Detener) corregida; 3 corridas `Ran 118 tests` · `OK` sin trazas |
+| Diseño del rediseño visual estilo PyCharm | architect-fable | claude-fable-5-2 | completado | `docs/02_arquitectura.md` §16 (zonas, paleta, tipografías, iconos, *tool windows*, riesgos); tareas B11–B16 (Fase C); decisiones D-44…D-53. **Fase C AUTORIZADA** |
+| Fase C (B11–B16) | developer-sonnet | claude-sonnet-5-5 | pendiente | — |
 
 ## Reglas generales para el desarrollador
 
@@ -655,3 +657,78 @@ El diseño visual y de interacción está en `docs/02_arquitectura.md` §8–§1
 **Fase B aprobada si:** prueba de humo en verde; verificaciones manuales M1–M3 registradas; `ui/` cumple la regla de dependencias; agregar `repetir` a `PALABRAS_RESERVADAS` cambia lexer, resaltado, panel lateral y modo educativo sin tocar ningún otro archivo.
 
 > **Estado final (paso 11):** B9 y B10 completadas; B8 manual de usuario y README completados; la guía de sustentación (05) es del arquitecto.
+
+---
+
+# FASE C — Rediseño visual estilo PyCharm (solo `ui/`)
+
+**Leer antes de empezar:** `docs/02_arquitectura.md` **§16** completo (es la especificación; estas tareas solo la reparten) y las decisiones D-44…D-53. Referencia visual del usuario: `/private/tmp/claude-501/-Volumes-Ojito-proyecto-de-lenguajes/001cc0b7-bd4c-4a80-909f-4edbc49746a8/images/2.png` (PyCharm New UI oscuro; si ya no existe, vale la lista de comprobación de §16.10). No se copia esa imagen al repositorio.
+
+Reglas de la fase (además de las generales):
+
+1. **Solo se modifican** `ui/`, `tests/test_ui_humo.py`, `tests/test_auditoria_fase_b.py`, `tests/test_ui_rediseno.py` (nuevo), `docs/capturas/` y los documentos de B16. Si parece necesario tocar `core/`, `application/`, `config/` o `main.py`: **no hacerlo**, anotarlo en `agents/revisiones.md`.
+2. Colores: ningún literal `#rrggbb` fuera de `ui/estilos.py`. Comprobación: `grep -nE "#[0-9a-fA-F]{6}" ui/*.py | grep -v "^ui/estilos.py"` no devuelve nada.
+3. Los métodos públicos de `VentanaPrincipal`, los cuatro estados, `_BOTONES_POR_ESTADO`, el temporizador y `_consumir_paso` conservan su comportamiento. No se reescribe lo que funciona: se cambia de sitio y de aspecto.
+4. Al terminar **cada** tarea: batería completa en verde con `/opt/homebrew/bin/python3.14 -m unittest discover -s tests -t . -v` y la aplicación arranca (`python3.14 main.py`) sin trazas. Un *commit* por tarea.
+5. Las pruebas existentes pueden cambiar **solo** de nombres de atributos (tabla de B16); ninguna aserción se elimina ni se relaja, salvo AUD-18, que se reformula como indica B16.
+6. Si algo de §16 no se puede hacer en Tk tal como está escrito, aplicar la variante más simple que conserve el aspecto, y registrarla en `agents/decisiones.md` (D-54 en adelante) como «pendiente de revisión del arquitecto».
+
+### B11 — Paleta, tipografías y estilos `ttk` (`ui/estilos.py`)
+- `TEMA` con las 24 claves y valores exactos de §16.3 (las 16 actuales cambian de valor; 8 nuevas). `COLORES_TOKEN` con los valores de §16.3. Nueva constante `TIPOS_EN_CURSIVA = (TipoToken.COMENTARIO,)`.
+- Listas de fuentes de §16.4 y función privada `_puntos(tamano)`; `fuente_codigo` y `fuente_interfaz` conservan nombre y firma y la aplican.
+- `aplicar_tema`: `Treeview` (fondo `panel`, `rowheight` 28, sin borde, selección `seleccion_fila` con texto `blanco`); `Treeview.Heading` plana, fondo `panel`, texto `texto_secundario`, sin negrita; barras de desplazamiento finas, sin flechas, pulgar `deslizador` (con `try/except tk.TclError` y el aspecto actual como respaldo); divisores de `Panedwindow` en `fondo`; estilos de la barra de estado sobre `panel` con texto `texto_secundario`; `Enlace.TLabel` (`acento_claro`; deshabilitado `texto_tenue`); `Cabecera.TLabel` (título de *tool window*). Se eliminan `Accion.TButton`, `Estado.TButton` y los estilos `TNotebook` cuando dejen de usarse (B13–B14).
+- En esta tarea la ventana sigue con la disposición antigua, ya con los colores nuevos.
+- **Aceptación:** `set(TEMA) ⊇` las 24 claves; todos los valores de `TEMA` y `COLORES_TOKEN` cumplen `^#[0-9A-Fa-f]{6}$`; `set(COLORES_TOKEN) == set(TipoToken)` (prueba nueva en `tests/test_ui_rediseno.py`, no necesita Tk); batería en verde; regla 2 de la fase.
+
+### B12 — Iconos y piezas base (`ui/iconos.py` nuevo, `ui/componentes.py`)
+- `ui/iconos.py` según §16.5: `TRAZOS` (los 16 iconos de la tabla), `RECTANGULOS` (`carpeta`, `archivo`), `dibujar(lienzo, nombre, x, y, color)`, `imagen(nombre)`. Solo importa `tkinter` y `ui.estilos`. Dibujos simples: horizontales, verticales y las diagonales imprescindibles.
+- En `ui/componentes.py`: `BotonIcono`, `Globo`, `PanelHerramientas`, `FranjaHerramientas` con la interfaz de §16.6. `BotonIcono` deshabilitado no llama a `command` ni cambia al pasar el ratón; con `relleno` deshabilitado se dibuja sin relleno y en `texto_tenue`.
+- **Aceptación** (pruebas nuevas, con Tk): cada nombre de `TRAZOS` se dibuja en un `Canvas` sin excepción y crea al menos un elemento; `imagen("carpeta")` mide 16×16; un `BotonIcono` deshabilitado no ejecuta su `command` al simular el clic y uno habilitado sí; `PanelHerramientas.mostrar(nombre)` cambia `vista_actual` y el título de la cabecera; `FranjaHerramientas.poner_contador("x", 3)` no lanza. Cada clase nueva ≤ ~45 líneas.
+
+### B13 — Barra superior y barra de estado (`ui/componentes.py`, `ui/interfaz.py`)
+- `BarraHerramientas` rehecha según §16.2 (zona A) y §16.6: tabla `_ACCIONES`; logo; *widget* «SmartLex Studio ▾» con su menú (Abrir, Guardar, Limpiar, Ayuda, Salir, cada uno con su atajo a la derecha); *widget* «FlowLang · Análisis léxico ▾» (texto armado con `reglas.NOMBRE_LENGUAJE`) con su menú (Analizar, Paso a paso, Detener); botones `analizar` (relleno `exito`), `paso` (icono `exito`), `detener` (relleno `detener`); a la derecha `abrir`, `guardar`, `limpiar`, `ayuda` en `texto_secundario`. Cada botón con su `Globo` «Texto (atajo)». Los menús copian el estado habilitado de los botones al abrirse.
+- `botones` conserva las siete claves y `habilitar(nombres)` su firma. `VentanaPrincipal` solo añade la acción «Salir» (`self.destroy`).
+- `BarraEstado` según zona H: `establecer_ruta(partes: list[str])` (migas unidas con ` › `, la última en `texto`), estado, contadores, posición `Lín:Col`, `LF`, `UTF-8`, lenguaje y versión, y «Ver tabla de símbolos» como enlace (`habilitar_ver_tabla` conserva la firma). Fondo `panel`.
+- `VentanaPrincipal` calcula las migas en un único método privado (ruta relativa a `RAIZ_PROYECTO` precedida de su nombre; si el archivo está fuera, `carpeta › archivo`; sin archivo, solo el nombre del proyecto) y lo llama donde hoy llama a `_poner_titulo`.
+- **Aceptación:** tras `abrir_archivo("ejemplos/correcto.flow")` la barra de estado contiene `SmartLexStudio › ejemplos › correcto.flow` y `1:1`; tras `limpiar()` solo `SmartLexStudio`; en cada estado, el conjunto de botones habilitados coincide con `_BOTONES_POR_ESTADO` (prueba nueva que recorre los cuatro estados); el menú de ejecución tiene «Detener» deshabilitado en `LISTO`; `F5`, `F10`, `Esc`, `F1`, `Ctrl+O`, `Ctrl+S` siguen funcionando.
+
+### B14 — *Tool windows*: franjas, paneles y disposición (`ui/componentes.py`, `ui/paneles.py`, `ui/interfaz.py`)
+- `PanelLateral(PanelHerramientas)` con dos vistas: `proyecto` (árbol `SmartLexStudio › ejemplos › *.flow` desde `listar_ejemplos()`, iconos de `iconos.imagen`, nodos abiertos; doble clic en un archivo llama a `al_elegir_ejemplo`; `marcar_abierto(ruta | None)` selecciona el archivo abierto y, si está fuera de `ejemplos/`, lo añade bajo la raíz) y `lenguaje` (el árbol y la descripción actuales, **sin cambiar** `_construir_arbol`).
+- `PanelResultados(PanelHerramientas)` con cuatro vistas (`tokens`, `simbolos`, `estadisticas`, `educativo`) en lugar del `ttk.Notebook`; `habilitar_tabla_simbolos` / `tabla_simbolos_habilitada` pasan a ser un indicador booleano. Se elimina `seleccionar_pestana`.
+- Clase nueva `PanelProblemas(ttk.Frame)` en `ui/paneles.py`: recibe **movido, no reescrito**, lo de errores (`arbol_errores`, `detalle_error`, `_errores`, `agregar_error`, `quitar_errores_de_archivo`, doble clic → *callback*, `limpiar`). Con el ancho completo, las columnas Mensaje y Sugerencia se reparten el espacio sobrante.
+- `PanelConsola` sin su etiqueta de título. Zona inferior: un `PanelHerramientas` con `consola` y `problemas`.
+- `VentanaPrincipal._construir` con la disposición de §16.2; atributos `self.problemas`, `self.franja_izquierda`, `self.franja_derecha`; tabla `_HERRAMIENTAS` y métodos `mostrar_herramienta(nombre)` y `alternar_herramienta(nombre)` de §16.7 (ocultar y mostrar zonas guardando su tamaño). Las cuatro llamadas actuales a `seleccionar_pestana` pasan a `mostrar_herramienta`; `agregar_error`, `quitar_errores_de_archivo` y el *callback* de selección de error pasan a `self.problemas`; `_reiniciar_resultados` limpia también `self.problemas`; el icono `simbolos` se habilita y deshabilita junto con `habilitar_tabla_simbolos`; el icono `problemas` recibe el contador en `_consumir_paso` y en `_reiniciar_resultados`.
+- Actualizar en la misma tarea los nombres en `tests/test_ui_humo.py` y `tests/test_auditoria_fase_b.py` (tabla de B16) para que la batería siga en verde.
+- **Aceptación** (pruebas nuevas): `alternar_herramienta("proyecto")` dos veces oculta y vuelve a mostrar la zona izquierda con ancho ≥ 150 px; lo mismo con una herramienta de cada zona; `alternar_herramienta("lenguaje")` con Proyecto visible cambia de vista sin ocultar; durante un análisis de `incorrecto.flow` detenido a la mitad, `problemas` es la vista visible de la zona inferior, tiene ≥ 1 fila y el contador del icono es > 0 (**requisito 5, errores durante la evaluación**); antes de terminar, el icono `simbolos` está deshabilitado y `ver_tabla_simbolos()` no cambia la vista; al terminar se habilita y `ver_tabla_simbolos()` deja `simbolos` como vista actual (**requisito 5, alternativa final**); `paso_a_paso()` deja `educativo` visible; el árbol de Proyecto tiene una fila por cada archivo de `listar_ejemplos()` y la del archivo abierto está seleccionada; `PanelLateral` conserva las referencias de sus imágenes.
+
+### B15 — Editor: pestaña, margen e inspección (`ui/editor.py`, `ui/interfaz.py`)
+- Según §16.8: fila de pestaña única (`establecer_nombre`, *callback* `al_cerrar` conectado a `VentanaPrincipal.limpiar`); margen con `numero_linea` sobre `fondo` y línea divisoria; etiquetas de token con `COLORES_TOKEN` y cursiva para `TIPOS_EN_CURSIVA`; texto del editor en `texto_codigo`; *widget* de inspección con `ir_a_error(direccion)` e `indicar_sin_errores()`; atajos `F2` / `Shift+F2` registrados en `VentanaPrincipal` y añadidos al texto de ayuda.
+- `VentanaPrincipal._finalizar` llama a `indicar_sin_errores()` si no hubo diagnósticos; el nombre de la pestaña se actualiza donde las migas.
+- No se tocan `establecer_texto`, `obtener_texto`, `_al_modificar`, `_notificar_cambio`, `descartar_cambio_pendiente`, `resaltar_token_actual` ni el desplazamiento diferido.
+- **Aceptación** (pruebas nuevas): tras analizar `incorrecto.flow`, el *widget* muestra `✗` y la cantidad de marcas con posición; con el cursor en 1:1, `ir_a_error(+1)` lo lleva a `2:12` (primer error), otra vez a `2:18`, y `ir_a_error(-1)` desde 1:1 lo lleva al último error (da la vuelta); tras analizar `correcto.flow` muestra `✓`; tras `limpiar()` o editar el texto, está oculto; la etiqueta del tipo `COMENTARIO` usa una fuente en cursiva; la pestaña muestra `correcto.flow` y, tras `limpiar()`, `sin título`. `test_aud16`, `test_aud17`, `test_aud19` y `test_editor_tags_y_normalizacion` pasan sin tocarlos.
+
+### B16 — Pruebas, capturas y documentación
+- **Renombres permitidos en las pruebas existentes** (nada más):
+
+| Antes | Después |
+|---|---|
+| `v.panel_resultados.arbol_errores` | `v.problemas.arbol_errores` |
+| `pr._errores`, `pr.detalle_error` (errores) | `v.problemas._errores`, `v.problemas.detalle_error` |
+| `pr.limpiar()` en `test_aud20` | `v.problemas.limpiar()` |
+
+- **AUD-18** (los botones no heredan el ancho mínimo del tema `clam`): la prueba pasa a comprobar que cada botón de `v.barra.botones` mide lo que su icono (`winfo_reqwidth() <= 40`) y que los siete tienen el mismo ancho; se conserva el nombre `test_aud18_botones_con_ancho_natural` y su *docstring* explica el cambio.
+- `tests/test_ui_rediseno.py` reúne las pruebas nuevas de B11–B15, con el mismo patrón que `test_ui_humo.py` (detección de Tk en subproceso, D-38; `messagebox` y `filedialog` simulados). Total esperado: las 118 actuales más las nuevas, todas en verde con **python3.14 (Tk 9.0)** y con **python3.11 o 3.12 (Tk 8.6)** si están instalados; anotar ambas salidas `Ran N tests` · `OK` en `docs/06_auditoria.md` (sección nueva «Rediseño visual, Fase C»). `tests/test_auditoria_fase_b.py` completo en verde: AUD-16…AUD-21 y AUD-28 siguen vigentes.
+- Comprobaciones por `grep`, vacías ambas: la de colores (regla 2) y `grep -rn "Notebook\|seleccionar_pestana" ui/ tests/ docs/capturas/capturar.py`.
+- **Capturas reales**: actualizar `docs/capturas/capturar.py` (`mostrar_herramienta`, `v.problemas`) y regenerar, **con los mismos nombres de archivo**, `1_correcto_tokens`, `2_tabla_simbolos`, `3_estadisticas`, `4_modo_educativo`, `5_incorrecto_errores` (esta con Problemas abierto y un error seleccionado), más `6_paneles_ocultos` (zonas izquierda e inferior ocultas). Abrir cada captura y la referencia con la herramienta de lectura de imágenes y recorrer los **10 puntos de la lista de §16.10**; registrar en `docs/06_auditoria.md` una tabla punto → cumple / no cumple / diferencia aceptada (las de §16.1). Si un punto no se cumple, se corrige y se repite la captura; no se declara una verificación visual que no se hizo (D-40). Si `screencapture` no tiene permiso, decirlo y dejar la verificación como pendiente manual.
+- **Verificaciones manuales** a registrar en `docs/06_auditoria.md`: M1–M3 repetidas con el diseño nuevo; **M5** (Windows o Linux del laboratorio: tamaño del texto, iconos legibles, menús, globos) queda como pendiente con sus pasos si no hay equipo.
+- **Documentación**:
+  - `docs/04_manual_usuario.md`: recorrido de la ventana nueva (barra superior y sus dos menús, franjas, mostrar y ocultar herramientas, Proyecto y Lenguaje, pestaña, inspección `✗ N ⌃ ⌄` con `F2` / `Shift+F2`, Problemas, barra de estado); sustituir toda mención a «pestaña Errores / Tokens…» por la herramienta correspondiente; capturas nuevas.
+  - `docs/05_guia_sustentacion.md`, **Ejercicio 7** y el «Cambio 4» del ejercicio de nuevo tipo de token: los valores «antes» pasan a los de §16.3 (`TipoToken.PALABRA_RESERVADA: "#CF8E6D"`, `"fondo": "#1E1F22"`, `TipoToken.CADENA: "#6AAB73"`); repetir el ejercicio 7 en una copia y confirmar el resultado. Añadir una pregunta probable: «¿Cómo están hechos los iconos?» (respuesta: §16.5) y otra: «¿Dónde se ven los errores durante la evaluación?» (§16.7). Revisar cualquier otra mención a pestañas o a nombres de paneles.
+  - `README.md`: descripción de la interfaz, captura principal y árbol de archivos (`ui/iconos.py`).
+  - `docs/02_arquitectura.md`: quitar la nota de «pendiente de implementar» de §16, actualizar el diagrama de §10.1 y la tabla de §10.2 para que remitan a §16, y añadir a §15 las diferencias entre §16 y lo implementado (con su decisión).
+  - `docs/matriz_requisitos.md`: evidencia de los requisitos 5 y 6 con los nombres nuevos.
+  - `agents/tareas.md`: fila de la Fase C en el registro de ejecución.
+
+## Criterio de aprobación de la Fase C (arquitecto)
+
+**Aprobada si:** batería completa en verde en Tk 9.0 (y en Tk 8.6 si está disponible); los dos `grep` de B16 vacíos; `git diff --stat` respecto a `3a12ba2` no muestra cambios en `core/`, `application/`, `config/` ni `main.py`; las seis capturas existen y la tabla de los 10 puntos está registrada; las pruebas de los requisitos 5 y 6 no se han relajado; el manual, la guía (ejercicio 7 repetido) y el README describen la ventana nueva; ninguna clase nueva supera lo que un estudiante puede explicar en dos minutos.

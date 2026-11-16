@@ -318,6 +318,8 @@ Tabla de símbolos: hash 1601544 · cubeta 56 (capacidad 79) · tipo decimal · 
 
 ### 10.1 Disposición (inspirada en VS Code; `ttk.Panedwindow` anidados, todo redimensionable)
 
+> El rediseño visual estilo PyCharm (zonas, paleta, iconos y *tool windows*) está especificado en **§16**; cuando se implemente (tareas B11–B16), §16 sustituye a este diagrama y a la tabla de §10.2.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SmartLex Studio — correcto.flow                                                             │
@@ -489,3 +491,242 @@ Revisión final del arquitecto sobre el commit `3a8f372` (115 pruebas en verde).
 Pendiente menor tras esta revisión (tareas B9 y B10): un único error de archivo visible a la vez en la pestaña Errores, y una línea por dato en el `detalle` del Modo educativo.
 
 Limitaciones conocidas y aceptadas: textos de cuatro diagnósticos que repiten un dato de `reglas.py` (D-31); el veredicto «válida/inválida» se redacta en tres lugares (`ui/interfaz.py`, `ui/paneles.py`, `main.py`); con Tcl/Tk 8.6 el resaltado posterior a un emoji puede desplazarse (D-34); `test_conteos_de_flowlang_1_0` falla a propósito cuando se modifica el lenguaje (D-32).
+
+---
+
+## 16. Rediseño visual estilo PyCharm (New UI, tema oscuro)
+
+> **Estado: diseño aprobado, pendiente de implementar (tareas B11–B16 de `agents/tareas.md`, decisiones D-44…D-53).** Hasta que se cierren, §10.1 y §10.2 describen lo que hay en el código. Este rediseño cambia **solo `ui/`**: `core/`, `application/`, `config/` y `main.py` no se tocan, y §10.3 (vista pasiva + coordinador), §10.4 (estados), §10.5 (requisito 6) y §10.6 siguen vigentes sin cambios.
+
+### 16.1 Objetivo y límites
+
+Que la ventana se lea como PyCharm New UI oscuro —barra superior con *widgets*, franjas de iconos, *tool windows* que se muestran y ocultan, pestaña de editor subrayada, *widget* de inspección, barra de estado con migas de pan— sin añadir lógica: es **piel y disposición**. Regla de diseño: complejidad visual, simplicidad interna; todo lo nuevo son tablas de datos (colores, iconos, acciones, herramientas) recorridas por bucles cortos.
+
+Lo que **no** se imita, y por qué:
+
+| Elemento de PyCharm | Decisión | Motivo |
+|---|---|---|
+| Barra superior fundida con la barra de título del sistema | No. Se conserva la barra de título nativa y debajo va la barra de la aplicación | Quitar la decoración (`overrideredirect`) rompe mover, redimensionar y minimizar, distinto en cada sistema |
+| Varias pestañas de editor | **Una sola pestaña** (D-46) | Varias exigirían una sesión, resultados y marcas por pestaña: reescribir el coordinador |
+| Widget de rama de Git, usuario, buscar, ajustes | No hay equivalente; su lugar lo ocupan acciones reales (Abrir, Guardar, Limpiar, Ayuda) | No se dibujan controles que no hacen nada |
+| Guías de sangría | No | `tk.Text` no permite dibujarlas sin un lienzo superpuesto y sincronizado |
+| Fila seleccionada con esquinas redondeadas | Selección rectangular con el color de PyCharm | `ttk.Treeview` no redondea |
+| Menús emergentes oscuros en macOS | En macOS los pinta el sistema | `tk.Menu` es nativo en Aqua; en Windows y Linux sí se colorean |
+
+### 16.2 Mapa de zonas
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ● ● ●                    SmartLex Studio — correcto.flow            (barra de título nativa) │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ [SL] SmartLex Studio ▾              ◆ FlowLang · Análisis léxico ▾ [▶][▷|][■]  │ ⌂ ▣ ⌫ ?     │ A
+├───┬──────────────────┬───────────────────────────────────────┬──────────────────────────┬────┤
+│ ▣ │ Proyecto       — │ ▤ correcto.flow ×                     │ Tokens                 — │ ≡  │
+│ {}│ ▾ SmartLexStudio │ ═══════════════            ✗ 3  ⌃ ⌄   │  #  Lín Col Categoría …  │ ▦  │
+│   │   ▾ ejemplos     │  1  // Riego automatico               │  1   2   1  Reservada …  │ ▥  │
+│   │     ▤ correcto   │  2  inicio                            │  2   3   5  Reservada …  │ ○→◎│
+│ B │     ▤ incorrecto │✗ 3      texto zona = "Norte;          │                          │ E  │
+│   │        C         │              D                        │            F             │    │
+│   ├──────────────────┴───────────────────────────────────────┴──────────────────────────┤    │
+│ ▷_│ Problemas  (15)                                                                   — │    │
+│ ⓘ │ LEX-002  Léxico  4:20  La cadena "Hola mundo; no tiene comilla de cierre …   G      │    │
+├───┴─────────────────────────────────────────────────────────────────────────────────────┴────┤
+│ SmartLexStudio › ejemplos › correcto.flow   Análisis terminado · 57 tokens · 15 errores      │ H
+│                                         12:22   LF   UTF-8   FlowLang 1.0   Ver tabla de símbolos │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Zona | PyCharm | SmartLex Studio | Clase (archivo) |
+|---|---|---|---|
+| A | Barra principal: proyecto ▾, configuración de ejecución ▾, Run, Debug, Stop, iconos | Logo «SL»; **«SmartLex Studio ▾»** (menú Abrir, Guardar, Limpiar, Ayuda, Salir); **«FlowLang · Análisis léxico ▾»** (menú Analizar, Paso a paso, Detener); **▶ Analizar** (relleno verde), **Paso a paso** (icono verde sin relleno, hace de «Debug»), **■ Detener** (relleno rojo); a la derecha, en gris, Abrir, Guardar, Limpiar, Ayuda | `BarraHerramientas` (`ui/componentes.py`) |
+| B | Franja izquierda de *tool windows* | Arriba: **Proyecto**, **Lenguaje FlowLang**. Abajo: **Consola de evaluación**, **Problemas** (con contador de errores) | `FranjaHerramientas` (`ui/componentes.py`) |
+| C | *Tool window* «Project» | Vista **Proyecto**: árbol `SmartLexStudio › ejemplos › *.flow` (+ el archivo abierto si está fuera de `ejemplos/`), el archivo abierto queda seleccionado, doble clic abre. Vista **Lenguaje**: el árbol de referencia actual, generado desde `config/reglas.py`, con su descripción al pie | `PanelLateral` (`ui/componentes.py`) |
+| D | Editor con pestañas y *widget* de inspección | Una pestaña (icono + nombre + `×`, subrayado azul), margen con números grises y `✗` roja, resaltado Darcula, subrayado rojo, **`✗ N ⌃ ⌄`** arriba a la derecha | `EditorCodigo` (`ui/editor.py`) |
+| E | Franja derecha | **Tokens**, **Tabla de símbolos** (desactivado hasta terminar), **Estadísticas**, **Modo educativo** | `FranjaHerramientas` |
+| F | *Tool window* derecha | Las cuatro vistas anteriores, una visible a la vez | `PanelResultados` (`ui/paneles.py`) |
+| G | *Tool windows* inferiores (Run, Problems) | **Consola de evaluación** y **Problemas** (tabla de errores + detalle), a todo el ancho | `PanelHerramientas` + `PanelConsola` (`ui/componentes.py`) + `PanelProblemas` (`ui/paneles.py`) |
+| H | Barra de estado: migas de pan · `32:1 LF UTF-8 4 spaces Python 3.11` | Migas `SmartLexStudio › ejemplos › correcto.flow` · estado y contadores · `Lín:Col  LF  UTF-8  FlowLang 1.0` · enlace **Ver tabla de símbolos** | `BarraEstado` (`ui/componentes.py`) |
+
+Decisiones del mapeo:
+
+- **Los errores bajan a «Problemas» (zona G)** y dejan de ser una pestaña a la derecha (D-45). En PyCharm «Problems» está abajo, y a todo el ancho se leen completos el mensaje y la sugerencia, que en un panel de ~480 px quedaban cortados (AUD-20). El detalle del error seleccionado se conserva.
+- **Derecha = cuatro vistas con franja de iconos**, no un `ttk.Notebook` (D-45): es como PyCharm muestra sus *tool windows* y elimina las pestañas, que eran lo más «VS Code» de la ventana.
+- **`LF` y `UTF-8` no son adorno**: el editor normaliza los saltos a `\n` (D-34) y `application/archivos.py` lee y escribe UTF-8.
+- **`FlowLang 1.0`** se sigue leyendo de `reglas.NOMBRE_LENGUAJE` y `reglas.VERSION_LENGUAJE`.
+
+Disposición con `ttk.Panedwindow` (uno menos que hoy):
+
+```
+VentanaPrincipal
+├── BarraHerramientas                     (arriba, alto fijo 40)
+├── BarraEstado                           (abajo, alto fijo 26)
+├── FranjaHerramientas izquierda          (ancho fijo 40)
+├── FranjaHerramientas derecha            (ancho fijo 40)
+└── cuerpo: Panedwindow vertical
+    ├── superior: Panedwindow horizontal → PanelLateral | EditorCodigo | PanelResultados
+    └── inferior: PanelHerramientas (Consola, Problemas)
+```
+
+Tamaños iniciales: ventana 1280×800 (mínimo 1000×650, como ahora); izquierda 250 px; derecha ≈ 36 % del ancho; inferior ≈ 210 px. Al arrancar se ven Proyecto, Tokens y Consola.
+
+### 16.3 Paleta (`TEMA`, único lugar con colores: `ui/estilos.py`)
+
+Se **conservan las 16 claves actuales** (cambia el valor) y se añaden 8. Ningún otro archivo escribe un literal `#rrggbb` (criterio verificable con `grep`).
+
+| Clave | Hex | Uso | |
+|---|---|---|---|
+| `fondo` | `#1E1F22` | Editor, vistas de solo lectura, lienzo de estadísticas, separación entre paneles | cambia |
+| `panel` | `#2B2D30` | Barra superior, franjas, *tool windows*, tablas, barra de estado | cambia |
+| `barra` | `#2B2D30` | Barra superior (se mantiene la clave; mismo valor que `panel`) | cambia |
+| `borde` | `#393B40` | Líneas divisorias de 1 px, fondo al pasar el ratón sobre un icono | cambia |
+| `texto` | `#DFE1E5` | Texto de la interfaz | cambia |
+| `texto_codigo` | `#BCBEC4` | Texto del editor, consola y Modo educativo | **nueva** |
+| `texto_secundario` | `#9DA0A8` | Cabeceras de tabla, títulos de *tool window*, barra de estado, iconos en reposo | **nueva** |
+| `texto_tenue` | `#6F737A` | Deshabilitado, textos de ayuda | cambia |
+| `numero_linea` | `#4B5059` | Números del margen | **nueva** |
+| `blanco` | `#FFFFFF` | Cursor del editor, icono sobre botón relleno, texto seleccionado | igual |
+| `acento` | `#3574F0` | Subrayado de la pestaña activa, foco, logo | cambia |
+| `acento_claro` | `#548AF7` | Enlace «Ver tabla de símbolos» | cambia |
+| `seleccion` | `#214283` | Selección de texto y token actual en el editor | cambia |
+| `seleccion_fila` | `#2E436E` | Fila seleccionada en árboles y tablas | **nueva** |
+| `activo` | `#43454A` | Icono de la *tool window* que se está mostrando | **nueva** |
+| `deslizador` | `#4D4E51` | Pulgar de las barras de desplazamiento | **nueva** |
+| `linea_actual` | `#26282E` | Línea del cursor | cambia |
+| `error` | `#F75464` | Errores: texto, `✗`, subrayado, contador | cambia |
+| `exito` | `#5FB865` | Veredicto válido, botón Analizar, icono de Paso a paso | cambia |
+| `detener` | `#DB5C5C` | Botón Detener | **nueva** |
+| `advertencia` | `#F2C55C` | Reservado (avisos) | cambia |
+| `info` | `#56A8F5` | Líneas informativas de la consola | cambia |
+| `colision` | `#3D3223` | Fila con colisión en la tabla de símbolos | cambia |
+| `ayuda_fondo` | `#393B40` | Fondo del globo de ayuda de los iconos | **nueva** |
+
+`COLORES_TOKEN` (sigue indexado por `TipoToken`; el editor, la tabla de Tokens y las barras de Estadísticas lo recorren, ninguno nombra una categoría):
+
+| `TipoToken` | Hex | Referencia Darcula |
+|---|---|---|
+| `PALABRA_RESERVADA` | `#CF8E6D` | palabra clave (naranja) |
+| `IDENTIFICADOR` | `#BCBEC4` | texto |
+| `ENTERO`, `DECIMAL` | `#2AACB8` | número (cian) |
+| `CADENA` | `#6AAB73` | cadena (verde) |
+| `OPERADOR_ARITMETICO`, `OPERADOR_RELACIONAL`, `OPERADOR_LOGICO`, `ASIGNACION`, `DELIMITADOR` | `#BCBEC4` | texto |
+| `COMENTARIO` | `#7A7E85` | comentario (gris, **cursiva**) |
+| `ERROR` | `#F75464` | error |
+
+La cursiva no es un color: se declara junto a la paleta como `TIPOS_EN_CURSIVA = (TipoToken.COMENTARIO,)` y el editor la aplica al configurar las etiquetas. Un tipo nuevo de token sigue necesitando solo su entrada en `COLORES_TOKEN` (§11 no cambia).
+
+### 16.4 Tipografías
+
+| Uso | Familias, en orden | Tamaño de diseño |
+|---|---|---|
+| Código (editor, consola, Modo educativo) | JetBrains Mono → Menlo → Consolas → DejaVu Sans Mono → Courier New | 13 |
+| Interfaz | Inter → SF Pro Text → Segoe UI → Helvetica Neue → DejaVu Sans → Arial | 13; 12 en cabeceras y barra de estado |
+
+Se mantienen `fuente_codigo(tamano)` y `fuente_interfaz(tamano)` con `_primera_disponible`. Los tamaños se piensan **en píxeles de PyCharm**: en macOS Tk dibuja 1 punto = 1 píxel; en Windows y Linux, 1 punto ≈ 1,33 píxeles. Una sola función privada `_puntos(tamano)` devuelve `tamano` en macOS y `round(tamano * 0.75)` en el resto, para que 13 se vea como 13 px en los tres sistemas (D-51). Si en el laboratorio el texto se ve pequeño, se corrige cambiando ese factor.
+
+Medidas: barra superior 40 px; franjas 40 px; botón de icono 30×30 con dibujo de 16×16; cabecera de *tool window* 32 px; fila de pestaña 36 px con subrayado de 3 px; filas de árbol 26 px y de tabla 28 px; barra de estado 26 px.
+
+### 16.5 Iconos (`ui/iconos.py`, archivo nuevo, solo datos y dos funciones)
+
+Sin archivos de imagen y sin depender de qué fuente tenga cada sistema para un glifo (D-44):
+
+1. **Iconos de botones y franjas: trazos sobre `tk.Canvas`.** `TRAZOS` es un diccionario `nombre → lista de primitivas` en una rejilla de 16×16, por ejemplo `("linea", x1, y1, x2, y2, …)`, `("rectangulo", x1, y1, x2, y2)`, `("ovalo", …)`, `("poligono", …)`, con un indicador de relleno. `dibujar(lienzo, nombre, x, y, color)` las recorre y llama a `create_line` / `create_rectangle` / `create_oval` / `create_polygon`. Cambiar de color (reposo, activo, deshabilitado) es volver a dibujar con otro `color`.
+2. **Iconos dentro de los árboles: `tk.PhotoImage` de 16×16 pintada con rectángulos.** `ttk.Treeview` solo acepta imágenes. `imagen(nombre)` crea la imagen vacía y la rellena con `put(color, to=(x1, y1, x2, y2))` según `RECTANGULOS[nombre]` (carpeta: pestaña + cuerpo; archivo `.flow`: hoja con dos renglones de color). Son 2 o 3 imágenes; quien las pide **guarda la referencia** en un atributo (si no, Tk las pierde al recolectar basura).
+3. **Glifos de texto** solo donde son seguros en cualquier fuente: `▾` (desplegables), `›` (migas), `×` (cerrar), `✗` y `✓` (inspección y margen, ya en uso), `⌃ ⌄` (anterior / siguiente; si no se ven bien, `▴ ▾`).
+
+Los colores de los iconos salen de `TEMA`; `iconos.py` no contiene colores salvo nombres de claves de `TEMA`.
+
+| Icono | Dibujo | Dónde |
+|---|---|---|
+| `analizar` | triángulo relleno | barra (blanco sobre `exito`) |
+| `paso` | triángulo hueco + barra vertical | barra (`exito`) |
+| `detener` | cuadrado | barra (blanco sobre `detener`) |
+| `abrir`, `guardar`, `limpiar`, `ayuda` | carpeta abierta, disquete, papelera, signo `?` en círculo | barra, derecha |
+| `proyecto`, `lenguaje` | carpeta, llaves `{ }` | franja izquierda, arriba |
+| `consola`, `problemas` | rectángulo con `>_`, círculo con `!` | franja izquierda, abajo |
+| `tokens`, `simbolos`, `estadisticas` | lista de renglones, rejilla, barras | franja derecha |
+| `educativo` | dos estados unidos por una flecha (un autómata) | franja derecha |
+| `ocultar` | raya horizontal | cabecera de *tool window* |
+
+### 16.6 Componentes nuevos (`ui/componentes.py`)
+
+| Clase | Qué es | Interfaz |
+|---|---|---|
+| `BotonIcono(tk.Canvas)` | Botón de 30×30 con un icono de `TRAZOS`; fondo al pasar el ratón; variantes `relleno=` (Analizar, Detener) y `activo` (franjas); contador opcional | `habilitar(bool)`, `habilitado`, `marcar_activo(bool)`, `poner_contador(n)`; `command` como un botón normal |
+| `Globo` | Texto de ayuda al detenerse sobre un icono (un `Toplevel` sin decoración, como hace IDLE) | `Globo(widget, texto)` |
+| `PanelHerramientas(ttk.Frame)` | Una *tool window*: cabecera (título de la vista + botón ocultar) y varias vistas apiladas, una visible | `agregar_vista(nombre, titulo, vista)`, `mostrar(nombre)`, `vista_actual`, `cuerpo` |
+| `FranjaHerramientas(ttk.Frame)` | Columna de `BotonIcono`; unos arriba y otros abajo | `agregar(nombre, descripcion, abajo=False)`, `marcar(nombres)`, `habilitar(nombre, bool)`, `poner_contador(nombre, n)` |
+
+`PanelLateral` y `PanelResultados` **heredan** de `PanelHerramientas` (son *tool windows* con vistas propias); la zona inferior es un `PanelHerramientas` al que la ventana añade la consola y los problemas.
+
+Una sola tabla describe las acciones de la barra, y de ella salen botones, menús y globos:
+
+```
+_ACCIONES = (nombre, texto, atajo, grupo)      # grupo: "ejecucion" | "archivo"
+    ("analizar", "Analizar", "F5", "ejecucion"), ("paso", "Paso a paso", "F10", "ejecucion"), …
+```
+
+`BarraHerramientas.botones` sigue siendo `dict[str, BotonIcono]` con las **mismas siete claves** (`abrir`, `guardar`, `analizar`, `paso`, `detener`, `limpiar`, `ayuda`) y `habilitar(nombres)` conserva su firma, de modo que `_BOTONES_POR_ESTADO` y §10.4 no cambian. Los dos menús se construyen al abrirse (`postcommand`) y copian el estado habilitado de los botones.
+
+### 16.7 Comportamiento de las *tool windows*
+
+La ventana tiene una tabla y dos métodos; no hay más lógica:
+
+```
+_HERRAMIENTAS = {            # nombre → zona
+    "proyecto": "izquierda", "lenguaje": "izquierda",
+    "consola": "inferior",   "problemas": "inferior",
+    "tokens": "derecha", "simbolos": "derecha", "estadisticas": "derecha", "educativo": "derecha",
+}
+
+mostrar_herramienta(nombre)     # uso interno y pruebas: deja la zona visible con esa vista
+alternar_herramienta(nombre)    # clic en un icono de franja
+```
+
+- **Clic en un icono**: si esa vista ya se ve, **oculta la zona**; si no, muestra la zona con esa vista (igual que PyCharm). El icono de la vista visible de cada zona queda con fondo `activo`.
+- **Ocultar** = `Panedwindow.forget(panel)`; **mostrar** = `Panedwindow.insert(posicion, panel)`. Antes de ocultar se guarda el tamaño de la zona y al volver se restaura con `sashpos` en `after_idle`. El editor nunca se oculta.
+- El botón `—` de la cabecera oculta la zona (mismo método).
+- **La aplicación abre sola una vista** en estos casos, todos ya existentes: primer error de un análisis → `problemas`; paso a paso → `educativo`; error de archivo → `problemas`; «Ver tabla de símbolos» y el «Sí» del diálogo final → `simbolos`; al iniciar un análisis → `consola` si la zona inferior estaba oculta.
+- El icono `simbolos` está **deshabilitado hasta que termina el análisis** (sustituye a la pestaña deshabilitada); `PanelResultados.tabla_simbolos_habilitada()` y `habilitar_tabla_simbolos()` se conservan.
+- El icono `problemas` muestra el **número de errores** mientras avanza la evaluación.
+
+**Requisito 5 con el diseño nuevo.** Durante la evaluación progresiva un error es visible a la vez en cinco sitios: línea roja en la Consola, fila nueva en Problemas (que se abre sola con el primero), subrayado rojo y `✗` en el margen del editor, contador `✗ N` del *widget* de inspección y contador de la barra de estado. Al final, el diálogo «¿Desea ver la tabla de símbolos?» no cambia, y quedan el enlace de la barra de estado y el icono de la franja derecha.
+
+### 16.8 Editor (`ui/editor.py`)
+
+- **Pestaña única**: fila de 36 px sobre el texto con icono de archivo, nombre (`sin título` si no hay archivo) y `×`; subrayado `acento`. `establecer_nombre(nombre)` la actualiza; `×` llama al *callback* `al_cerrar` (la ventana lo conecta con `limpiar`).
+- **Margen**: fondo `fondo`, números en `numero_linea`, línea vertical de 1 px `borde` a su derecha; la `✗` de las líneas inválidas en `error` (D-37 sin cambios).
+- ***Widget* de inspección**: un marco pequeño colocado con `place(relx=1.0, anchor="ne")` sobre el texto. Oculto si no hay análisis; **`✗ N ⌃ ⌄`** en `error` cuando hay marcas; **`✓`** en `exito` si el análisis terminó sin errores. `⌃` y `⌄` llaman a `ir_a_error(-1)` / `ir_a_error(+1)`: el editor guarda las posiciones `(línea, columna)` de las marcas que ya recibe en `marcar_errores`, las ordena y salta a la anterior o siguiente respecto al cursor, dando la vuelta al llegar al final. También con `F2` / `Shift+F2`, como en PyCharm.
+- Métodos públicos nuevos: `establecer_nombre(nombre)`, `ir_a_error(direccion)`, `indicar_sin_errores()`. `limpiar_marcas()` además vacía las posiciones y oculta el *widget*. Lo demás (normalización, *debounce*, `descartar_cambio_pendiente`, cursor en 1:1, desplazamiento diferido) **no se toca**: AUD-16, AUD-17 y AUD-19 dependen de ello.
+
+### 16.9 Qué cambia y qué se mantiene
+
+| Archivo | Cambio |
+|---|---|
+| `ui/estilos.py` | Valores de `TEMA` y `COLORES_TOKEN`, 8 claves nuevas, `TIPOS_EN_CURSIVA`, `_puntos`; estilos `ttk`: `Treeview` (filas altas, selección `seleccion_fila`, cabecera plana `texto_secundario`), barras de desplazamiento finas sin flechas, `Estado.*` sobre `panel`, `Enlace.TLabel`; desaparecen `Accion.TButton`, `Estado.TButton` y `TNotebook` |
+| `ui/iconos.py` | **Nuevo**: `TRAZOS`, `RECTANGULOS`, `dibujar`, `imagen` |
+| `ui/componentes.py` | Nuevos `BotonIcono`, `Globo`, `PanelHerramientas`, `FranjaHerramientas`; `BarraHerramientas` rehecha sobre `_ACCIONES`; `PanelLateral` pasa a dos vistas (Proyecto, Lenguaje) y gana `marcar_abierto(ruta)`; `PanelConsola` pierde su título (lo pone la cabecera); `BarraEstado` gana `establecer_ruta(partes)` y el formato `Lín:Col` |
+| `ui/paneles.py` | `PanelResultados` cambia el `ttk.Notebook` por `PanelHerramientas` (4 vistas); lo relativo a errores se **mueve** a la clase nueva `PanelProblemas` (`arbol_errores`, `detalle_error`, `agregar_error`, `quitar_errores_de_archivo`, `limpiar`); `seleccionar_pestana` desaparece (lo sustituye `VentanaPrincipal.mostrar_herramienta`) |
+| `ui/editor.py` | §16.8; etiquetas con la paleta nueva y cursiva |
+| `ui/interfaz.py` | `_construir` con la disposición de §16.2; `_HERRAMIENTAS`, `mostrar_herramienta`, `alternar_herramienta`; `self.problemas`; migas de pan y nombre de pestaña al abrir, guardar y limpiar; atajos `F2` / `Shift+F2` |
+| `docs/capturas/capturar.py` | Usa `mostrar_herramienta` y `v.problemas` |
+| `tests/test_ui_humo.py`, `tests/test_auditoria_fase_b.py` | Solo renombres (`v.panel_resultados.arbol_errores` → `v.problemas.arbol_errores`, etc.) y la comprobación de AUD-18 (ver B16); nada de lo que verifican se pierde |
+
+**No cambia**: `core/`, `application/`, `config/`, `main.py` (modo consola incluido), `ejemplos/`; los métodos públicos de `VentanaPrincipal` (`abrir_archivo`, `guardar_archivo`, `analizar`, `paso_a_paso`, `detener`, `limpiar`, `ver_tabla_simbolos`, `mostrar_ayuda`, `destroy`); los cuatro estados y sus botones; el temporizador y `_consumir_paso`; el diálogo inicial (requisito 6) y el final (requisito 5); el contenido de Tokens, Tabla de símbolos, Estadísticas y Modo educativo; los atajos actuales.
+
+Regla de dependencias de `ui/` (igual que §2): `estilos` ← `iconos` ← `componentes` ← `paneles`, `editor` ← `interfaz`. `iconos.py` solo importa `tkinter` y `ui.estilos`.
+
+### 16.10 Riesgos y cómo se acotan
+
+| Riesgo | Medida |
+|---|---|
+| **Tk 8.6 frente a 9.0**: `underlinefg` (ya resuelto con `_admite_underlinefg`), aspecto del indicador de los árboles, disposición de las barras de desplazamiento | Solo se usan opciones presentes en ambas; cualquier `estilo.layout`/opción dudosa va dentro de `try/except tk.TclError` con el aspecto actual como respaldo. La batería se corre con 3.11/3.12 (Tk 8.6) además de 3.14 (Tk 9.0) |
+| **Windows / Linux**: fuentes ausentes, 1 pt ≠ 1 px, `tk.Canvas` sin suavizado (diagonales con dientes) | Lista de fuentes con respaldo; `_puntos`; iconos hechos con horizontales, verticales y pocas diagonales, grosor 1,5; verificación manual **M5** en el equipo del laboratorio |
+| **`Globo` en macOS** puede robar el foco o no mostrarse | Mismo recurso que `idlelib.tooltip`; si falla (`tk.TclError`) no se muestra y la acción sigue disponible con su texto en los menús `▾` |
+| **`PhotoImage` recolectada** → iconos del árbol en blanco | Referencias guardadas en un atributo del panel; lo comprueba una prueba |
+| **Ocultar y mostrar zonas** descoloca los divisores | Guardar y restaurar el tamaño; prueba que alterna cada herramienta dos veces y comprueba tamaños ≥ 150 px |
+| **`place` del *widget* de inspección** tapa el final de la primera línea | Aceptado (PyCharm hace lo mismo); mide < 110 px |
+| **Rendimiento** (AUD-17, AUD-26) | Nada nuevo se ejecuta por token salvo dos `configure` de texto (contadores); los iconos se redibujan solo al cambiar de estado; las vistas ocultas no se desplazan. `test_aud17` sigue siendo el límite |
+| **`after` nuevos** (globos, restaurar divisores) al cerrar | `VentanaPrincipal.destroy` ya cancela todos los pendientes (AUD-28); su prueba no cambia |
+| **Se pierde un requisito al mover paneles** | Las pruebas de humo de los requisitos 5 y 6 no se relajan; B16 añade las del diseño nuevo |
+
+Lista de comprobación visual contra la referencia (la usa B16 con capturas reales): (1) barra superior del color de los paneles, con dos *widgets* `▾`, botón verde, botón rojo e iconos grises a la derecha; (2) franjas de iconos a ambos lados, con el icono activo resaltado; (3) cabecera «Proyecto» y árbol con iconos de carpeta y archivo, fila seleccionada azul grisáceo; (4) pestaña con icono, `×` y subrayado azul; (5) números de línea gris oscuro sobre el fondo del editor; (6) palabras reservadas naranja, cadenas verde, números cian, comentarios gris en cursiva; (7) `✗ N ⌃ ⌄` arriba a la derecha del editor; (8) barra de estado gris con migas `›` a la izquierda y `Lín:Col  LF  UTF-8  FlowLang 1.0` a la derecha; (9) tablas sin rejilla, filas altas, cabeceras discretas; (10) ningún resto del azul `#007acc` ni de las pestañas de `ttk.Notebook`.

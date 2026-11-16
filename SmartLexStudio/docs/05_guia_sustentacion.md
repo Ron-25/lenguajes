@@ -502,4 +502,4 @@ Preparación: `git status` limpio; terminal abierta en `SmartLexStudio/`; ventan
 
 **Si no hay tkinter en el equipo:** `python main.py --consola ejemplos/incorrecto.flow` muestra tokens, errores, veredicto y pregunta si se quiere ver la tabla de símbolos.
 
-**Si preguntan por las pruebas:** `python -m unittest discover -s tests -t .` (≈ 20 s) → `Ran 115 tests … OK`.
+**Si preguntan por las pruebas:** `python -m unittest discover -s tests -t .` (≈ 25 s) → `Ran 118 tests … OK`.
