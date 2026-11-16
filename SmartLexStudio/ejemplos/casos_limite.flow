@@ -1,31 +1,20 @@
 // Casos limite: todo este archivo es VALIDO (0 diagnosticos)
-ALGORITMO casos_limite
+inicio
     /*** comentario de bloque con asteriscos ***/
     /**/
-    Definir _, identificador_de_32_caracteres__ Como Entero;
-    definir si2, Yo, nota, modo_riego Como Entero; // contienen Si, Y, NO y Modo, pero son identificadores
-    DEFINIR vacia, escapes, no_es_comentario Como Cadena;
-    Definir d Como Real;
-    Definir b Como Logico;
-    _ <- 0;
-    identificador_de_32_caracteres__ <- 007;
-    vacia <- "";
-    escapes <- "comilla \" barra \\ salto \n tab \t";
-    no_es_comentario <- "// esto es una cadena /* y esto tambien */";
-    // Los identificadores tampoco distinguen mayusculas: SI2, Si2 y si2 son la misma entrada
-    SI2 <- Si2 + si2;
+    numero _ = 0;
+    numero identificador_de_32_caracteres__ = 007;
+    numero si2 = 1; // 'si2' es identificador, no la palabra reservada 'si'
+    numero Inicio = 2; // FlowLang distingue mayusculas: 'Inicio' es identificador
+    texto vacia = "";
+    texto escapes = "comilla \" barra \\ salto \n tab \t";
+    texto no_es_comentario = "// esto es una cadena /* y esto tambien */";
+    decimal d = 0.0;
+    booleano b = verdadero;
     // Coincidencia mas larga (maximal munch) sin espacios:
-    b<-si2>=_ Y si2<=nota O NO b=Falso<>VERDADERO;
-    d<-d+1.5-2*3/4^5 MOD 6;
-    si2<-5;         // asignacion: "<-" (2 caracteres) gana a "<"
-    b <- si2 < -5;  // con espacio son tres tokens: menor que, menos, 5
-    // Literales con unidad, enteros y decimales, pegados a otros simbolos:
-    Esperar 0ms; Esperar 250ms; Esperar 1.5s; Esperar 5m; Esperar 2h;
-    b<-d>=22.5C O d<0C Y(d=100% O d<>0.5%);
-    Mientras(si2<3)Hacer si2<-si2+1;FinMientras
-    Si b Entonces Escribir(vacia,escapes); SiNo Esperar 1s; FinSi
-    Para _ <- 10 Hasta 1 Con Paso -1 Hacer FinPara
-    Repetir Repetir Leer d; Hasta Que d>0 Hasta Que b
-    Segun si2 Hacer Caso 1: Caso 2: De Otro Modo: FinSegun
-finalgoritmo
+    b = si2>=_&&si2<=Inicio||!b==falso!=verdadero;
+    d = d+1.5-2*3/4%5;
+    mientras(si2<3){si2=si2+1;}
+    si (b) { mostrar(vacia, escapes); } sino { esperar 1; }
+fin
 // comentario final sin salto de linea
