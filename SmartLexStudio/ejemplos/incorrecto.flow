@@ -1,14 +1,22 @@
-inicio
-    numero 2pi = 3.14.15;
-    decimal radio = 5.;
-    texto saludo = "Hola mundo;
-    texto ruta = "C:\qatos";
-    numero total = 100 @ 2;
-    booleano ok = verdadero & falso;
-    numero identificador_demasiado_largo_para_flowlang = 1;
-    si (total >= 10 {
-        mostrar 'total';
-    }
-    mostrar total $ #;
+Algoritmo errores
+    Definir 2pi_r, radio Como Real;
+    radio <- 3.14.15 + 5.;
+    Esperar 10x;
+    saludo <- "Hola mundo;
+    ruta <- "C:\qatos";
+    total <- 100 @ 2 % 3;
+    ok <- Verdadero & Falso;
+    identificador_demasiado_largo_para_flowlang <- 1;
+    Si (total >= 10 Entonces
+        Escribir 'total';
+        Mientras total > 0 Hacer
+            total <- total - 1;
+    FinSi
+    SiNo
+        Escribir total { };
+    FinPara
+    Repetir
+        Leer total;
+    Hasta total = 0
 /* comentario sin cerrar
-fin
+FinAlgoritmo

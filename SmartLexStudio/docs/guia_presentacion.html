@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SmartLex Studio — Guía de presentación y estudio</title>
+<style>
+  @page { size: Letter; margin: 18mm 16mm 18mm 16mm; }
+  :root { --azul:#3574F0; --naranja:#CF8E6D; --verde:#4E9A57; --gris:#5f6368; --borde:#d5d8dd; --fondo:#f5f7fa; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 10.6pt; line-height: 1.45; color:#1f2328; margin:0; }
+  h1 { font-size: 20pt; margin: 0 0 4mm; color:#111; border-bottom: 3px solid var(--azul); padding-bottom: 2mm; page-break-before: always; }
+  h1.primero { page-break-before: avoid; }
+  h2 { font-size: 13.5pt; margin: 6mm 0 2mm; color: var(--azul); page-break-after: avoid; }
+  h3 { font-size: 11.2pt; margin: 4mm 0 1.5mm; page-break-after: avoid; }
+  p { margin: 1.5mm 0 2mm; }
+  ul, ol { margin: 1mm 0 2.5mm; padding-left: 6mm; }
+  li { margin: 0.6mm 0; }
+  code { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 9.2pt; background: #eef1f5; padding: 0.2mm 1mm; border-radius: 2px; }
+  pre { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 8.9pt; background: #1E1F22; color: #BCBEC4; padding: 3mm 4mm; border-radius: 4px; line-height: 1.4; white-space: pre-wrap; page-break-inside: avoid; margin: 2mm 0 3mm; }
+  pre .k { color: var(--naranja); } pre .s { color:#6AAB73; } pre .n { color:#2AACB8; } pre .c { color:#7A7E85; font-style: italic; }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 3.5mm; font-size: 9.6pt; page-break-inside: avoid; }
+  th, td { border: 1px solid var(--borde); padding: 1.4mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #e8eefc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .frase { border-left: 4px solid var(--azul); background: #eef3fe; padding: 2.5mm 4mm; margin: 3mm 0; font-style: italic; page-break-inside: avoid; }
+  .nota { border-left: 4px solid #e3a008; background: #fff8e6; padding: 2.5mm 4mm; margin: 3mm 0; page-break-inside: avoid; }
+  .tu { border: 2px solid var(--naranja); border-radius: 6px; padding: 1mm 4mm 2mm; background: #fffaf6; }
+  .portada { height: 240mm; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+  .portada .uni { font-size: 11pt; color: var(--gris); letter-spacing: .3px; line-height: 1.6; }
+  .portada .titulo { font-size: 34pt; font-weight: 700; margin: 14mm 0 2mm; color:#111; }
+  .portada .sub { font-size: 15pt; color: var(--azul); margin-bottom: 14mm; }
+  .portada .logo { display:inline-block; width: 22mm; height: 22mm; line-height: 22mm; border-radius: 4mm; background: var(--azul); color: white; font-size: 22pt; font-weight: 700; margin: 0 auto; }
+  .indice { text-align: left; margin: 0 auto; width: 120mm; font-size: 10.5pt; color:#333; }
+  img.cap { width: 100%; border: 1px solid var(--borde); border-radius: 4px; margin: 2mm 0 1mm; }
+  .pie { font-size: 8.8pt; color: var(--gris); margin-bottom: 4mm; text-align: center; }
+  .dos { display: flex; gap: 5mm; } .dos > div { flex: 1; }
+  .chip { display:inline-block; font-size: 8.5pt; padding: .3mm 2mm; border-radius: 10px; background:#e8eefc; color: var(--azul); font-weight:600; }
+  .check li { list-style: "☐  "; }
+</style>
+</head>
+<body>
+
+<!-- ============================ PORTADA ============================ -->
+<div class="portada">
+  <div class="uni">UNIVERSIDAD TECNOLÓGICA DE PANAMÁ<br>Facultad de Ingeniería de Sistemas Computacionales<br>Lenguajes Formales, Autómatas y Compiladores · Proyecto N.º 1</div>
+  <div class="titulo"><span class="logo">SL</span><br><br>SmartLex Studio</div>
+  <div class="sub">Guía de presentación y estudio</div>
+  <div class="indice">
+    <b>Contenido</b>
+    <ol>
+      <li>Reparto de la charla y guiones</li>
+      <li>Conceptos básicos: lexema, token, analizador léxico</li>
+      <li>Las reglas de FlowLang</li>
+      <li>Arquitectura del proyecto</li>
+      <li>Qué hace cada archivo del código</li>
+      <li>Autómatas finitos (AFD)</li>
+      <li>El hash y las cubetas</li>
+      <li>La tabla de símbolos</li>
+      <li>El manejador de errores</li>
+      <li>Ejemplo completo y capturas de la aplicación</li>
+      <li>Preguntas probables del profesor</li>
+      <li>Lista de control antes de presentar</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============================ 1. REPARTO ============================ -->
+<h1>1. Reparto de la charla</h1>
+<p>Cuatro expositores, unos <b>12 minutos</b> en total (≈ 3 min cada uno). El reparto sigue los puntos del PDF del profesor. La <b>Persona B</b> tiene la parte más compleja: los autómatas, que son el centro teórico de la materia.</p>
+
+<table>
+  <tr><th>Orden</th><th>Quién</th><th>Tema</th><th>Puntos del PDF</th></tr>
+  <tr><td>1</td><td>Persona A</td><td>Introducción, FlowLang y arquitectura</td><td>Req. 1 (20 pts) + req. 6</td></tr>
+  <tr><td>2</td><td><b>Persona B</b> <span class="chip">lo más complejo</span></td><td><b>Autómatas y analizador léxico</b></td><td>Req. 2 (20 pts)</td></tr>
+  <tr><td>3</td><td>Persona C</td><td>Tabla de símbolos y hash</td><td>Req. 3 (25 pts)</td></tr>
+  <tr><td>4</td><td>Persona D</td><td>Manejador de errores e interfaz</td><td>Req. 4 (25 pts) + req. 5 (10 pts)</td></tr>
+  <tr><td>Cierre</td><td>Persona A</td><td>Modificación en vivo: agregar <code>repetir</code></td><td>Demuestra la arquitectura</td></tr>
+</table>
+
+<h2>Persona A — Introducción, FlowLang y arquitectura</h2>
+<p><b>En la aplicación:</b> abre SmartLex Studio; el programa pide el archivo y se elige <code>ejemplos/correcto.flow</code>. Mostrar el panel FlowLang de la izquierda (icono <code>{}</code>).</p>
+<ul>
+  <li>Qué es SmartLex Studio: analizador léxico + tabla de símbolos + manejador de errores.</li>
+  <li>Qué es FlowLang: un lenguaje para automatizaciones (por ejemplo, un sistema de riego). 17 palabras reservadas, tipos de dato, operadores y comentarios.</li>
+  <li>«El programa solicita el archivo con la cadena de entrada para iniciar» (requisito 6).</li>
+  <li>Arquitectura en capas <code>ui → application → core → config</code>: el núcleo no depende de la interfaz; las reglas del lenguaje están como datos en <code>config/reglas.py</code>.</li>
+</ul>
+<p><b>Cierre (1 minuto al final):</b> agregar <code>"repetir"</code> a <code>PALABRAS_RESERVADAS</code> en <code>config/reglas.py</code>, reabrir la app y analizar <code>inicio repetir fin</code>. «Una línea de datos y ningún algoritmo tocado: principio abierto/cerrado.»</p>
+
+<div class="tu">
+<h2>Persona B — Autómatas y analizador léxico (la parte más compleja)</h2>
+<p><b>En la aplicación:</b></p>
+<ol>
+  <li>Pulsar <b>Paso a paso</b> (⏭, tecla F10) varias veces sobre <code>correcto.flow</code>: sale un token por paso.</li>
+  <li>En el panel <b>Tokens</b>, seleccionar <code>45.5</code> y abrir <b>Modo educativo</b> (franja derecha): se ve la regla, el recorrido <code>q0 → q1 → q1 → q2 → q3</code> y la tabla de transiciones.</li>
+</ol>
+<h3>Guion</h3>
+<p><b>1. Lexema y token (20 s).</b> «El lexema es el texto, <code>45.5</code>. El token es ese lexema ya clasificado: Decimal, línea 6, columna 23.»</p>
+<p><b>2. El AFD es la 5-tupla de la teoría, implementada (60 s).</b></p>
+<table>
+  <tr><th>Teoría</th><th>En el código</th></tr>
+  <tr><td><b>Q</b> — estados</td><td><code>q0</code>, <code>q1</code>, <code>q2</code>… en las tablas de <code>config/reglas.py</code></td></tr>
+  <tr><td><b>Σ</b> — alfabeto</td><td>clases <code>LETRA</code>, <code>DIGITO</code>, <code>OTRO</code> (función <code>clase_caracter</code>)</td></tr>
+  <tr><td><b>δ</b> — función de transición</td><td><code>AFD.siguiente_estado(estado, caracter)</code></td></tr>
+  <tr><td><b>q<sub>0</sub></b> — estado inicial</td><td><code>"inicial": "q0"</code></td></tr>
+  <tr><td><b>F</b> — estados finales</td><td><code>"aceptacion": {"q1": ENTERO, "q3": DECIMAL}</code></td></tr>
+</table>
+<p>«Tenemos cuatro AFD (identificadores, números, cadenas y comentarios) escritos como tablas de transición, y un único motor genérico, <code>core/afd.py</code>, que los ejecuta. No usamos el módulo <code>re</code> de Python.»</p>
+<p><b>3. Recorrido de <code>45.5</code> (40 s).</b> «Desde q0 leo <code>4</code> y paso a q1, final de entero. Con <code>5</code> me quedo en q1. Con <code>.</code> voy a q2. Con <code>5</code> llego a q3, final de decimal. Con <code>;</code> no hay transición y me detengo. El motor recuerda el último estado final alcanzado: devuelve <code>45.5</code> como decimal.»</p>
+<p><b>4. Coincidencia más larga (30 s).</b> «En cada posición se ejecutan los cuatro autómatas y la tabla de operadores; gana el lexema más largo. Por eso <code>&gt;=</code> es un solo token y no <code>&gt;</code> seguido de <code>=</code>, y <code>//</code> es un comentario y no dos divisiones.»</p>
+<p><b>5. Palabras reservadas (15 s).</b> «Se reconocen con el AFD de identificadores y después se consultan en la lista de reservadas. Por eso <code>si2</code> es un identificador.»</p>
+<p><b>6. Estados de error, el aporte original (30 s).</b> «A los autómatas les agregamos estados finales de error. <code>3.4.5</code> termina en q4, que es LEX-003, número mal formado; <code>12abc</code> termina en q5, LEX-004. Así el error se consume entero y se informa qué error es, no solo que la cadena es inválida.»</p>
+<p><b>Pase:</b> «Cada token reconocido pasa a la tabla de símbolos, que explica [Persona C].»</p>
+<p><b>Archivos a dominar:</b> <code>core/afd.py</code> (<code>siguiente_estado</code>, <code>reconocer</code>), <code>core/lexer.py</code> (<code>reconocer_lexema</code>, <code>Lexer.tokens</code>) y <code>AFD_NUMERO</code> en <code>config/reglas.py</code>. Las preguntas difíciles de esta parte están en la sección 11.</p>
+</div>
+
+<h2>Persona C — Tabla de símbolos y hash</h2>
+<p><b>En la aplicación:</b> pulsar <b>Ver tabla de símbolos</b> (barra de estado) y señalar <code>fin</code> y las filas resaltadas.</p>
+<ul>
+  <li>Qué guarda cada entrada: lexema, categoría, hash, tipo de dato, valor, línea de declaración y apariciones.</li>
+  <li>Cálculo de <code>fin</code> en la pizarra: <code>102 → 3267 → 101387</code>, y <code>101387 mod 79 = 30</code>.</li>
+  <li>Cubeta, colisión y encadenamiento; factor de carga 0,75; crecimiento 17 → 37 → 79.</li>
+  <li>Dos cifras: 14 colisiones al insertar y 7 en la tabla actual.</li>
+  <li>«No usamos el <code>dict</code> de Python: es una tabla hash propia, una lista de listas.»</li>
+</ul>
+<p><b>Archivo:</b> <code>core/simbolos.py</code>. Todo el detalle está en las secciones 7 y 8.</p>
+
+<h2>Persona D — Manejador de errores e interfaz</h2>
+<p><b>En la aplicación:</b></p>
+<ol>
+  <li>Abrir <code>incorrecto.flow</code> y pulsar <b>Paso a paso</b> tres veces: el tercer token es <code>2pi</code> y el error aparece en ese instante.</li>
+  <li>Pulsar <b>Analizar</b> (▶, F5) para terminar: salen 15 errores en el panel <b>Problemas</b>. Doble clic en uno para ir a su línea; el indicador <code>✗ 15 ⌃ ⌄</code> del editor también navega (F2).</li>
+  <li>Al terminar, la aplicación ofrece ver la tabla de símbolos.</li>
+</ol>
+<ul>
+  <li>Las tres familias: LEX (léxicos), SIN (estructurales), ARC (archivo). Cada error tiene código, posición, mensaje y sugerencia.</li>
+  <li>Modo pánico: el análisis no se detiene ante un error.</li>
+  <li>Requisito 5: los errores aparecen <b>durante</b> la evaluación y <b>al final</b> se ofrece la tabla de símbolos.</li>
+  <li>Los estructurales (falta <code>fin</code>, paréntesis sin cerrar) los detecta el validador con una pila.</li>
+</ul>
+<p><b>Archivos:</b> <code>core/errores.py</code>, <code>core/validador.py</code>. Detalle en la sección 9.</p>
+
+<!-- ============================ 2. CONCEPTOS ============================ -->
+<h1>2. Conceptos básicos</h1>
+<h2>Qué es SmartLex Studio</h2>
+<p>Una aplicación de escritorio en Python (solo biblioteca estándar) que recibe un archivo con un programa escrito en <b>FlowLang</b> y hace tres cosas, que son los tres temas del proyecto:</p>
+<ol>
+  <li><b>Analizador léxico:</b> parte el texto en tokens y decide si la cadena de entrada es válida.</li>
+  <li><b>Tabla de símbolos:</b> instala los tokens en una tabla hash propia.</li>
+  <li><b>Manejador de errores:</b> detecta, clasifica y explica cada error, y lo muestra mientras avanza la evaluación.</li>
+</ol>
+<p>Un compilador, antes de entender un programa, tiene que leerlo palabra por palabra. Este proyecto es esa primera etapa. Es como leer una oración: antes de entender la gramática, separas las palabras y reconoces que «casa» es válida y «c@sa» no.</p>
+
+<h2>Lexema, token y categoría</h2>
+<ul>
+  <li><b>Lexema:</b> el trozo de texto tal como está escrito: <code>temperatura</code>, <code>&gt;=</code>, <code>45.5</code>.</li>
+  <li><b>Token:</b> el lexema ya clasificado, con su posición. En el código es la clase <code>Token</code> de <code>core/modelos.py</code>: <code>tipo</code>, <code>lexema</code>, <code>linea</code>, <code>columna</code>.</li>
+  <li><b>Categoría:</b> el <code>tipo</code>, uno de los 12 valores de <code>TipoToken</code>.</li>
+</ul>
+<p><code>numero x = 10;</code> produce 5 tokens:</p>
+<table>
+  <tr><th>Lexema</th><th>Token (categoría)</th><th>Posición</th></tr>
+  <tr><td><code>numero</code></td><td>Palabra reservada</td><td>1:1</td></tr>
+  <tr><td><code>x</code></td><td>Identificador</td><td>1:8</td></tr>
+  <tr><td><code>=</code></td><td>Asignación</td><td>1:10</td></tr>
+  <tr><td><code>10</code></td><td>Entero</td><td>1:12</td></tr>
+  <tr><td><code>;</code></td><td>Delimitador</td><td>1:14</td></tr>
+</table>
+
+<h2>Qué hace el analizador léxico (y qué no)</h2>
+<p>Lee carácter por carácter, agrupa en lexemas y los clasifica. <b>No</b> comprueba el orden de los tokens (eso es sintaxis) ni su significado (eso es semántica). <code>numero x = "hola";</code> es léxicamente válido.</p>
+<p>La única comprobación que va más allá está aparte, en <code>core/validador.py</code>, y se declara <b>estructural</b>: el programa empieza con <code>inicio</code>, termina con <code>fin</code> y los <code>( )</code> y <code>{ }</code> están balanceados.</p>
+<div class="frase"><b>Cadena válida</b> = 0 errores léxicos (LEX) <b>y</b> 0 errores estructurales (SIN). La aplicación muestra los dos veredictos por separado y, además, qué líneas son léxicamente inválidas.</div>
+
+<!-- ============================ 3. FLOWLANG ============================ -->
+<h1>3. Las reglas de FlowLang</h1>
+<p><b>Estructura:</b> el programa empieza con <code>inicio</code> y termina con <code>fin</code>. Los <code>( )</code> y <code>{ }</code> deben estar balanceados.</p>
+<table>
+  <tr><th>Uso</th><th>Palabras reservadas (17)</th></tr>
+  <tr><td>Estructura</td><td><code>inicio</code> <code>fin</code></td></tr>
+  <tr><td>Tipos de dato</td><td><code>numero</code> <code>decimal</code> <code>texto</code> <code>booleano</code> <code>dispositivo</code></td></tr>
+  <tr><td>Valores lógicos</td><td><code>verdadero</code> <code>falso</code></td></tr>
+  <tr><td>Control</td><td><code>si</code> <code>sino</code> <code>mientras</code></td></tr>
+  <tr><td>Acciones</td><td><code>mostrar</code> <code>leer</code> <code>activar</code> <code>desactivar</code> <code>esperar</code></td></tr>
+</table>
+<table>
+  <tr><th>Categoría</th><th>Regla</th><th>Ejemplos</th></tr>
+  <tr><td>Identificador</td><td>Empieza con letra o <code>_</code>; sigue con letras, dígitos o <code>_</code>; máximo 32 caracteres. Sin <code>ñ</code> ni tildes.</td><td><code>temperatura</code>, <code>_x1</code></td></tr>
+  <tr><td>Entero</td><td><code>[0-9]+</code></td><td><code>28</code></td></tr>
+  <tr><td>Decimal</td><td><code>[0-9]+\.[0-9]+</code> — dígitos a ambos lados del punto</td><td><code>45.5</code> (no <code>5.</code> ni <code>.5</code>)</td></tr>
+  <tr><td>Cadena</td><td>Entre comillas dobles, en una línea. Escapes: <code>\n \t \" \\</code></td><td><code>"Hola"</code></td></tr>
+  <tr><td>Op. aritméticos</td><td><code>+ - * / %</code></td><td></td></tr>
+  <tr><td>Op. relacionales</td><td><code>== != &lt; &lt;= &gt; &gt;=</code></td><td></td></tr>
+  <tr><td>Op. lógicos</td><td><code>&amp;&amp; || !</code></td><td></td></tr>
+  <tr><td>Asignación</td><td><code>=</code></td><td></td></tr>
+  <tr><td>Delimitadores</td><td><code>( ) { } , ;</code></td><td></td></tr>
+  <tr><td>Comentarios</td><td><code>// hasta el final de la línea</code> y <code>/* bloque */</code></td><td></td></tr>
+</table>
+<h3>Programa de ejemplo</h3>
+<pre><span class="k">inicio</span>
+    <span class="k">numero</span> temperatura = <span class="n">28</span>;
+    <span class="k">decimal</span> humedad = <span class="n">45.5</span>;
+    <span class="k">dispositivo</span> bomba;
+    <span class="c">// regar si hace calor y está seco</span>
+    <span class="k">si</span> (temperatura &gt;= <span class="n">30</span> &amp;&amp; humedad &lt; <span class="n">50.0</span>) {
+        <span class="k">activar</span> bomba;
+        <span class="k">mostrar</span> <span class="s">"Regando"</span>;
+    } <span class="k">sino</span> {
+        <span class="k">desactivar</span> bomba;
+    }
+<span class="k">fin</span></pre>
+
+<!-- ============================ 4. ARQUITECTURA ============================ -->
+<h1>4. Arquitectura del proyecto</h1>
+<p>Es una <b>Clean Architecture ligera, organizada en capas</b>, aplicando los principios <b>SOLID</b>.</p>
+<pre>┌──────────────────────────────────────────┐
+│  PRESENTACIÓN    ui/  +  main.py         │  ventana, botones, colores (tkinter)
+└───────────────────┬──────────────────────┘
+                    │ usa
+┌───────────────────▼──────────────────────┐
+│  APLICACIÓN      application/            │  leer archivos, coordinar el análisis
+└───────────────────┬──────────────────────┘
+                    │ usa
+┌───────────────────▼──────────────────────┐
+│  DOMINIO         core/                   │  lexer, autómatas, tabla hash, errores
+└───────────────────┬──────────────────────┘
+                    │ lee
+┌───────────────────▼──────────────────────┐
+│  CONFIGURACIÓN   config/reglas.py        │  las reglas de FlowLang como datos
+└──────────────────────────────────────────┘</pre>
+<h2>La regla principal: las dependencias apuntan hacia adentro</h2>
+<ul>
+  <li>La ventana conoce a <code>application/</code>; <code>application/</code> conoce a <code>core/</code>.</li>
+  <li><b><code>core/</code> no conoce la ventana</b>: no importa tkinter. Lo comprueba la prueba <code>test_dominio_sin_tkinter</code>.</li>
+  <li>Por eso el analizador funciona sin interfaz: se prueba solo y se usa desde la consola (<code>main.py --consola</code>). El rediseño estilo PyCharm solo tocó <code>ui/</code>.</li>
+  <li>Es «ligera»: sin contenedores de dependencias, interfaces abstractas ni microservicios, que a este tamaño solo añadirían código que explicar.</li>
+</ul>
+<h2>Patrones de diseño usados</h2>
+<table>
+  <tr><th>Patrón</th><th>Dónde</th><th>Para qué</th></tr>
+  <tr><td><b>Autómata dirigido por tabla</b></td><td><code>core/afd.py</code> + tablas en <code>config/reglas.py</code></td><td>El algoritmo es fijo y el lenguaje son datos: agregar <code>repetir</code> es una línea.</td></tr>
+  <tr><td><b>Iterador / generador</b></td><td><code>Lexer.tokens()</code>, <code>SesionAnalisis.siguiente_paso()</code></td><td>Análisis paso a paso (requisito 5) sin que el dominio sepa de la ventana.</td></tr>
+  <tr><td><b>Strategy (mínimo)</b></td><td>La función hash es un parámetro de <code>TablaSimbolos</code></td><td>Se puede cambiar; las pruebas pasan una que siempre da 0 para forzar colisiones.</td></tr>
+  <tr><td><b>Vista pasiva + coordinador</b> (MVP ligero)</td><td>Los paneles de <code>ui/</code> solo dibujan; <code>interfaz.py</code> coordina</td><td>Separa lo que se ve de lo que se decide.</td></tr>
+</table>
+<p>Descartados a propósito: MVC completo, Factory e inyección de dependencias con frameworks.</p>
+<h2>SOLID con ejemplos de este código</h2>
+<table>
+  <tr><th>Principio</th><th>Ejemplo concreto</th></tr>
+  <tr><td><b>S</b> — responsabilidad única</td><td><code>lexer.py</code> solo reconoce; <code>simbolos.py</code> solo es la tabla; <code>errores.py</code> solo errores; <code>estilos.py</code> solo colores.</td></tr>
+  <tr><td><b>O</b> — abierto/cerrado</td><td>Agregar <code>repetir</code> es una línea de datos en <code>PALABRAS_RESERVADAS</code>; ningún algoritmo cambia.</td></tr>
+  <tr><td><b>L</b> — sustitución de Liskov</td><td>Cualquier función hash sirve: <code>TablaSimbolos(funcion_hash=lambda s: 0)</code> sigue funcionando.</td></tr>
+  <tr><td><b>I</b> — interfaces pequeñas</td><td>Los paneles reciben solo lo que dibujan: <code>agregar_token(numero, token)</code>, <code>agregar_error(diagnostico)</code>.</td></tr>
+  <tr><td><b>D</b> — inversión de dependencias</td><td><code>Lexer(fuente, manejador)</code> recibe su manejador de errores; <code>TablaSimbolos</code> recibe su función hash.</td></tr>
+</table>
+<div class="frase">«Usamos una arquitectura en capas inspirada en Clean Architecture: presentación, aplicación, dominio y configuración. Las dependencias van solo hacia adentro, así que el analizador léxico no depende de la interfaz y se prueba de forma independiente. Las reglas del lenguaje están centralizadas como datos en <code>config/reglas.py</code>, y los autómatas son tablas de transición que ejecuta un motor genérico.»</div>
+
+<!-- ============================ 5. ARCHIVOS ============================ -->
+<h1>5. Qué hace cada archivo del código</h1>
+<pre>main.py ──► ui/ (ventana)
+              │ pide el análisis
+              ▼
+        application/   archivos.py (leer el archivo) + analisis_service.py (coordinar)
+              │
+              ▼
+           core/       lexer.py ─usa─► afd.py   (reconocer tokens)
+                       simbolos.py              (tabla hash)
+                       errores.py               (catálogo y manejador de errores)
+                       validador.py             (inicio/fin y paréntesis)
+                       modelos.py               (Token, Diagnostico, EntradaSimbolo)
+              │
+              ▼
+          config/reglas.py   ← todas las reglas de FlowLang, solo datos</pre>
+<table>
+  <tr><th>Archivo</th><th>Qué hace</th></tr>
+  <tr><td><code>config/reglas.py</code></td><td>Solo datos: palabras reservadas, operadores, delimitadores, escapes, longitud máxima (32), parámetros de la tabla hash (17, 0,75, 31) y las 4 tablas de los autómatas.</td></tr>
+  <tr><td><code>core/modelos.py</code></td><td>Los «moldes»: <code>TipoToken</code> (12 categorías), <code>Token</code>, <code>Diagnostico</code>, <code>EntradaSimbolo</code>.</td></tr>
+  <tr><td><code>core/afd.py</code></td><td>Motor genérico de autómatas: <code>clase_caracter</code>, <code>siguiente_estado</code> (δ), <code>reconocer</code> (prefijo más largo), <code>acepta</code>.</td></tr>
+  <tr><td><code>core/lexer.py</code></td><td><code>reconocer_lexema</code>: ejecuta los 4 AFD y la tabla de operadores, gana el más largo, distingue reservadas. <code>Lexer.tokens()</code>: recorre el archivo, cuenta línea y columna, reporta errores y sigue (modo pánico). Es un generador.</td></tr>
+  <tr><td><code>core/errores.py</code></td><td><code>CATALOGO</code> con los 19 errores (único lugar con los textos); <code>crear_diagnostico</code>; <code>ManejadorErrores</code> que los acumula y resume.</td></tr>
+  <tr><td><code>core/validador.py</code></td><td>Comprobaciones estructurales: <code>inicio</code>/<code>fin</code> y balance de paréntesis y llaves con una pila.</td></tr>
+  <tr><td><code>core/simbolos.py</code></td><td><code>hash_polinomial</code>, la clase <code>TablaSimbolos</code> (lista de listas, encadenamiento, redimensionado) y <code>registrar_token</code> (qué entra y qué datos se anotan).</td></tr>
+  <tr><td><code>application/archivos.py</code></td><td>Lee el archivo validando existencia, extensión, tamaño, codificación y vacío (errores ARC); guarda y crea archivos nuevos.</td></tr>
+  <tr><td><code>application/analisis_service.py</code></td><td><code>SesionAnalisis</code>: análisis por pasos (un token por llamada a <code>siguiente_paso()</code>); <code>ResultadoAnalisis</code>; <code>explicar_token</code> para el Modo educativo.</td></tr>
+  <tr><td><code>ui/</code></td><td>La ventana estilo PyCharm: <code>estilos.py</code> (colores), <code>iconos.py</code>, <code>editor.py</code>, <code>componentes.py</code>, <code>paneles.py</code>, <code>interfaz.py</code>. No sabe analizar: pide pasos a <code>application/</code> y los dibuja.</td></tr>
+  <tr><td><code>main.py</code></td><td>Abre la ventana; con <code>--consola archivo.flow</code> imprime el resultado en texto.</td></tr>
+  <tr><td><code>tests/</code></td><td>Pruebas automáticas (unittest): equivalencia AFD–regex, colisiones forzadas, errores, archivos, integración y la interfaz.</td></tr>
+</table>
+
+<!-- ============================ 6. AFD ============================ -->
+<h1>6. Autómatas finitos (AFD)</h1>
+<p><b>AFD</b> = Autómata Finito Determinista: una máquina con estados (q0, q1, q2…) que lee el texto carácter por carácter y salta de un estado a otro según lo que lee. Si termina en un estado final, la palabra es válida.</p>
+<p><code>core/afd.py</code> es <b>un solo motor que sirve para cualquier autómata</b>: recibe la tabla (de <code>config/reglas.py</code>) y la ejecuta. Como un reproductor de música que no sabe qué canción es; solo reproduce el archivo que le das.</p>
+
+<h2>La tabla del AFD de números</h2>
+<pre>AFD_NUMERO = {
+    <span class="s">"inicial"</span>: <span class="s">"q0"</span>,
+    <span class="s">"transiciones"</span>: {
+        <span class="s">"q0"</span>: {DIGITO: <span class="s">"q1"</span>, <span class="s">"."</span>: <span class="s">"q6"</span>},
+        <span class="s">"q1"</span>: {DIGITO: <span class="s">"q1"</span>, <span class="s">"."</span>: <span class="s">"q2"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
+        <span class="s">"q2"</span>: {DIGITO: <span class="s">"q3"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
+        <span class="s">"q3"</span>: {DIGITO: <span class="s">"q3"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
+        <span class="s">"q4"</span>: {DIGITO: <span class="s">"q4"</span>, <span class="s">"."</span>: <span class="s">"q4"</span>, LETRA: <span class="s">"q4"</span>, <span class="s">"_"</span>: <span class="s">"q4"</span>},
+        <span class="s">"q5"</span>: {DIGITO: <span class="s">"q5"</span>, <span class="s">"."</span>: <span class="s">"q5"</span>, LETRA: <span class="s">"q5"</span>, <span class="s">"_"</span>: <span class="s">"q5"</span>},
+        <span class="s">"q6"</span>: {DIGITO: <span class="s">"q4"</span>},
+    },
+    <span class="s">"aceptacion"</span>: {<span class="s">"q1"</span>: ENTERO, <span class="s">"q3"</span>: DECIMAL},           <span class="c"># estados finales buenos</span>
+    <span class="s">"errores"</span>:    {<span class="s">"q2"</span>: <span class="s">"LEX-003"</span>, <span class="s">"q4"</span>: <span class="s">"LEX-003"</span>, <span class="s">"q5"</span>: <span class="s">"LEX-004"</span>},  <span class="c"># finales de error</span>
+}</pre>
+<p>Se lee como un diagrama de estados: desde q0, con un dígito se pasa a q1 (entero). Con punto se va a q2, y con otro dígito a q3 (decimal).</p>
+
+<h2>Las cuatro piezas del motor</h2>
+<table>
+  <tr><th>Pieza</th><th>Qué hace</th></tr>
+  <tr><td><code>clase_caracter(c)</code></td><td>Agrupa caracteres: letra → <code>LETRA</code>, dígito → <code>DIGITO</code>, salto → <code>SALTO</code>. Así la tabla no necesita 52 columnas para las letras; es como escribir «dígito» en la flecha del diagrama.</td></tr>
+  <tr><td><code>ResultadoAFD</code></td><td>Lo que devuelve: <code>longitud</code> reconocida, <code>tipo</code> (si fue aceptación), <code>codigo_error</code> (si fue error) y <code>recorrido</code> (estados visitados, que muestra el Modo educativo).</td></tr>
+  <tr><td><code>siguiente_estado(q, c)</code></td><td>La función de transición δ(q, a). Busca: 1) el carácter exacto, 2) su clase, 3) el comodín <code>OTRO</code>. Si no hay, devuelve <code>None</code> y el autómata se detiene.</td></tr>
+  <tr><td><code>reconocer(texto, inicio)</code></td><td>Avanza carácter por carácter y <b>recuerda el último estado final</b> por el que pasó: devuelve el prefijo más largo reconocido.</td></tr>
+</table>
+
+<h2>Recorrido de <code>45.5;</code></h2>
+<table>
+  <tr><th>Lee</th><th>Transición</th><th>¿Estado final?</th><th>Lo que recuerda</th></tr>
+  <tr><td>—</td><td>empieza en q0</td><td>no</td><td>nada</td></tr>
+  <tr><td><code>4</code></td><td>q0 → q1</td><td>sí, ENTERO</td><td>«<code>4</code> es entero»</td></tr>
+  <tr><td><code>5</code></td><td>q1 → q1</td><td>sí, ENTERO</td><td>«<code>45</code> es entero»</td></tr>
+  <tr><td><code>.</code></td><td>q1 → q2</td><td>sí, de error (LEX-003)</td><td>«<code>45.</code> mal formado»</td></tr>
+  <tr><td><code>5</code></td><td>q2 → q3</td><td>sí, DECIMAL</td><td>«<code>45.5</code> es decimal» ✓</td></tr>
+  <tr><td><code>;</code></td><td>q3 → ninguna</td><td>—</td><td><b>se detiene</b></td></tr>
+</table>
+<p>Resultado: <b><code>45.5</code>, DECIMAL, longitud 4</b>. El <code>;</code> queda para el siguiente token. Si el texto fuera <code>45.;</code>, se habría detenido en q2: error LEX-003.</p>
+
+<h2>Estados de error: lo distinto de este proyecto</h2>
+<p>En la teoría clásica un AFD solo dice sí o no. Aquí se agregaron <b>estados finales de error</b>: el autómata no solo rechaza, dice <b>qué error es</b>, y consume el lexema erróneo entero (un solo mensaje claro).</p>
+<ul>
+  <li><code>3.4.5</code> → q0, q1, q2, q3, q4 → <b>LEX-003</b>, número mal formado.</li>
+  <li><code>12abc</code> → q0, q1, q5 → <b>LEX-004</b>, identificador que empieza con dígito.</li>
+</ul>
+
+<h2>Cómo usa el lexer los autómatas</h2>
+<ol>
+  <li><b>Coincidencia más larga (maximal munch):</b> en cada posición ejecuta los 4 AFD (comentario, cadena, número, identificador) y busca en la tabla de operadores (primero 2 caracteres, luego 1). Gana el más largo; en empate, el primero en ese orden.</li>
+  <li><b>Palabras reservadas:</b> no tienen autómata propio. Se reconocen como identificador y se consultan en <code>PALABRAS_RESERVADAS</code>.</li>
+  <li><b>Identificador de más de 32 caracteres:</b> LEX-005.</li>
+  <li><b>Nadie reconoce el carácter</b> (por ejemplo <code>@</code>): LEX-001; se reporta, se salta y se sigue.</li>
+</ol>
+<div class="nota"><b>Honestidad académica.</b> Los operadores se buscan en un diccionario, no con un AFD. La equivalencia AFD–regex está comprobada por prueba exhaustiva de cadenas de hasta 5 símbolos, no por demostración formal. Los AFD de número y cadena no son mínimos (tienen estados de error añadidos). El balance de paréntesis usa una pila porque ese lenguaje no es regular.</div>
+<div class="frase">«<code>afd.py</code> es un motor genérico de autómatas finitos deterministas dirigido por tabla. <code>siguiente_estado</code> implementa la función de transición δ y <code>reconocer</code> recorre el texto recordando el último estado final alcanzado, lo que da la coincidencia más larga. Los autómatas concretos están como datos en <code>config/reglas.py</code>, con estados finales de error para reportar qué error ocurrió.»</div>
+
+<!-- ============================ 7. HASH ============================ -->
+<h1>7. El hash y las cubetas</h1>
+<div class="frase">Una <b>función hash</b> es un algoritmo que convierte un dato (aquí, una palabra) en un número, siempre de la misma forma, para poder usarlo como posición en una tabla.</div>
+
+<h2>Las tres propiedades</h2>
+<ol>
+  <li><b>Determinista:</b> la misma palabra siempre da el mismo número. <code>fin</code> da 101387 siempre.</li>
+  <li><b>No es única ni reversible:</b> del número no se recupera la palabra, y dos palabras pueden caer en la misma cubeta (colisión).</li>
+  <li><b>Rápida:</b> recorre las letras una sola vez.</li>
+</ol>
+
+<h2>Paso 1: de palabra a número (<code>hash_polinomial</code>)</h2>
+<pre><span class="k">def</span> hash_polinomial(lexema):
+    valor = <span class="n">0</span>
+    <span class="k">for</span> caracter <span class="k">in</span> lexema:
+        valor = (valor * <span class="n">31</span> + ord(caracter)) % <span class="n">2</span>**<span class="n">32</span>
+    <span class="k">return</span> valor</pre>
+<div class="dos">
+<div><b>Ejemplo con <code>fin</code></b> (f = 102, i = 105, n = 110)
+<pre>empieza:   valor = 0
+f (102):   0 × 31 + 102     = 102
+i (105):   102 × 31 + 105   = 3 267
+n (110):   3 267 × 31 + 110 = 101 387  ← hash</pre></div>
+<div><b>Ejemplo con <code>10</code></b> ('1' = 49, '0' = 48)
+<pre>'1' (49):  0 × 31 + 49  = 49
+'0' (48):  49 × 31 + 48 = 1 567  ← hash</pre></div>
+</div>
+<p><b>¿Por qué multiplicar por 31?</b> Para que el orden de las letras importe. Si solo se sumaran los códigos, <code>roma</code> y <code>amor</code> darían lo mismo.</p>
+<table>
+  <tr><th>Lexema</th><td><code>ab</code></td><td><code>ba</code></td><td><code>roma</code></td><td><code>amor</code></td></tr>
+  <tr><th>Hash</th><td>3 105</td><td>3 135</td><td>3 506 321</td><td>2 998 031</td></tr>
+</table>
+<p>Matemáticamente es un polinomio: para <code>fin</code>, <code>102·31<sup>2</sup> + 105·31 + 110 = 101 387</code>. Por eso se llama <b>hash polinomial</b>; calcularlo multiplicando y sumando de a una letra es el <b>método de Horner</b>. 31 es primo y reparte bien los valores (es el mismo que usa Java para los <code>String</code>). El <code>% 2<sup>32</sup></code> mantiene el número acotado (≈ 4 300 millones).</p>
+
+<h2>Paso 2: de número a cubeta</h2>
+<p>Una <b>cubeta</b> (<i>bucket</i>) es cada casilla de la tabla hash, como un cajón numerado. La tabla empieza con <b>17 cubetas</b> (0 a 16).</p>
+<pre>cubeta = hash mod cantidad_de_cubetas
+
+cubeta:   0     1     2     3    ...   15                  16
+        [   ] [ x ] [   ] [ 10 ] ... [ si, temperatura ] [ fin ]</pre>
+<table>
+  <tr><th>Lexema</th><th>Hash</th><th>Cubeta con 17</th></tr>
+  <tr><td><code>x</code></td><td>120</td><td>120 mod 17 = 1</td></tr>
+  <tr><td><code>10</code></td><td>1 567</td><td>1 567 mod 17 = 3</td></tr>
+  <tr><td><code>fin</code></td><td>101 387</td><td>101 387 mod 17 = 16</td></tr>
+</table>
+<p>En el código las cubetas son una <b>lista de listas</b>: <code>self._cubetas = [[] for _ in range(17)]</code>. Para buscar se calcula el hash, se hace <code>mod 17</code> y se abre solo ese cajón: buscar e insertar cuestan <b>O(1) en promedio</b> en lugar de O(n).</p>
+
+<h2>Colisiones y encadenamiento</h2>
+<p>Con 17 cubetas, <code>si</code> (hash 3 670) y <code>temperatura</code> (hash 321 701 232) dan ambos <b>cubeta 15</b>. Es inevitable: hay infinitas palabras y pocas casillas. Solución: <b>encadenamiento separado</b>; cada cubeta es una lista y el que llega después se agrega al final.</p>
+<pre>cubeta 15:  [ si ] → [ temperatura ]</pre>
+<p>Para buscar <code>temperatura</code>: ir a la cubeta 15 y comparar uno por uno.</p>
+
+<h2>Factor de carga y crecimiento</h2>
+<p><code>factor de carga = entradas / capacidad</code>. Si pasa de <b>0,75</b>, la tabla crece al primer primo ≥ el doble (<b>17 → 37 → 79</b>) y reubica todo. El hash no cambia; la cubeta sí:</p>
+<table>
+  <tr><th>Lexema</th><th>Hash</th><th>Cubeta con 17</th><th>con 37</th><th>con 79</th></tr>
+  <tr><td><code>si</code></td><td>3 670</td><td>15</td><td>7</td><td>36</td></tr>
+  <tr><td><code>temperatura</code></td><td>321 701 232</td><td>15</td><td>33</td><td>39</td></tr>
+</table>
+<p>Al crecer dejan de colisionar. Por eso en <code>correcto.flow</code> la app muestra <b>14 colisiones al insertar</b> y <b>7 en la tabla actual</b>. Se usan capacidades primas porque el módulo de un primo reparte mejor los restos.</p>
+<div class="frase">«Usamos un hash polinomial base 31 con el método de Horner: por cada carácter, <code>valor = valor · 31 + código</code>, módulo 2<sup>32</sup>. La cubeta es <code>hash mod capacidad</code>. Las colisiones se resuelven por encadenamiento separado. Cuando el factor de carga supera 0,75, la tabla crece al siguiente primo del doble y se reubican las entradas. Buscar e insertar cuesta O(1) en promedio.»</div>
+<p><b>Comprobarlo</b> (desde <code>SmartLexStudio/</code>): <code>python3.14 -c "from core.simbolos import hash_polinomial as h; print(h('fin'), h('fin') % 17)"</code> → <code>101387 16</code></p>
+
+<!-- ============================ 8. TABLA ============================ -->
+<h1>8. La tabla de símbolos</h1>
+<p>Guarda <b>una fila por cada lexema distinto</b> del programa, con la información que necesitarían las siguientes fases de un compilador. <b>El hash no es el token</b>: el token es el lexema clasificado con su posición; el hash es el número que indica en qué cubeta se guarda.</p>
+<h2>Ejemplo real</h2>
+<pre><span class="k">inicio</span>
+<span class="k">numero</span> x = <span class="n">10</span>;
+x = x + <span class="n">5</span>;
+<span class="k">mostrar</span> <span class="s">"hola"</span>;
+<span class="k">fin</span></pre>
+<table>
+  <tr><th>Cubeta</th><th>Hash</th><th>Lexema</th><th>Categoría</th><th>Tipo</th><th>Apariciones</th></tr>
+  <tr><td>1</td><td>120</td><td><code>x</code></td><td>Identificador</td><td>numero</td><td><b>3</b></td></tr>
+  <tr><td>2</td><td>53</td><td><code>5</code></td><td>Entero</td><td>numero</td><td>1</td></tr>
+  <tr><td>3</td><td>1567</td><td><code>10</code></td><td>Entero</td><td>numero</td><td>1</td></tr>
+  <tr><td>5</td><td>1072850948</td><td><code>"hola"</code></td><td>Cadena</td><td>texto</td><td>1</td></tr>
+  <tr><td>14</td><td>1241262528</td><td><code>mostrar</code></td><td>Palabra reservada</td><td>—</td><td>1</td></tr>
+  <tr><td><b>15</b></td><td>3110874725</td><td><code>inicio</code></td><td>Palabra reservada</td><td>—</td><td>1</td></tr>
+  <tr><td><b>15</b></td><td>3260606492</td><td><code>numero</code></td><td>Palabra reservada</td><td>—</td><td>1</td></tr>
+  <tr><td>16</td><td>101387</td><td><code>fin</code></td><td>Palabra reservada</td><td>—</td><td>1</td></tr>
+</table>
+<ul>
+  <li><code>x</code> aparece 3 veces (3 tokens) pero tiene <b>una sola fila</b> con 3 apariciones.</li>
+  <li><code>inicio</code> y <code>numero</code> comparten la cubeta 15: <b>colisión</b>.</li>
+  <li>No están <code>=</code>, <code>+</code> ni <code>;</code>: operadores y delimitadores no van a la tabla.</li>
+</ul>
+<h2>Qué guarda cada fila (<code>EntradaSimbolo</code>)</h2>
+<table>
+  <tr><th>Campo</th><th>Qué es</th><th>Ejemplo con <code>x</code></th></tr>
+  <tr><td>lexema</td><td>El texto</td><td><code>x</code></td></tr>
+  <tr><td>categoría</td><td>Qué tipo de token es</td><td>Identificador</td></tr>
+  <tr><td>valor_hash</td><td>El número calculado con sus letras</td><td>120</td></tr>
+  <tr><td>tipo_dato</td><td>Tipo de la variable o del literal</td><td><code>numero</code> (se declaró <code>numero x</code>)</td></tr>
+  <tr><td>valor</td><td>Valor real, solo en literales</td><td>para <code>10</code> es el número 10</td></tr>
+  <tr><td>linea_declaracion</td><td>Línea donde se declaró</td><td>2</td></tr>
+  <tr><td>apariciones</td><td>Todas sus posiciones</td><td>(2,8), (3,1), (3,5)</td></tr>
+</table>
+<p>La cubeta no se guarda: se calcula como <code>hash mod capacidad</code> (por eso cambia al crecer la tabla).</p>
+<h2>Qué entra y qué no (<code>CATEGORIAS_EN_TABLA</code>)</h2>
+<div class="dos">
+<div><table><tr><th>Entra</th></tr><tr><td>Palabras reservadas</td></tr><tr><td>Identificadores</td></tr><tr><td>Enteros y decimales</td></tr><tr><td>Cadenas</td></tr></table></div>
+<div><table><tr><th>No entra</th></tr><tr><td>Operadores y asignación</td></tr><tr><td>Delimitadores</td></tr><tr><td>Comentarios</td></tr><tr><td>Tokens con error</td></tr></table></div>
+</div>
+<h2>Cómo se llena (<code>registrar_token</code>)</h2>
+<ol>
+  <li>¿Su categoría va a la tabla? Si no, se ignora.</li>
+  <li>Busca el lexema con su hash; si ya existe, solo agrega la posición a <code>apariciones</code>.</li>
+  <li>Si es nuevo, crea la fila en su cubeta; si la cubeta ya tenía algo, cuenta una colisión.</li>
+  <li>Rellena el valor (literales) y el tipo (<code>10</code> → numero, <code>"hola"</code> → texto).</li>
+  <li>Si es identificador precedido por un tipo (<code>numero x</code>), anota tipo y línea de declaración.</li>
+  <li>Si el factor de carga supera 0,75, la tabla crece y reubica todo.</li>
+</ol>
+
+<!-- ============================ 9. ERRORES ============================ -->
+<h1>9. El manejador de errores</h1>
+<ul>
+  <li><b>Detección léxica:</b> el AFD termina en un estado de error, o ningún reconocedor acepta el carácter (LEX-001). El lexer llama a <code>ManejadorErrores.reportar(codigo, linea, columna, lexema)</code>.</li>
+  <li><b>Modo pánico:</b> se descarta el lexema inválido, se emite un token ERROR y <b>el análisis continúa</b>. Por eso <code>incorrecto.flow</code> muestra sus 15 errores en una sola pasada.</li>
+  <li><b>Catálogo único:</b> <code>CATALOGO</code> en <code>core/errores.py</code>; cada error con tipo, título, mensaje y sugerencia.</li>
+  <li><b>Durante la evaluación</b> (requisito 5): cada paso trae los errores de ese token y la ventana los pinta al instante (Problemas, consola, subrayado rojo y ✗ en el margen). <b>Al final</b> se ofrece «¿Desea ver la tabla de símbolos?».</li>
+</ul>
+<table>
+  <tr><th>Código</th><th>Error</th><th>Ejemplo</th></tr>
+  <tr><td>LEX-001</td><td>Carácter no reconocido</td><td><code>@</code>, <code>#</code>, <code>ñ</code></td></tr>
+  <tr><td>LEX-002</td><td>Cadena sin cerrar</td><td><code>"Hola</code></td></tr>
+  <tr><td>LEX-003</td><td>Número mal formado</td><td><code>3.</code>, <code>3.4.5</code>, <code>.5</code></td></tr>
+  <tr><td>LEX-004</td><td>Identificador que empieza con dígito</td><td><code>2pi</code>, <code>12abc</code></td></tr>
+  <tr><td>LEX-005</td><td>Identificador de más de 32 caracteres</td><td></td></tr>
+  <tr><td>LEX-006</td><td>Escape inválido en cadena</td><td><code>"C:\gatos"</code></td></tr>
+  <tr><td>LEX-007</td><td>Comentario de bloque sin cerrar</td><td><code>/* ...</code></td></tr>
+  <tr><td>SIN-001</td><td>Programa vacío</td><td></td></tr>
+  <tr><td>SIN-002</td><td>Falta <code>inicio</code></td><td></td></tr>
+  <tr><td>SIN-003</td><td>Falta <code>fin</code></td><td></td></tr>
+  <tr><td>SIN-004</td><td>Cierre sin apertura</td><td><code>)</code> de más</td></tr>
+  <tr><td>SIN-005</td><td>Apertura sin cierre</td><td><code>(</code> sin cerrar</td></tr>
+  <tr><td>SIN-006</td><td>Cierre que no corresponde</td><td><code>( }</code></td></tr>
+  <tr><td>ARC-001 … ARC-006</td><td>Archivo: inexistente, extensión no permitida, vacío, codificación, error de lectura, tamaño &gt; 1 MB</td><td></td></tr>
+</table>
+<h2>¿Por qué una pila para los paréntesis?</h2>
+<p>El lenguaje de los paréntesis balanceados <b>no es regular</b>: un autómata finito no tiene memoria para contar cuántos se abrieron. Hace falta un autómata de pila (lenguajes libres de contexto). <code>_validar_balance</code>: con <code>(</code> o <code>{</code> apila; con <code>)</code> o <code>}</code> desapila y compara; lo que queda en la pila al final son aperturas sin cerrar.</p>
+
+<!-- ============================ 10. EJEMPLO + CAPTURAS ============================ -->
+<h1>10. Ejemplo completo y capturas</h1>
+<h2>Qué pasa con <code>si x &gt;= 3.4.5 @</code></h2>
+<table>
+  <tr><th>Posición</th><th>Qué hace el lexer</th><th>Resultado</th></tr>
+  <tr><td><code>si</code></td><td>AFD de identificadores + está en <code>PALABRAS_RESERVADAS</code></td><td>Palabra reservada → tabla</td></tr>
+  <tr><td><code>x</code></td><td>AFD de identificadores</td><td>Identificador → tabla</td></tr>
+  <tr><td><code>&gt;=</code></td><td>Operadores, probando 2 caracteres primero</td><td>Operador relacional (gana a <code>&gt;</code>)</td></tr>
+  <tr><td><code>3.4.5</code></td><td>AFD de números: q0→q1→q2→q3→q4 (error)</td><td><b>LEX-003</b> y sigue</td></tr>
+  <tr><td><code>@</code></td><td>Ningún reconocedor lo acepta</td><td><b>LEX-001</b> y sigue</td></tr>
+  <tr><td>final</td><td>Validador: no empieza con <code>inicio</code> ni termina con <code>fin</code></td><td><b>SIN-002</b> y <b>SIN-003</b></td></tr>
+</table>
+<p>Veredicto: <b>cadena inválida (4 errores: 2 léxicos, 2 estructurales)</b>.</p>
+
+<h2>Capturas de la aplicación</h2>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/1_correcto_tokens.png">
+<div class="pie">correcto.flow analizado: 111 tokens, cadena válida. Proyecto a la izquierda, Tokens a la derecha, consola abajo.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/5_incorrecto_errores.png">
+<div class="pie">incorrecto.flow: 15 errores en Problemas, ✗ en el margen, subrayado rojo e indicador ✗ 15 ⌃ ⌄.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/2_tabla_simbolos.png">
+<div class="pie">Tabla de símbolos: cubeta, hash, lexema, categoría, tipo, valor, declaración y apariciones; filas resaltadas = colisiones.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/4_modo_educativo.png">
+<div class="pie">Modo educativo del decimal 45.5: regla, recorrido del AFD, hash, cubeta y tabla de transiciones.</div>
+<img class="cap" src="file:///Volumes/Ojito/proyecto%20de%20lenguajes/SmartLexStudio/docs/capturas/3_estadisticas.png">
+<div class="pie">Estadísticas: veredicto léxico y estructural y tokens por categoría.</div>
+
+<h2>Atajos de teclado</h2>
+<table>
+  <tr><th>Tecla</th><th>Acción</th><th>Tecla</th><th>Acción</th></tr>
+  <tr><td>⌘N / Ctrl+N</td><td>Nuevo archivo</td><td>F5</td><td>Analizar</td></tr>
+  <tr><td>⌘O / Ctrl+O</td><td>Abrir</td><td>F10</td><td>Paso a paso</td></tr>
+  <tr><td>⌘S / Ctrl+S</td><td>Guardar</td><td>Esc</td><td>Detener</td></tr>
+  <tr><td>F2 / Shift+F2</td><td>Error siguiente / anterior</td><td>F1</td><td>Ayuda</td></tr>
+</table>
+
+<!-- ============================ 11. PREGUNTAS ============================ -->
+<h1>11. Preguntas probables del profesor</h1>
+<h2>Autómatas y analizador léxico (Persona B)</h2>
+<table>
+  <tr><th style="width:38%">Pregunta</th><th>Respuesta</th></tr>
+  <tr><td>¿Por qué es <b>determinista</b>?</td><td>Para cada estado y símbolo hay como máximo una transición: cada fila de la tabla es un diccionario.</td></tr>
+  <tr><td>¿Usaron expresiones regulares?</td><td>No para reconocer. Las regex son la especificación; una prueba compara cada AFD con su regex en todas las cadenas de hasta 5 símbolos. No es demostración formal, es prueba exhaustiva acotada.</td></tr>
+  <tr><td>¿Los AFD son mínimos?</td><td>No: tienen estados de error añadidos a propósito. La especificación muestra también la versión mínima.</td></tr>
+  <tr><td>¿Los operadores tienen autómata?</td><td>No: se buscan en un diccionario probando primero los de 2 caracteres. No lo presentamos como AFD.</td></tr>
+  <tr><td>¿Qué pasa si dos autómatas reconocen el mismo largo?</td><td>Gana el primero en el orden de <code>AUTOMATAS</code>: comentario, cadena, número, identificador.</td></tr>
+  <tr><td>¿Por qué los paréntesis no se validan con un AFD?</td><td>Ese lenguaje no es regular; un AFD no puede contar. Se usa una pila, y es una comprobación estructural, no léxica.</td></tr>
+  <tr><td>¿Diferencia entre léxico, sintáctico y semántico?</td><td>Léxico: agrupa caracteres en tokens. Sintáctico: orden de los tokens. Semántico: significado (tipos). <code>numero x = "hola";</code> es léxicamente válido.</td></tr>
+  <tr><td>¿Complejidad del lexer?</td><td>Lineal en la práctica: cada carácter se lee un número acotado de veces (4 autómatas por posición).</td></tr>
+  <tr><td>¿Qué pasa con <code>@</code>?</td><td>LEX-001: se reporta, se salta y el análisis continúa (modo pánico).</td></tr>
+  <tr><td>¿Cómo se reconoce una palabra reservada?</td><td>Con el AFD de identificadores y luego consultando <code>PALABRAS_RESERVADAS</code>. Por eso <code>si2</code> es identificador.</td></tr>
+</table>
+<h2>Tabla de símbolos y hash (Persona C)</h2>
+<table>
+  <tr><th style="width:38%">Pregunta</th><th>Respuesta</th></tr>
+  <tr><td>¿Qué es una función hash?</td><td>Un algoritmo que convierte el lexema en un número de forma determinista, para usarlo como posición en la tabla.</td></tr>
+  <tr><td>¿El hash es el token?</td><td>No. El token es el lexema clasificado con su posición; el hash es el número que indica la cubeta.</td></tr>
+  <tr><td>¿Qué es una colisión y cómo se resuelve?</td><td>Dos lexemas en la misma cubeta; encadenamiento separado (cada cubeta es una lista).</td></tr>
+  <tr><td>¿Por qué base 31 y capacidades primas?</td><td>31 hace que el orden de las letras importe y reparte bien; el módulo de un primo distribuye mejor los restos.</td></tr>
+  <tr><td>¿Complejidad?</td><td>O(1) promedio en buscar e insertar; O(n) en el peor caso (todo en una cubeta).</td></tr>
+  <tr><td>¿Por qué no usar <code>dict</code>?</td><td>Para que el hashing sea visible y explicable; la tabla propia muestra hash, cubeta y colisiones.</td></tr>
+  <tr><td>¿Por qué 14 y 7 colisiones?</td><td>14 al insertar; al crecer la tabla (17 → 37 → 79) se reparten de nuevo y quedan 7.</td></tr>
+</table>
+<h2>Errores, arquitectura y SOLID (Personas A y D)</h2>
+<table>
+  <tr><th style="width:38%">Pregunta</th><th>Respuesta</th></tr>
+  <tr><td>¿Qué es el modo pánico?</td><td>Ante un error se descarta el lexema inválido y el análisis continúa, para reportar todos los errores en una pasada.</td></tr>
+  <tr><td>¿Cómo cumplen el requisito 5?</td><td>El análisis avanza un token por paso; los errores se muestran en ese mismo paso, y al final se ofrece la tabla de símbolos.</td></tr>
+  <tr><td>¿Qué arquitectura usaron?</td><td>Capas inspiradas en Clean Architecture: presentación, aplicación, dominio y configuración; dependencias solo hacia adentro.</td></tr>
+  <tr><td>¿Cómo agregarían <code>repetir</code>?</td><td>Una línea en <code>PALABRAS_RESERVADAS</code> (<code>config/reglas.py</code>). Falla a propósito una prueba (<code>test_conteos_de_flowlang_1_0</code>) que fija 17 palabras.</td></tr>
+  <tr><td>¿Qué va a la tabla de símbolos?</td><td>Reservadas, identificadores y literales. Si se quisieran todos los tokens, se agregan categorías a <code>CATEGORIAS_EN_TABLA</code>, sin cambiar algoritmos.</td></tr>
+</table>
+
+<!-- ============================ 12. CHECKLIST ============================ -->
+<h1>12. Lista de control antes de presentar</h1>
+<ul class="check">
+  <li>Deshacer cualquier cambio de práctica en <code>config/reglas.py</code>: <code>git checkout -- SmartLexStudio/config/reglas.py</code>.</li>
+  <li>Confirmar con el profesor qué categorías deben ir en la tabla de símbolos.</li>
+  <li>Confirmar si «cadenas de entrada» significa un programa por archivo o una cadena por línea.</li>
+  <li>Probar la aplicación en la computadora de la sustentación (si tiene Tk 8.6, revisar el resaltado).</li>
+  <li>Ensayar los cuatro juntos, con la app abierta y en orden.</li>
+  <li>Cada expositor lee su parte de <code>docs/05_guia_sustentacion.md</code>.</li>
+  <li>Tener a mano el modo consola por si falla la ventana: <code>python main.py --consola ejemplos/incorrecto.flow</code>.</li>
+</ul>
+<h2>Cómo ejecutar</h2>
+<pre>cd SmartLexStudio
+python3 main.py                                   <span class="c"># interfaz gráfica</span>
+python3 main.py --consola ejemplos/correcto.flow  <span class="c"># modo texto</span>
+python3 -m unittest discover -s tests -t .        <span class="c"># pruebas automáticas</span></pre>
+<p>Requisitos: Python 3.10 o superior con Tk. En la Mac del equipo: <code>/opt/homebrew/bin/python3.14</code>.</p>
+
+</body>
+</html>

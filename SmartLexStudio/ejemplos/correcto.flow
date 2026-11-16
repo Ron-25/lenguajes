@@ -1,29 +1,54 @@
-// Riego automatico de un invernadero (programa FlowLang valido)
-inicio
-    /* Declaraciones:
-       cada variable tiene un tipo */
-    numero temperatura = 28;
-    decimal humedad = 45.5;
-    texto zona = "Invernadero \"Norte\"";
-    booleano activo = verdadero;
-    dispositivo bomba;
-    numero ciclos = 0;
+// Riego automatico de un invernadero (programa FlowLang 2.0 valido)
+Algoritmo riego_invernadero
+    /* Declaraciones: un Definir admite
+       varios nombres separados por comas */
+    Definir temperatura, humedad Como Real;
+    Definir ciclos, zona Como Entero;
+    Definir nombre Como Cadena;
+    Definir activo Como Logico;
+    Definir bomba, ventilador Como Dispositivo;
 
-    leer temperatura;
-    si (temperatura >= 30 && humedad < 50.0) {
-        activar bomba;
-        esperar 10;
-        mostrar "Regando: " + zona;
-    } sino {
-        desactivar bomba;
-    }
+    nombre <- "Invernadero \"Norte\"";
+    activo <- Verdadero;
+    ciclos <- 0;
+    Escribir "Zona (1 a 3): ";
+    Leer zona;
+    Leer temperatura, humedad;
 
-    mientras (activo == verdadero && ciclos < 3) {
-        ciclos = ciclos + 1;
-        humedad = humedad * 1.05 - 2 % 3;
-        si (!activo || ciclos != 3) {
-            mostrar "Ciclo\t" + zona;
-        }
-    }
-    mostrar "Fin del riego\n";
-fin
+    Si temperatura >= 30C Y humedad < 40% Entonces
+        Activar bomba;
+        Esperar 10s;
+        Escribir "Regando: ", nombre;
+    SiNo
+        Desactivar bomba;
+    FinSi
+
+    Mientras activo = Verdadero Y ciclos < 3 Hacer
+        ciclos <- ciclos + 1;
+        humedad <- humedad * 1.05 - 2 ^ 2 / 4;
+        Si NO activo O ciclos MOD 2 <> 0 Entonces
+            Escribir "Ciclo\t", ciclos;
+        FinSi
+    FinMientras
+
+    Para i <- 1 Hasta 10 Con Paso 2 Hacer
+        Activar ventilador;
+        Esperar 500ms;
+        Desactivar ventilador;
+    FinPara
+
+    Repetir
+        Leer temperatura;
+        Esperar 1.5m;
+    Hasta Que temperatura <= 22.5C
+
+    Segun zona Hacer
+        Caso 1:
+            Esperar 5m;
+        Caso 2, 3:
+            Esperar 1h;
+        De Otro Modo:
+            Escribir "Zona desconocida\n";
+    FinSegun
+    escribir "Fin del riego";   // las palabras reservadas no distinguen mayusculas
+FinAlgoritmo
