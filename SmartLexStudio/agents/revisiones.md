@@ -8,6 +8,7 @@ Aquí se registran las auditorías de cada fase (reviewer-opus), las discrepanci
 |---|---|---|---|---|---|---|
 | 1 | 2026-11-15 | Fase A (A1–A10) | reviewer-opus | claude-opus-5-5 | Aprobado con observaciones | 6 escalados (E-1…E-6) |
 | 2 | 2026-11-15 | Aprobación formal de la Fase A | architect-fable | claude-fable-5-2 | **Aprobada; Fase B autorizada** | Ninguno bloqueante. E-1…E-6 resueltos en D-30…D-35; D-26…D-28 ratificadas en D-29; pendientes de implementar en B0 (E-2, E-4), B2/B6 (E-5), B4 (E-1) y B8 (E-6). E-3 queda como limitación documentada |
+| 3 | 2026-11-15 | Fase B (B0–B7) y proyecto completo (paso 9) | reviewer-opus | claude-opus-5-5 | Aprobado con observaciones | 2 escalados menores (E-7, E-8); B8 pendiente |
 
 ---
 
@@ -100,3 +101,43 @@ Decisiones revisadas: D-26 aprobada, D-27 aprobada, D-28 aprobada (motivos en `d
 
 #### Requisitos del PDF afectados
 Requisito 4 (manejador de errores): AUD-02, AUD-05, AUD-06. Requisito 5 (interfaz durante la evaluación): AUD-01, AUD-07. Requisito 3 (tabla de símbolos): AUD-08. Ninguno queda incumplido.
+
+---
+
+### Revisión 3 — Fase B (B0–B7) y auditoría final del proyecto
+
+- **Fecha:** 2026-11-15 · **Revisor:** reviewer-opus (claude-opus-5-5) · **Base:** `dc4e725` · **Detalle:** `docs/06_auditoria.md`, «Auditoría final»
+- **Veredicto:** APROBADO CON OBSERVACIONES · Requisitos 1–6 del PDF: **cumplen** (evidencia en la auditoría §6 y en `docs/matriz_requisitos.md`)
+
+#### Verificación del contrato
+
+| Comprobación | Resultado | Evidencia |
+|---|---|---|
+| `ui/` no importa lexer/validador/simbolos/afd | OK | `grep` vacío |
+| `core/`, `application/`, `config/` sin tkinter | OK | `grep` vacío |
+| Colores solo en `ui/estilos.py` | OK | `grep` vacío |
+| Nombres de B1–B7 | OK | Clases y métodos presentes; se añadió `EditorCodigo.descartar_cambio_pendiente()` |
+| Prueba de humo B6 | OK | 12 pruebas en verde |
+| Extensibilidad (`repetir`) | OK | Solo falla `test_conteos_de_flowlang_1_0` (D-32) |
+| Batería | OK | `Ran 115 tests in 20.678s` · `OK` (python3.14); 3.11/3.12 `OK (skipped=17)` |
+
+#### Hallazgos
+
+| ID | Severidad | Archivo | Descripción | Acción | Estado |
+|---|---|---|---|---|---|
+| AUD-15 | Sugerencia | `ui/interfaz.py` | (O-1) seleccionar token no cambia a Modo educativo | Ninguna: B5.9 lo contrata así | No es defecto |
+| AUD-16 | Mayor (Media) | `ui/editor.py`, `ui/interfaz.py` | Aviso de cambio pendiente invalidaba un análisis recién terminado | `descartar_cambio_pendiente()` | Corregido; `test_aud16_…` |
+| AUD-17 | Mayor (Alta) | `ui/paneles.py`, `ui/componentes.py`, `ui/editor.py` | `see` por token, cuadrático: 79 s y *ticks* de ~1 s con 5 000 líneas | Un desplazamiento por ciclo (`after_idle`): 5,7 s, *tick* ≤ 0,1 s | Corregido; `test_aud17_…` |
+| AUD-18 | Menor (Baja) | `ui/estilos.py` | (O-4) ancho mínimo de 11 caracteres de `clam` en los botones | `width=0` | Corregido; `test_aud18_…` |
+| AUD-19 | Menor (Baja) | `ui/editor.py` | (O-5) cursor al final tras cargar; vista final en el último token | Cursor a 1.0; vista vuelve al cursor al terminar | Corregido; `test_aud19_…` |
+| AUD-20 | Menor (Baja) | `ui/paneles.py` | (O-3) «Cubeta» y mensajes de error truncados | 72 px + detalle completo del error seleccionado | Corregido; `test_aud20_…` |
+| AUD-21 | Menor (Baja) | `main.py` | EOF/Ctrl+C en `--consola` → traza | `_preguntar()` | Corregido; `test_aud21_…` |
+| AUD-22 | Sugerencia | `ui/interfaz.py` | Import sin uso (`TEMA`) | Quitar | Corregido |
+| AUD-23 | Sugerencia | `ui/componentes.py` | (O-2) primera línea de consola cortada | Ninguna (desplazamiento por píxeles de Tk) | Observación |
+| AUD-24 | Menor (Baja) | `ui/interfaz.py` | Errores `ARC-*` de aperturas fallidas se acumulan en Errores | Limpiar filas `ARC-*` previas | Escalado (E-7) |
+| AUD-25 | Sugerencia | `ui/paneles.py` | Modo educativo parsea `detalle` textual | Campos en `ExplicacionToken` si se relaja D-29 | Escalado (E-8) |
+| AUD-26 | Sugerencia | `ui/interfaz.py` | Re-resaltado completo por edición (0,5 s / 5 000 líneas) | Ninguna | Limitación |
+| AUD-27 | Sugerencia | `ui/`, `main.py` | Texto de veredicto armado en tres sitios | Ninguna | Observación |
+
+Decisiones revisadas: D-36 aprobada, D-37 aprobada, D-38 aprobada, D-39 aprobada, D-40 superada (ya hay capturas reales en `docs/capturas/`).
+

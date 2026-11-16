@@ -120,6 +120,7 @@ class PanelConsola(ttk.Frame):
 
     def __init__(self, padre) -> None:
         super().__init__(padre, style="Panel.TFrame")
+        self._id_bajar: str | None = None
         ttk.Label(self, text="CONSOLA DE EVALUACIÓN", style="Titulo.TLabel", padding=(14, 8, 0, 2)).pack(anchor="w")
         marco = ttk.Frame(self, style="Panel.TFrame")
         marco.pack(fill="both", expand=True)
@@ -142,6 +143,12 @@ class PanelConsola(ttk.Frame):
         if exceso > 0:
             self.texto.delete("1.0", f"{exceso + 1}.0")
         self.texto.configure(state="disabled")
+        if self._id_bajar is None:
+            self._id_bajar = self.after_idle(self._bajar_al_final)
+
+    def _bajar_al_final(self) -> None:
+        """Un solo desplazamiento por ciclo de eventos aunque se escriban cientos de lineas (AUD-17)."""
+        self._id_bajar = None
         self.texto.see("end")
 
     def limpiar(self) -> None:

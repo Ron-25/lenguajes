@@ -13,7 +13,7 @@ from ui.estilos import COLORES_TOKEN, TEMA, fuente_codigo, fuente_interfaz
 # (identificador, titulo, ancho)
 COLUMNAS_TOKENS = [("n", "#", 56), ("linea", "Lín", 50), ("col", "Col", 50),
                    ("categoria", "Categoría", 150), ("lexema", "Lexema", 220)]
-COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 60), ("hash", "Hash", 100), ("lexema", "Lexema", 150),
+COLUMNAS_SIMBOLOS = [("cubeta", "Cubeta", 72), ("hash", "Hash", 100), ("lexema", "Lexema", 150),
                      ("categoria", "Categoría", 130), ("tipo", "Tipo", 90), ("valor", "Valor", 110),
                      ("decl", "Decl.", 50), ("apariciones", "Apariciones", 220)]
 COLUMNAS_ERRORES = [("codigo", "Código", 80), ("tipo", "Tipo", 90), ("pos", "Lín:Col", 70),
@@ -22,6 +22,7 @@ COLUMNAS_ERRORES = [("codigo", "Código", 80), ("tipo", "Tipo", 90), ("pos", "L�
 _PESTANAS = (("tokens", "Tokens"), ("simbolos", "Tabla de símbolos"), ("errores", "Errores"),
              ("estadisticas", "Estadísticas"), ("educativo", "Modo educativo"))
 _MAX_TEXTO = 40
+_AYUDA_ERRORES = "Clic en un error: ver el detalle completo.  Doble clic: ir a su posición en el editor."
 
 
 def recortar(texto: object, maximo: int = _MAX_TEXTO) -> str:
@@ -66,6 +67,8 @@ class PanelResultados(ttk.Frame):
         self._al_token = al_seleccionar_token
         self._al_error = al_seleccionar_error
         self._tokens: dict[str, Token] = {}
+        self._ultimo_token: str | None = None
+        self._id_ver_token: str | None = None
         self._errores: dict[str, Diagnostico] = {}
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
@@ -97,9 +100,12 @@ class PanelResultados(ttk.Frame):
         self.arbol_simbolos.tag_configure("colision", background=TEMA["colision"])
 
     def _construir_errores(self, marco) -> None:
+        self.detalle_error = ttk.Label(marco, padding=(12, 8), wraplength=520, justify="left")
+        self.detalle_error.pack(side="bottom", fill="x")
         self.arbol_errores = _tabla(marco, COLUMNAS_ERRORES)
         self.arbol_errores.tag_configure("error", foreground=TEMA["error"])
         self.arbol_errores.bind("<Double-1>", self._doble_clic_error)
+        self.arbol_errores.bind("<<TreeviewSelect>>", self._mostrar_detalle_error)
 
     def _configurar_etiquetas_educativo(self) -> None:
         t = self.educativo
@@ -116,6 +122,13 @@ class PanelResultados(ttk.Frame):
         if seleccion and seleccion[0] in self._tokens:
             self._al_token(self._tokens[seleccion[0]])
 
+    def _mostrar_detalle_error(self, _evento=None) -> None:
+        """Texto completo del error elegido: las columnas se recortan en paneles estrechos (AUD-20)."""
+        seleccion = self.arbol_errores.selection()
+        d = self._errores.get(seleccion[0]) if seleccion else None
+        texto = f"{d.codigo} · {d.titulo}\n{d.mensaje}\n{d.sugerencia}" if d else _AYUDA_ERRORES
+        self.detalle_error.configure(text=texto)
+
     def _doble_clic_error(self, evento) -> None:
         fila = self.arbol_errores.identify_row(evento.y)
         if fila in self._errores:
@@ -127,7 +140,15 @@ class PanelResultados(ttk.Frame):
         iid = self.arbol_tokens.insert("", "end", tags=(token.tipo.name,), values=(
             numero, token.linea, token.columna, token.tipo.value, recortar(token.lexema)))
         self._tokens[iid] = token
-        self.arbol_tokens.see(iid)
+        self._ultimo_token = iid
+        if self._id_ver_token is None:
+            self._id_ver_token = self.after_idle(self._ver_ultimo_token)
+
+    def _ver_ultimo_token(self) -> None:
+        """Desplaza a la ultima fila una vez por ciclo de eventos (`see` es lineal en filas; AUD-17)."""
+        self._id_ver_token = None
+        if self._ultimo_token is not None and self.arbol_tokens.exists(self._ultimo_token):
+            self.arbol_tokens.see(self._ultimo_token)
 
     def agregar_error(self, diagnostico: Diagnostico) -> None:
         """Agrega una fila a la pestana Errores."""
@@ -229,7 +250,9 @@ class PanelResultados(ttk.Frame):
         for arbol in (self.arbol_tokens, self.arbol_simbolos, self.arbol_errores):
             arbol.delete(*arbol.get_children())
         self._tokens.clear()
+        self._ultimo_token = None
         self._errores.clear()
+        self.detalle_error.configure(text=_AYUDA_ERRORES)
         self.etiqueta_resumen.configure(text="")
         self.lienzo.delete("all")
         self.lienzo.create_text(20, 24, anchor="w", fill=TEMA["texto_tenue"], font=fuente_interfaz(12),

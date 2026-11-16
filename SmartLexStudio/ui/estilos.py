@@ -84,7 +84,7 @@ def aplicar_tema(raiz: tk.Misc) -> None:
                      font=(base[0], 9, "bold"))
     estilo.configure("Tenue.TLabel", background=TEMA["panel"], foreground=TEMA["texto_tenue"])
     estilo.configure("Estado.TLabel", background=TEMA["acento"], foreground="#ffffff", font=(base[0], 10))
-    estilo.configure("TButton", background=TEMA["barra"], foreground=TEMA["texto"], padding=(12, 6),
+    estilo.configure("TButton", background=TEMA["barra"], foreground=TEMA["texto"], padding=(12, 6), width=0,
                      borderwidth=0, relief="flat")
     estilo.map("TButton", background=[("disabled", TEMA["barra"]), ("active", TEMA["borde"])],
                foreground=[("disabled", TEMA["texto_tenue"])])

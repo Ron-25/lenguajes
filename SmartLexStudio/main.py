@@ -7,9 +7,18 @@ from application.analisis_service import analizar_archivo
 from application.archivos import ErrorArchivo
 
 
+def _preguntar(texto: str) -> str:
+    """input() que trata el fin de la entrada (Ctrl+D, tuberia cerrada) o Ctrl+C como respuesta vacia (AUD-21)."""
+    try:
+        return input(texto)
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return ""
+
+
 def _modo_consola(argumentos: list[str]) -> int:
     """Analiza un archivo e imprime tokens, diagnosticos y veredicto (sin tkinter)."""
-    ruta = argumentos[0] if argumentos else input("Archivo de entrada: ")
+    ruta = argumentos[0] if argumentos else _preguntar("Archivo de entrada: ")
     try:
         r = analizar_archivo(ruta)
     except ErrorArchivo as error:
@@ -23,7 +32,7 @@ def _modo_consola(argumentos: list[str]) -> int:
     print(f"Léxico: {'válido' if r.es_valida_lexicamente else 'inválido'} · "
           f"Estructura: {'válida' if r.es_valida_estructuralmente else 'inválida'}")
     print(f"Cadena de entrada: {'VÁLIDA' if r.es_valida else 'INVÁLIDA'} ({r.manejador.resumen()})")
-    if input("¿Desea ver la tabla de símbolos? (s/n) ").strip().lower() == "s":
+    if _preguntar("¿Desea ver la tabla de símbolos? (s/n) ").strip().lower() == "s":
         for cubeta, entradas in enumerate(r.tabla.cubetas()):
             for e in entradas:
                 print(f"cubeta {cubeta:>3}  hash {e.valor_hash:>10}  {e.lexema!r}  {e.categoria.value}  "

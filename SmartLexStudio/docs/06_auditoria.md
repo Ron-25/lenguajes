@@ -129,3 +129,113 @@ No se encontraron erratas en la especificación ni en la arquitectura que exigie
 ### 10. Veredicto
 
 **APROBADO CON OBSERVACIONES.** El núcleo cumple el contrato y la especificación: el lexer es dirigido por tablas de AFD reales, la coincidencia más larga y la recuperación en modo pánico son correctas bajo fuzzing, la tabla hash es propia y rehashea por completo, y el manejador clasifica bien los tres tipos de error. Los tres hallazgos de severidad media (rendimiento cuadrático, pérdida de datos al guardar, regla duplicada) están corregidos con prueba. Quedan seis puntos para el arquitecto (E-1 a E-6), ninguno bloqueante para empezar la Fase B.
+
+---
+
+## Auditoría final (Fase B y proyecto completo)
+
+- **Fecha:** 2026-11-15
+- **Auditor / modelo:** reviewer-opus / claude-opus-5-5
+- **Base de comparación:** commit `dc4e725` («Fase B (Sonnet): interfaz tkinter tipo IDE, main.py y prueba de humo»), 109 pruebas OK
+- **Veredicto:** **APROBADO CON OBSERVACIONES** (0 críticos; 1 alto y 1 medio, corregidos con prueba; 5 bajos y 6 sugerencias)
+
+### 1. Alcance
+
+| Incluido | Excluido |
+|---|---|
+| Todo el proyecto: `config/`, `core/`, `application/`, `ui/`, `main.py`, `tests/` | `ejemplos/*.flow` (no se modificaron) |
+| Contraste con `instrucciones .pdf` (6 requisitos), `docs/03_especificacion.md`, `docs/02_arquitectura.md`, `agents/tareas.md` (B0–B7 y criterios de la Fase B), `agents/decisiones.md` (D-36…D-40) | B8 (manual de usuario, guía de sustentación, README): pendiente del paso 11 |
+| Evidencia visual: `docs/capturas/1..5_*.png` (recapturadas tras las correcciones con `docs/capturas/capturar.py`, ajustado para mostrar el Modo educativo y el detalle de un error) | — |
+
+### 2. Metodología (todo ejecutado)
+
+1. Batería completa con `/opt/homebrew/bin/python3.14` (Tk 9.0) tras cada corrección; además con python3.11 y 3.12 (sin `_tkinter`: las 17 pruebas de UI se omiten y el resto pasa).
+2. Comandos de arquitectura: `grep -rn tkinter core application config` → vacío; `grep -rn "core.lexer\|core.validador\|core.simbolos\|core.afd" ui/` → vacío; `grep -rn "#[0-9a-fA-F]\{6\}" ui/ | grep -v estilos.py` → vacío; `grep -rn '"booleano"' core application` → vacío.
+3. Script propio de robustez (`messagebox`/`filedialog` sustituidos con `mock.patch`, ningún diálogo modal real): 28 comprobaciones de secuencias Abrir→Analizar→Paso a paso→Detener→Limpiar→Analizar, analizar/paso sin archivo, archivo inexistente / vacío / Latin-1 / extensión `.py` / carpeta, guardar con ruta nueva, doble clic real (por `bbox` de la fila) en un error, estados de los botones, edición en `TERMINADO`, `\r\n`/`\r`, reanálisis y paso a paso desde `TERMINADO`.
+4. Medición de rendimiento con 1 000, 3 000 y 5 000 líneas (≈ 50 000 tokens, 243 KB): tiempo total, duración de cada *tick* y desglose por operación.
+5. Modo consola: entrada `n`, `s`, sin ruta (la pide), archivo inexistente y **entrada cerrada** (`</dev/null`).
+6. Ensayo de extensibilidad en una copia: añadir `repetir` a `PALABRAS_RESERVADAS`.
+7. Mediciones `winfo_*` de la barra de herramientas y capturas reales (2.ª toma, tras corregir).
+
+### 3. Hallazgos
+
+| ID | Severidad | Archivo | Problema | Impacto | Prueba que lo reproduce | Estado |
+|---|---|---|---|---|---|---|
+| AUD-15 (O-1) | Sugerencia | `ui/interfaz.py` `_al_seleccionar_token` | Al elegir un token, el panel no cambia a «Modo educativo» | Ninguno: **B5.9 exige «sin cambiar de pestaña»**. En la captura original el driver hacía `selection_set` estando en Estadísticas; la explicación sí se escribía en la pestaña oculta | Driver ajustado: tras seleccionar se ve la explicación (captura 4) | No es defecto (comportamiento contratado) |
+| AUD-16 | Media | `ui/editor.py`, `ui/interfaz.py` | El aviso de cambio con *debounce* (300 ms) pendiente al pulsar Analizar se emitía después y, si el análisis ya había terminado (textos cortos), pasaba a `LISTO` con «los resultados están desactualizados» | Resultado correcto marcado como obsoleto; el aviso ocurría con el diálogo «¿ver tabla?» abierto | `test_auditoria_fase_b.test_aud16_…` (falla en `dc4e725`) | Corregido: `EditorCodigo.descartar_cambio_pendiente()` (también en `establecer_texto`), llamado al iniciar la sesión |
+| AUD-17 | **Alta** | `ui/paneles.py` `agregar_token`, `ui/componentes.py` `escribir`, `ui/editor.py` `resaltar_token_actual` | `Treeview.see`, `Text.see` se llamaban **una vez por token**; `Treeview.see` es lineal en el número de filas → coste cuadrático | 5 000 líneas: **79 s** de análisis y *ticks* que crecían hasta ~1 s (UI congelada); 3 000 líneas: 20 s (8 s solo en `see`) | `test_aud17_un_solo_desplazamiento_por_tick` (cuenta llamadas a `see`; falla en `dc4e725`) | Corregido: un único desplazamiento por ciclo de eventos (`after_idle`). Ahora 1 000 líneas 3,4 s (*tick* máx. 0,02 s); 5 000 líneas **5,7 s** (*tick* máx. 0,098 s) |
+| AUD-18 (O-4) | Baja | `ui/estilos.py` | El tema `clam` impone a `TButton` un ancho mínimo de 11 caracteres: «Abrir» medía 125 px como «Analizar» y, al ser planos, parecían separados de forma desigual | Barra visualmente desequilibrada | `test_aud18_…`; `winfo_width`: antes todos 125 px, ahora 58/80/104/131/94/75/68 | Corregido (`width=0` en el estilo) |
+| AUD-19 (O-5) | Baja | `ui/editor.py` `establecer_texto` | Tras cargar, la marca `insert` quedaba **al final** del texto (la barra de estado decía «Lín 1, Col 1», falso) y al terminar la vista quedaba en el último token | Editor desplazado al final tras analizar; primera tecla se escribía al final | `test_aud19_…` | Corregido: cursor a `1.0` al cargar; `resaltar_token_actual(None)` devuelve la vista al cursor (al inicio, o al último error estructural al que se navegó) |
+| AUD-20 (O-3) | Baja | `ui/paneles.py` | Cabecera «Cubeta» truncada (60 px); «Mensaje»/«Sugerencia» de Errores ilegibles en un panel de ~480 px | El usuario no ve el mensaje completo del manejador de errores (req. 4) sin desplazar en horizontal | `test_aud20_…` | Corregido: columna a 72 px y **detalle completo** (código, título, mensaje, sugerencia) bajo la tabla al seleccionar un error (captura 5) |
+| AUD-21 | Baja | `main.py` `_modo_consola` | `input()` sin manejo de `EOFError`/`KeyboardInterrupt`: con la entrada cerrada o Ctrl+D se imprimía una traza | Modo consola poco robusto (p. ej. `python main.py --consola x.flow < /dev/null`) | `test_aud21_…` (subproceso con `stdin=DEVNULL`) | Corregido: `_preguntar()` trata EOF/Ctrl+C como respuesta vacía |
+| AUD-22 | Sugerencia | `ui/interfaz.py` | Importación sin uso de `TEMA` | Código muerto | Inspección | Corregido |
+| AUD-23 (O-2) | Sugerencia | `ui/componentes.py` `PanelConsola` | La primera línea visible de la consola aparece cortada | Cosmético: `Text.see("end")` alinea la última línea abajo y el alto del panel no es múltiplo de la línea; no se pierde contenido | Captura 1/5 | No se corrige (comportamiento estándar del `Text` de Tk con desplazamiento por píxeles; cualquier alternativa corta la última línea, que es la importante) |
+| AUD-24 | Baja | `ui/interfaz.py` `_mostrar_error_archivo` | Los errores `ARC-*` de aperturas fallidas se **acumulan** en Errores y se mezclan con los de un análisis ya terminado; el contador de la barra no los incluye (15 vs 16 filas) | Confusión menor | Script de robustez: tras 5 aperturas fallidas, 5 filas | Escalado (E-7): B5.2 manda añadirlo a Errores; propuesta: limpiar filas `ARC-*` previas o reiniciar resultados al fallar la apertura |
+| AUD-25 | Sugerencia | `ui/paneles.py` `mostrar_explicacion` | Formatea `ExplicacionToken.detalle` partiendo el texto por `": "`; la 1.ª línea («Lexema … Categoría … Posición …») queda en un único campo (captura 4) | Acoplamiento al formato textual del servicio; cosmético | Captura 4 | Observación (E-8): si se permite, `ExplicacionToken` podría exponer los campos; hoy D-29 congela el servicio |
+| AUD-26 | Sugerencia | `ui/interfaz.py` `_al_editar` | Cada pausa al escribir re-tokeniza todo el texto: 0,5 s con 5 000 líneas | Ligera pausa al editar archivos grandes (los ejemplos tienen < 40 líneas) | Medición | Limitación documentada |
+| AUD-27 | Sugerencia | `ui/interfaz.py`, `ui/paneles.py`, `main.py` | El texto de veredicto («válido/inválido», «VÁLIDA/INVÁLIDA») se arma en tres sitios | Duplicación menor | Inspección | Observación |
+
+No hay colores ni reglas léxicas duplicadas en `ui/` (los colores solo en `ui/estilos.py`; el árbol del panel lateral y la tabla de transiciones del Modo educativo se leen de `config.reglas`). La UI solo importa `application/`, `config/` y los modelos de `core/modelos.py`. Funciones largas: `aplicar_tema` (49 líneas, lista de estilos) y `mostrar_estadisticas` (45, dibujo secuencial con funciones internas): aceptables. Ninguna prueba es vacía: cada una de las 12 de humo afirma conteos, estados o índices concretos.
+
+### 4. Correcciones aplicadas
+
+Archivos tocados (71 líneas añadidas, 8 quitadas): `ui/editor.py`, `ui/paneles.py`, `ui/componentes.py`, `ui/estilos.py`, `ui/interfaz.py`, `main.py`. No se tocó `core/`, `application/`, `config/` ni ninguna firma pública del contrato (solo se **añadió** `EditorCodigo.descartar_cambio_pendiente()` y la etiqueta `PanelResultados.detalle_error`).
+Pruebas nuevas: `tests/test_auditoria_fase_b.py` (6). Se comprobó que **las 6 fallan** sobre el código de `dc4e725` (exportado con `git archive`: 5 FAIL + 1 ERROR) y pasan tras las correcciones.
+
+### 5. Regresión
+
+| Momento | Resultado |
+|---|---|
+| Inicio (`dc4e725`) | `Ran 109 tests in 11.532s` · `OK` |
+| Tras AUD-16…AUD-22 (python3.14, Tk 9.0), ejecución final | `Ran 115 tests in 20.678s` · `OK` |
+| python3.11 / python3.12 (sin Tk) | `OK (skipped=17)` |
+| Copia con `repetir` añadido | 114/115: solo falla `test_conteos_de_flowlang_1_0` con su mensaje (D-32). Lexer, resaltado (`tok_PALABRA_RESERVADA`), panel lateral («Palabras reservadas (18)») y Modo educativo la reconocen sin tocar otro archivo → **criterio de la Fase B cumplido** |
+
+Correcciones de la Fase A vigentes: `tests/test_auditoria_fase_a.py` en verde; valores de la especificación §12 reproducidos (`test_integracion`); B0 aplicado (`TIPO_DATO_BOOLEANO`, `test_conteos_de_flowlang_1_0`, docstring de un solo uso).
+
+Robustez (script propio, 28 comprobaciones): todas OK tras las correcciones (antes: 2 fallos, AUD-16 y AUD-19). Rendimiento: abrir 5 000 líneas 0,55 s; tecla 0,01 s; análisis completo 5,7 s con el bucle de eventos atendido entre *ticks* (máx. 0,098 s).
+
+### 6. Verificación requisito por requisito del PDF
+
+| Req. | Evidencia | Estado |
+|---|---|---|
+| **1** Definir un lenguaje (20 pts) | FlowLang 1.0: `docs/03_especificacion.md`, `config/reglas.py` (17 reservadas, 4 AFD como datos); `tests/test_afd.py`, `tests/test_lexer.py` | **Cumple** |
+| **2** Verificar validez de la cadena (20 pts) | `core/lexer.py` (AFD por tablas, coincidencia más larga), `core/validador.py`; `ResultadoAnalisis.es_valida`; `test_integracion.test_correcto` (VÁLIDA) / `test_incorrecto` (INVÁLIDA); consola y Estadísticas muestran léxico/estructura/global (capturas 1, 3, 5) | **Cumple** |
+| **3** Tabla de símbolos por función hash (25 pts) | `core/simbolos.py` (hash polinomial propio, encadenamiento, redimensionado); entrada con lexema, categoría, tipo, valor, declaración, apariciones, hash, cubeta; `tests/test_simbolos.py`; UI en orden de cubeta con colisiones resaltadas (captura 2; `test_colisiones_en_el_resumen`: 14 y 7) | **Cumple** |
+| **4** Manejador de errores que informe al usuario (25 pts) | `core/errores.py` (LEX/SIN/ARC con código, mensaje y sugerencia), modo pánico; `tests/test_errores.py`; en la UI: pestaña Errores con detalle completo (AUD-20), marcas en el editor y ✗ en el margen (captura 5), `messagebox.showerror` para errores de archivo | **Cumple** |
+| **5a** Interfaz de errores **durante** la evaluación (10 pts) | `SesionAnalisis.siguiente_paso` + `VentanaPrincipal._consumir_paso`: cada diagnóstico se añade a Errores, consola y editor en el paso en que aparece; `test_ui_humo.test_errores_durante_la_evaluacion` (1 fila en Errores y marca en `2.11–2.14` con la sesión sin terminar), `test_progresividad`, `test_integracion.test_progresividad` | **Cumple** |
+| **5b** Alternativa **al final** de desplegar la tabla de símbolos | `_finalizar`: `askyesno("Análisis terminado", "…¿Desea ver la tabla de símbolos?")` + botón permanente «Ver tabla de símbolos» + pestaña habilitada solo al terminar; `test_flujo_completo_incorrecto` (una llamada, 18 filas), `test_progresividad` (deshabilitada a mitad); modo consola: `(s/n)` (`test_consola_incorrecto_con_tabla_y_sin_ruta`) | **Cumple** |
+| **6** Solicitar el archivo para iniciar | `main.py` → `VentanaPrincipal()` (`solicitar_archivo=True`) abre `askopenfilename` («Seleccione el archivo con las cadenas de entrada»); Analizar/Paso sin fuente vuelve a pedirlo (D-36); validación en `application/archivos.py`; `test_requisito_6_solicita_archivo`, `test_requisito_6_cancelado`, `tests/test_archivos.py`; consola: `input("Archivo de entrada: ")` | **Cumple** |
+
+Verificaciones M1–M3: cubiertas por las pruebas automáticas citadas y por las capturas reales (5 = estado final de M1; 2 = M2 aceptado). M4 (emoji): `test_fuera_del_bmp` en verde con Tk 9.0; con Tcl/Tk 8.6 queda como limitación visual documentada (D-34). Se recomienda que una persona repita M1–M3 en el equipo de la sustentación.
+
+### 7. Opinión sobre D-36…D-40
+
+| Decisión | Opinión | Motivo |
+|---|---|---|
+| **D-36** (Analizar activo en `SIN_FUENTE`; Abrir y Limpiar activos en `ANALIZANDO`) | **Aprobada** | Es la única forma de que el botón cumpla B5.1/req. 6. Abrir/Limpiar durante el análisis cancelan el temporizador limpiamente (verificado en la secuencia de robustez) |
+| **D-37** (`marcar_errores` acumula; subrayado del lexema del diagnóstico) | **Aprobada** | Necesario para la evaluación progresiva; `limpiar_marcas` se llama al reiniciar/editar, así que no quedan marcas viejas |
+| **D-38** (detectar Tk en un subproceso) | **Aprobada** | Reproducido el riesgo con Tk 9.0.4; coste ~1 s. La función está duplicada en `test_auditoria_fase_b.py` a propósito (evitar importar otro módulo de prueba) |
+| **D-39** (tabla de transiciones del AFD en el Modo educativo, leída de `reglas.AUTOMATAS`) | **Aprobada** | Cumple la arquitectura §9 sin tocar el servicio; ver AUD-25 sobre el formateo del detalle |
+| **D-40** (sin capturas) | **Superada** | El orquestador y esta auditoría tomaron capturas reales (`docs/capturas/`). La decisión fue correcta en su momento (no declarar lo no verificado) |
+
+### 8. Escalados al arquitecto
+
+| # | Tema | Propuesta |
+|---|---|---|
+| E-7 (AUD-24) | Errores de archivo acumulados en Errores tras aperturas fallidas | Al fallar `abrir_archivo`, quitar las filas `ARC-*` anteriores (o reiniciar resultados si no hay sesión) y contar el error en la barra de estado |
+| E-8 (AUD-25) | Modo educativo parsea texto | Si se relaja D-29, que `ExplicacionToken` exponga campos (posición, regla, recorrido) en vez de un `detalle` textual |
+
+Ninguno es bloqueante.
+
+### 9. Limitaciones conocidas
+
+- Re-resaltado completo al editar (0,5 s con 5 000 líneas; AUD-26). El análisis animado de archivos grandes supera los 3 s previstos (5,7 s con 5 000 líneas) por el coste de dibujo de Tk, pero la UI sigue respondiendo.
+- Primera línea de la consola cortada (AUD-23, cosmético).
+- Con Tcl/Tk 8.6, el resaltado de tokens posteriores a un emoji puede desplazarse (D-34); los tokens y posiciones del análisis son correctos.
+- `cargar_fuente("")` → `ARC-005` con nombre vacío (AUD-14, ya observado en la Fase A; visible en el modo consola si se pulsa Enter sin ruta).
+- B8 (manual, guía de sustentación, README ampliado) pendiente.
+
+### 10. Veredicto
+
+**APROBADO CON OBSERVACIONES.** Los seis requisitos del PDF se cumplen con evidencia ejecutada. La arquitectura por capas se respeta (UI sin lógica léxica, núcleo sin tkinter, colores y reglas en un único lugar). El único hallazgo alto (coste cuadrático al animar entradas grandes, que congelaba la UI ~1 s por *tick*), el medio (aviso de cambio fuera de tiempo) y los bajos de comportamiento (cursor al final tras cargar, EOF en consola, columnas truncadas, botones) están corregidos con pruebas que fallan sobre `dc4e725`. Quedan dos escalados menores (E-7, E-8) y la tarea B8.

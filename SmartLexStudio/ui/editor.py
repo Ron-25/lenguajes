@@ -26,6 +26,7 @@ class EditorCodigo(ttk.Frame):
         self._al_mover_cursor = al_mover_cursor
         self._id_cambio: str | None = None
         self._silencio = False
+        self._id_ver: str | None = None
         self._lineas_marcadas: set[int] = set()
         fuente = fuente_codigo(13)
 
@@ -88,10 +89,13 @@ class EditorCodigo(ttk.Frame):
     def establecer_texto(self, texto: str) -> None:
         """Reemplaza todo el contenido (sin disparar al_cambiar)."""
         estado = str(self.texto.cget("state"))
+        self.descartar_cambio_pendiente()
         self._silencio = True
         self.texto.configure(state="normal")
         self.texto.delete("1.0", "end")
         self.texto.insert("1.0", _normalizar(texto))
+        self.texto.mark_set("insert", "1.0")
+        self.texto.see("1.0")
         self.texto.edit_reset()
         self.texto.edit_modified(False)
         self.texto.configure(state=estado)
@@ -103,6 +107,12 @@ class EditorCodigo(ttk.Frame):
     def limpiar(self) -> None:
         """Vacia el editor."""
         self.establecer_texto("")
+
+    def descartar_cambio_pendiente(self) -> None:
+        """Anula el aviso de cambio aun no emitido (el texto actual ya se va a usar; AUD-16)."""
+        if self._id_cambio is not None:
+            self.after_cancel(self._id_cambio)
+            self._id_cambio = None
 
     def solo_lectura(self, activo: bool) -> None:
         """Bloquea o libera la edicion."""
@@ -137,13 +147,26 @@ class EditorCodigo(ttk.Frame):
         self._refrescar_margen()
 
     def resaltar_token_actual(self, token: Token | None) -> None:
-        """Resalta el token indicado y lo hace visible; None quita el resaltado."""
+        """Resalta el token indicado y lo hace visible; None quita el resaltado y vuelve
+        la vista al cursor (AUD-19)."""
         self.texto.tag_remove("actual", "1.0", "end")
         if token is None:
+            if self._id_ver is not None:
+                self.after_cancel(self._id_ver)
+                self._id_ver = None
+            self.texto.see("insert")
             return
         inicio = f"{token.linea}.{token.columna - 1}"
         self.texto.tag_add("actual", inicio, f"{inicio}+{token.longitud}c")
-        self.texto.see(inicio)
+        if self._id_ver is None:
+            self._id_ver = self.after_idle(self._ver_token_actual)
+
+    def _ver_token_actual(self) -> None:
+        """Hace visible el token resaltado una vez por ciclo de eventos (AUD-17)."""
+        self._id_ver = None
+        rango = self.texto.tag_ranges("actual")
+        if rango:
+            self.texto.see(rango[0])
 
     def ir_a(self, linea: int, columna: int) -> None:
         """Lleva el cursor a (linea, columna) desde 1 y da el foco al editor."""

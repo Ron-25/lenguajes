@@ -13,7 +13,7 @@ from config import reglas
 from core.modelos import Diagnostico, Token
 from ui.componentes import BarraEstado, BarraHerramientas, PanelConsola, PanelLateral
 from ui.editor import EditorCodigo
-from ui.estilos import TEMA, aplicar_tema
+from ui.estilos import aplicar_tema
 from ui.paneles import PanelResultados
 
 RETARDO_ANIMACION_MS = 20
@@ -189,6 +189,7 @@ class VentanaPrincipal(tk.Tk):
 
     def _iniciar_sesion(self) -> None:
         fuente = self.editor.obtener_texto()
+        self.editor.descartar_cambio_pendiente()
         self._reiniciar_resultados()
         self.sesion = SesionAnalisis(fuente)
         estimado = len(fuente) // 4
